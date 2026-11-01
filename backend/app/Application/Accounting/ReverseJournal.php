@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\DB;
 
 final class ReverseJournal
 {
-    public function execute(int $journalId, int $userId, string $reversalNumber): int
+    public function execute(int $journalId, int $userId, string $reversalNumber, string $postingDate): int
     {
-        return DB::transaction(function () use ($journalId, $userId, $reversalNumber) {
+        return DB::transaction(function () use ($journalId, $userId, $reversalNumber, $postingDate) {
             $original = DB::table('journals')->lockForUpdate()->find($journalId);
             if (! $original || $original->status !== 'posted') {
                 throw new \DomainException('Only posted journals can be reversed.');
@@ -19,12 +19,16 @@ final class ReverseJournal
                 throw new \DomainException('Reversal must be posted into an open accounting period.');
             }
 
+            if ($postingDate < $period->starts_on || $postingDate > $period->ends_on) {
+                throw new \DomainException('Reversal posting date is outside the selected accounting period.');
+            }
+
             $reversalId = DB::table('journals')->insertGetId([
                 'company_id' => $original->company_id,
                 'fiscal_year_id' => $original->fiscal_year_id,
                 'accounting_period_id' => $original->accounting_period_id,
                 'number' => $reversalNumber,
-                'posting_date' => now()->toDateString(),
+                'posting_date' => $postingDate,
                 'document_date' => $original->document_date,
                 'document_ref' => $original->document_ref,
                 'description' => 'STORNO: '.$original->description,
