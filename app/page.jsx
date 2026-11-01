@@ -132,9 +132,9 @@ button{cursor:pointer}.sidebar{height:100vh;position:sticky;top:0;padding:18px 1
 .aiPanel{padding:14px}.aiHead{display:flex;align-items:center;gap:10px}.orb{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--violet) 70%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--violet) 14%,var(--panel)),var(--panel));color:#c5adff;font-weight:900;box-shadow:0 0 24px color-mix(in srgb,var(--violet) 14%,transparent)}.aiHead small{color:#b39cff;font-size:9px;font-weight:900;letter-spacing:.1em}.aiHead h3{margin:3px 0 0;font-size:14px}.aiPanel p{color:var(--muted);font-size:10px;line-height:1.55}.confidence{margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--bg2)}.confidenceTop{display:flex;justify-content:space-between;font-size:10px}.bar{height:5px;background:var(--line);border-radius:99px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:92%;background:linear-gradient(90deg,var(--violet),var(--accent));border-radius:inherit}.audit{display:grid;gap:7px;margin-top:12px}.audit div{display:grid;grid-template-columns:24px 1fr;gap:7px;align-items:start}.audit i{width:24px;height:24px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:9px;color:var(--accent)}.audit b,.audit small{display:block}.audit b{font-size:9px}.audit small{font-size:8px;color:var(--muted);margin-top:2px}
 .drawer{position:fixed;right:0;top:0;height:100vh;width:min(420px,94vw);background:color-mix(in srgb,var(--panel) 98%,transparent);border-left:1px solid var(--line);z-index:50;box-shadow:-30px 0 90px #0006;padding:18px;transform:translateX(100%);transition:.18s ease}.drawer.open{transform:none}.drawerHead{display:flex;justify-content:space-between;align-items:center}.drawerHead h3{margin:0;font-size:17px}.drawerClose{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;width:34px;height:34px}.drawerMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.drawerMeta div{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--bg2)}.drawerMeta small,.drawerMeta b{display:block}.drawerMeta small{color:var(--muted);font-size:8px}.drawerMeta b{font-size:11px;margin-top:4px}.drawerSection{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}.drawerSection h4{font-size:10px;margin:0 0 9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .command{position:fixed;inset:0;background:#0008;z-index:80;display:grid;place-items:start center;padding-top:12vh}.commandBox{width:min(620px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 100px #000a;overflow:hidden}.commandBox input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:15px;outline:none}.commandList{padding:8px;display:grid;gap:4px}.commandList button{border:0;background:transparent;color:var(--text);padding:10px;border-radius:9px;text-align:left}.commandList button:hover{background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
-.customGrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:10px}.widget{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden;min-height:150px;grid-column:span 4}.widget.s{grid-column:span 3}.widget.m{grid-column:span 4}.widget.l{grid-column:span 6}.widget.xl{grid-column:span 12}.widget.dragging{opacity:.45}.widgetHead{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}.dragHandle{border:0;background:transparent;color:var(--muted);font-size:14px;padding:2px 4px;cursor:grab}.widgetHead strong{font-size:11px}.widgetHead small{margin-left:auto;color:var(--muted);font-size:8px}.widgetBody{padding:12px}.widgetMetric{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.widgetSub{font-size:9px;color:var(--muted);margin-top:4px}.miniBars{height:92px;display:flex;align-items:end;gap:7px;padding-top:10px}.miniBars i{flex:1;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent2) 72%,var(--accent)));min-height:8px;opacity:.86}.miniList{display:grid;gap:7px}.miniList div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:7px 0;font-size:10px}.miniList span{color:var(--muted)}.customizer{position:fixed;inset:0;background:#0008;z-index:90;display:grid;place-items:center;padding:18px}.customBox{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 100px #000a}.customHead{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line)}.customHead h3{margin:0;font-size:15px}.customBody{padding:14px}.presetRow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.widgetCatalog{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.widgetOption{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg2);display:grid;grid-template-columns:1fr auto;gap:7px}.widgetOption b{font-size:11px}.widgetOption small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.widgetOption button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:6px 8px;font-size:9px}.sizeRow{display:flex;gap:4px;grid-column:1/-1}.sizeRow button.on{border-color:var(--accent);color:var(--accent)}.mobileNav{display:none}.hamb{display:none}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.tr.row:focus-visible{outline-offset:-2px}
-@media(max-width:1100px){.app{grid-template-columns:208px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.aiPanel{display:grid;grid-template-columns:1fr 1fr;gap:14px}.kpis{grid-template-columns:repeat(2,1fr)}.widget.s,.widget.m{grid-column:span 6}.widget.l,.widget.xl{grid-column:span 12}}
-@media(max-width:760px){.app{display:block;padding-bottom:66px}.customGrid{display:block}.widget{margin-bottom:8px}.widgetCatalog{grid-template-columns:1fr}.sidebar{position:fixed;left:-270px;width:248px;transition:.18s;box-shadow:30px 0 80px #0007}.sidebar.open{left:0}.hamb{display:inline-grid;place-items:center;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;width:36px;height:36px}.topbar{padding:12px 13px;min-height:76px}.headCopy h1{font-size:18px}.headCopy p,.seg,.commandBtn,.avatar{display:none}.content{padding:12px}.hero{align-items:flex-start}.hero h2{font-size:18px}.heroActions .secondary{display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.kpi{min-height:92px;padding:10px}.kpi strong{font-size:19px}.workspace{display:block}.aiPanel{display:block;margin-top:8px}.table{min-width:0}.tr{grid-template-columns:1fr .8fr .8fr;gap:7px;padding:9px 10px}.tr.head span:nth-child(2),.tr.head span:nth-child(4),.tr.row span:nth-child(2),.tr.row span:nth-child(4){display:none}.toolbar{flex-wrap:wrap}.search{flex-basis:100%}.mobileNav{display:grid;position:fixed;bottom:0;left:0;right:0;grid-template-columns:repeat(5,1fr);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--line);z-index:30}.mobileNav button{border:0;background:transparent;color:var(--muted);padding:10px 3px;min-height:56px;font-size:9px}.mobileNav button b{display:block;font-size:15px;color:inherit}.mobileNav button.on{color:var(--accent)}}
+.customGrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:10px}.widget{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden;min-height:150px;grid-column:span 4}.widget.s{grid-column:span 3}.widget.m{grid-column:span 4}.widget.l{grid-column:span 6}.widget.xl{grid-column:span 12}.widget.dragging{opacity:.45}.widgetHead{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}.dragHandle{border:0;background:transparent;color:var(--muted);font-size:14px;padding:2px 4px;cursor:grab}.widgetHead strong{font-size:11px}.widgetHead small{margin-left:auto;color:var(--muted);font-size:8px}.widgetBody{padding:12px}.widgetMetric{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.widgetSub{font-size:9px;color:var(--muted);margin-top:4px}.miniBars{height:92px;display:flex;align-items:end;gap:7px;padding-top:10px}.miniBars i{flex:1;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent2) 72%,var(--accent)));min-height:8px;opacity:.86}.miniList{display:grid;gap:7px}.miniList div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:7px 0;font-size:10px}.miniList span{color:var(--muted)}.customizer{position:fixed;inset:0;background:#0008;z-index:90;display:grid;place-items:center;padding:18px}.customBox{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 100px #000a}.customHead{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line)}.customHead h3{margin:0;font-size:15px}.customBody{padding:14px}.presetRow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.widgetCatalog{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.widgetOption{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg2);display:grid;grid-template-columns:1fr auto;gap:7px}.widgetOption b{font-size:11px}.widgetOption small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.widgetOption button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:6px 8px;font-size:9px}.sizeRow{display:flex;gap:4px;grid-column:1/-1}.sizeRow button.on{border-color:var(--accent);color:var(--accent)}.identityGrid{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;margin-top:10px}.identityCard{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.identityHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}.identityHead h3{margin:0;font-size:12px}.identityBody{padding:12px}.companySwitch{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:8px 10px;font-size:10px;max-width:180px}.personRow,.sessionRow,.auditRow2{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:10px}.personRow small,.sessionRow small,.auditRow2 small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.roleBadge{width:max-content;border:1px solid var(--line);border-radius:999px;padding:4px 7px;background:var(--bg2);font-size:8px}.securityTile{border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--bg2);margin-bottom:8px}.securityTile b,.securityTile small{display:block}.securityTile small{font-size:9px;color:var(--muted);margin-top:3px}.userBtn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:50%;width:36px;height:36px;font-size:10px;font-weight:800}.userPopover{position:absolute;right:24px;top:68px;width:240px;border:1px solid var(--line);background:var(--panel);border-radius:14px;box-shadow:0 18px 60px #0008;padding:10px;z-index:40}.userPopover b,.userPopover small{display:block}.userPopover small{font-size:9px;color:var(--muted);margin-top:2px}.userPopover button{width:100%;margin-top:8px}.mobileNav{display:none}.hamb{display:none}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.tr.row:focus-visible{outline-offset:-2px}
+@media(max-width:1100px){.app{grid-template-columns:208px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.aiPanel{display:grid;grid-template-columns:1fr 1fr;gap:14px}.kpis{grid-template-columns:repeat(2,1fr)}.widget.s,.widget.m{grid-column:span 6}.widget.l,.widget.xl{grid-column:span 12}.identityGrid{grid-template-columns:1fr}}
+@media(max-width:760px){.app{display:block;padding-bottom:66px}.customGrid{display:block}.widget{margin-bottom:8px}.widgetCatalog{grid-template-columns:1fr}.companySwitch{max-width:120px}.personRow,.sessionRow,.auditRow2{grid-template-columns:1fr .7fr}.personRow>*:nth-child(3),.sessionRow>*:nth-child(3),.auditRow2>*:nth-child(3){display:none}.sidebar{position:fixed;left:-270px;width:248px;transition:.18s;box-shadow:30px 0 80px #0007}.sidebar.open{left:0}.hamb{display:inline-grid;place-items:center;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;width:36px;height:36px}.topbar{padding:12px 13px;min-height:76px}.headCopy h1{font-size:18px}.headCopy p,.seg,.commandBtn,.avatar{display:none}.content{padding:12px}.hero{align-items:flex-start}.hero h2{font-size:18px}.heroActions .secondary{display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.kpi{min-height:92px;padding:10px}.kpi strong{font-size:19px}.workspace{display:block}.aiPanel{display:block;margin-top:8px}.table{min-width:0}.tr{grid-template-columns:1fr .8fr .8fr;gap:7px;padding:9px 10px}.tr.head span:nth-child(2),.tr.head span:nth-child(4),.tr.row span:nth-child(2),.tr.row span:nth-child(4){display:none}.toolbar{flex-wrap:wrap}.search{flex-basis:100%}.mobileNav{display:grid;position:fixed;bottom:0;left:0;right:0;grid-template-columns:repeat(5,1fr);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--line);z-index:30}.mobileNav button{border:0;background:transparent;color:var(--muted);padding:10px 3px;min-height:56px;font-size:9px}.mobileNav button b{display:block;font-size:15px;color:inherit}.mobileNav button.on{color:var(--accent)}}
 `;
 
 function toneClass(t){return "kpi "+t}
@@ -155,6 +155,62 @@ const presets={
  "Likvidnost":["cash","receivables","tasks"]
 };
 const defaultLayout=presets["Računovodja"].map(id=>({id,size:widgetDefs[id].size}));
+
+const companies=[
+ {id:1,name:"Demo d.o.o.",tax:"SI12345678"},
+ {id:2,name:"Studio Delta d.o.o.",tax:"SI87654321"},
+ {id:3,name:"C-PARK d.o.o.",tax:"SI24681357"}
+];
+const teamUsers=[
+ {name:"Dalibor Draškovič",email:"dalibor@example.si",role:"Owner",twoFactor:true},
+ {name:"Ana Kovač",email:"ana@example.si",role:"Accountant",twoFactor:true},
+ {name:"Miha Zupan",email:"miha@example.si",role:"Operator",twoFactor:false},
+ {name:"Nina Horvat",email:"nina@example.si",role:"Viewer",twoFactor:false}
+];
+const sessions=[
+ {device:"Chrome · Windows 11",place:"Slovenija",when:"aktivna zdaj"},
+ {device:"Safari · iPhone",place:"Slovenija",when:"pred 2 urama"}
+];
+const securityAudit=[
+ {event:"Prijava uspešna",actor:"Dalibor",when:"23:08"},
+ {event:"Preklop podjetja",actor:"Dalibor",when:"22:54"},
+ {event:"Vloga uporabnika spremenjena",actor:"Admin",when:"včeraj"}
+];
+
+function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor}){
+ return <div className="identityGrid">
+   <section className="identityCard">
+     <div className="identityHead"><h3>Uporabniki in vloge</h3><button className="primary">＋ Povabi uporabnika</button></div>
+     <div className="identityBody">
+       {teamUsers.map(u=><div className="personRow" key={u.email}><div><b>{u.name}</b><small>{u.email}</small></div><span className="roleBadge">{u.role}</span><span style={{color:u.twoFactor?"var(--ok)":"var(--warn)"}}>{u.twoFactor?"2FA vključena":"2FA priporočena"}</span></div>)}
+     </div>
+   </section>
+   <div>
+     <section className="identityCard">
+       <div className="identityHead"><h3>Aktivno podjetje</h3></div>
+       <div className="identityBody">
+         <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+         <div className="securityTile" style={{marginTop:10}}><b>{companies.find(x=>x.id===company)?.name}</b><small>{companies.find(x=>x.id===company)?.tax} · aktivni tenant</small></div>
+       </div>
+     </section>
+     <section className="identityCard" style={{marginTop:10}}>
+       <div className="identityHead"><h3>Varnost</h3></div>
+       <div className="identityBody">
+         <div className="securityTile"><b>Dvofaktorska prijava</b><small>{twoFactor?"TOTP je vključena. Recovery codes so pripravljene.":"Za Owner/Admin bo v produkciji obvezna."}</small><button className="secondary" style={{marginTop:8}} onClick={()=>setTwoFactor(v=>!v)}>{twoFactor?"Izključi demo 2FA":"Vključi demo 2FA"}</button></div>
+         <div className="securityTile"><b>Preverjen e-mail</b><small>dalibor@example.si · verificirano</small></div>
+       </div>
+     </section>
+   </div>
+   <section className="identityCard">
+     <div className="identityHead"><h3>Aktivne seje</h3><button className="secondary">Odjavi druge seje</button></div>
+     <div className="identityBody">{sessions.map(s=><div className="sessionRow" key={s.device}><div><b>{s.device}</b><small>{s.place}</small></div><span>{s.when}</span><span className="roleBadge">Varna seja</span></div>)}</div>
+   </section>
+   <section className="identityCard">
+     <div className="identityHead"><h3>Varnostna revizijska sled</h3><span style={{fontSize:9,color:"var(--muted)"}}>append-only</span></div>
+     <div className="identityBody">{securityAudit.map((a,i)=><div className="auditRow2" key={i}><div><b>{a.event}</b><small>{a.actor}</small></div><span>{a.when}</span><span className="roleBadge">zabeleženo</span></div>)}</div>
+   </section>
+ </div>
+}
 
 function DashboardWidget({item,onDragStart,onDrop}){
  const d=widgetDefs[item.id];
@@ -183,10 +239,13 @@ export default function Page(){
  const [layout,setLayout]=useState(defaultLayout);
  const [customizer,setCustomizer]=useState(false);
  const [dragId,setDragId]=useState(null);
+ const [company,setCompany]=useState(1);
+ const [twoFactor,setTwoFactor]=useState(true);
+ const [userPanel,setUserPanel]=useState(false);
  const current=moduleData[section];
  useEffect(()=>{
    try{const saved=localStorage.getItem("finai:workspace:demo-user");if(saved)setLayout(JSON.parse(saved))}catch{}
-   const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false)}};
+   const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false);setUserPanel(false)}};
    window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler)
  },[]);
  useEffect(()=>{try{localStorage.setItem("finai:workspace:demo-user",JSON.stringify(layout))}catch{}},[layout]);
@@ -211,9 +270,10 @@ export default function Page(){
        <div className="topActions">
          <button className="commandBtn" onClick={()=>setCommand(true)}>Hitri ukazi <kbd>Ctrl K</kbd></button>
          <div className="seg"><button className={!compact?"on":""} onClick={()=>setCompact(false)}>Udobno</button><button className={compact?"on":""} onClick={()=>setCompact(true)}>Kompaktno</button></div>
+         <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
          <button className="themeBtn" onClick={()=>setLight(v=>!v)}>{light?"☾":"☀"}</button>
          <button className="iconBtn">♢</button>
-         <div className="avatar">DD</div>
+         <button className="userBtn" onClick={()=>setUserPanel(v=>!v)}>DD</button>
        </div>
      </header>
 
@@ -226,6 +286,7 @@ export default function Page(){
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
 
        {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
+       {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
 
        <div className="workspace">
          <article className="panel">
@@ -253,6 +314,8 @@ export default function Page(){
        </div>
      </main>
    </section>
+
+   {userPanel&&<div className="userPopover"><b>Dalibor Draškovič</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{setSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
 
    <div className={"drawer "+(drawer?"open":"")}>
      <div className="drawerHead"><div><small style={{color:"var(--accent)",fontWeight:800}}>KONTEKSTNI PREDAL</small><h3>{drawer?.[0]||"Podrobnosti"}</h3></div><button className="drawerClose" onClick={()=>setDrawer(null)}>×</button></div>
