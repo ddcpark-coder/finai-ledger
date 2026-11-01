@@ -13,5 +13,5 @@
 11. AI odločitve morajo biti razložljive, sledljive in pri kritičnih postopkih omogočati človeško potrditev.
 12. Zaključenih knjižb se ne prepisuje neposredno; uporabljajo se korekcije oziroma storno postopki.
 13. FURS, banke, AJPES in druge zunanje integracije se najprej preverjajo v testnem okolju.
-14. Aplikacija mora biti responsive, večjezično pripravljena in dostopna na desktopu, tablici in telefonu.
+14. Aplikacija mora biti responsive, večjezično pripravljena in dostopna na desktopu, tablici in telefonu; glavni workspace mora omogočati uporabniško prilagodljive widgete, velikosti in postavitve.
 15. Varnost, zakonodajna skladnost, pravilnost podatkov in možnost rollbacka imajo prednost pred hitrostjo razvoja.
