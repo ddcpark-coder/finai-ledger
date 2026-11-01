@@ -132,13 +132,45 @@ button{cursor:pointer}.sidebar{height:100vh;position:sticky;top:0;padding:18px 1
 .aiPanel{padding:14px}.aiHead{display:flex;align-items:center;gap:10px}.orb{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--violet) 70%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--violet) 14%,var(--panel)),var(--panel));color:#c5adff;font-weight:900;box-shadow:0 0 24px color-mix(in srgb,var(--violet) 14%,transparent)}.aiHead small{color:#b39cff;font-size:9px;font-weight:900;letter-spacing:.1em}.aiHead h3{margin:3px 0 0;font-size:14px}.aiPanel p{color:var(--muted);font-size:10px;line-height:1.55}.confidence{margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--bg2)}.confidenceTop{display:flex;justify-content:space-between;font-size:10px}.bar{height:5px;background:var(--line);border-radius:99px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:92%;background:linear-gradient(90deg,var(--violet),var(--accent));border-radius:inherit}.audit{display:grid;gap:7px;margin-top:12px}.audit div{display:grid;grid-template-columns:24px 1fr;gap:7px;align-items:start}.audit i{width:24px;height:24px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:9px;color:var(--accent)}.audit b,.audit small{display:block}.audit b{font-size:9px}.audit small{font-size:8px;color:var(--muted);margin-top:2px}
 .drawer{position:fixed;right:0;top:0;height:100vh;width:min(420px,94vw);background:color-mix(in srgb,var(--panel) 98%,transparent);border-left:1px solid var(--line);z-index:50;box-shadow:-30px 0 90px #0006;padding:18px;transform:translateX(100%);transition:.18s ease}.drawer.open{transform:none}.drawerHead{display:flex;justify-content:space-between;align-items:center}.drawerHead h3{margin:0;font-size:17px}.drawerClose{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;width:34px;height:34px}.drawerMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.drawerMeta div{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--bg2)}.drawerMeta small,.drawerMeta b{display:block}.drawerMeta small{color:var(--muted);font-size:8px}.drawerMeta b{font-size:11px;margin-top:4px}.drawerSection{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}.drawerSection h4{font-size:10px;margin:0 0 9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .command{position:fixed;inset:0;background:#0008;z-index:80;display:grid;place-items:start center;padding-top:12vh}.commandBox{width:min(620px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 100px #000a;overflow:hidden}.commandBox input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:15px;outline:none}.commandList{padding:8px;display:grid;gap:4px}.commandList button{border:0;background:transparent;color:var(--text);padding:10px;border-radius:9px;text-align:left}.commandList button:hover{background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
-.mobileNav{display:none}.hamb{display:none}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.tr.row:focus-visible{outline-offset:-2px}
-@media(max-width:1100px){.app{grid-template-columns:208px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.aiPanel{display:grid;grid-template-columns:1fr 1fr;gap:14px}.kpis{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.app{display:block;padding-bottom:66px}.sidebar{position:fixed;left:-270px;width:248px;transition:.18s;box-shadow:30px 0 80px #0007}.sidebar.open{left:0}.hamb{display:inline-grid;place-items:center;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;width:36px;height:36px}.topbar{padding:12px 13px;min-height:76px}.headCopy h1{font-size:18px}.headCopy p,.seg,.commandBtn,.avatar{display:none}.content{padding:12px}.hero{align-items:flex-start}.hero h2{font-size:18px}.heroActions .secondary{display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.kpi{min-height:92px;padding:10px}.kpi strong{font-size:19px}.workspace{display:block}.aiPanel{display:block;margin-top:8px}.table{min-width:0}.tr{grid-template-columns:1fr .8fr .8fr;gap:7px;padding:9px 10px}.tr.head span:nth-child(2),.tr.head span:nth-child(4),.tr.row span:nth-child(2),.tr.row span:nth-child(4){display:none}.toolbar{flex-wrap:wrap}.search{flex-basis:100%}.mobileNav{display:grid;position:fixed;bottom:0;left:0;right:0;grid-template-columns:repeat(5,1fr);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--line);z-index:30}.mobileNav button{border:0;background:transparent;color:var(--muted);padding:10px 3px;min-height:56px;font-size:9px}.mobileNav button b{display:block;font-size:15px;color:inherit}.mobileNav button.on{color:var(--accent)}}
+.customGrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:10px}.widget{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden;min-height:150px;grid-column:span 4}.widget.s{grid-column:span 3}.widget.m{grid-column:span 4}.widget.l{grid-column:span 6}.widget.xl{grid-column:span 12}.widget.dragging{opacity:.45}.widgetHead{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}.dragHandle{border:0;background:transparent;color:var(--muted);font-size:14px;padding:2px 4px;cursor:grab}.widgetHead strong{font-size:11px}.widgetHead small{margin-left:auto;color:var(--muted);font-size:8px}.widgetBody{padding:12px}.widgetMetric{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}.widgetSub{font-size:9px;color:var(--muted);margin-top:4px}.miniBars{height:92px;display:flex;align-items:end;gap:7px;padding-top:10px}.miniBars i{flex:1;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent2) 72%,var(--accent)));min-height:8px;opacity:.86}.miniList{display:grid;gap:7px}.miniList div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:7px 0;font-size:10px}.miniList span{color:var(--muted)}.customizer{position:fixed;inset:0;background:#0008;z-index:90;display:grid;place-items:center;padding:18px}.customBox{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 100px #000a}.customHead{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line)}.customHead h3{margin:0;font-size:15px}.customBody{padding:14px}.presetRow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.widgetCatalog{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.widgetOption{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg2);display:grid;grid-template-columns:1fr auto;gap:7px}.widgetOption b{font-size:11px}.widgetOption small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.widgetOption button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:6px 8px;font-size:9px}.sizeRow{display:flex;gap:4px;grid-column:1/-1}.sizeRow button.on{border-color:var(--accent);color:var(--accent)}.mobileNav{display:none}.hamb{display:none}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.tr.row:focus-visible{outline-offset:-2px}
+@media(max-width:1100px){.app{grid-template-columns:208px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.aiPanel{display:grid;grid-template-columns:1fr 1fr;gap:14px}.kpis{grid-template-columns:repeat(2,1fr)}.widget.s,.widget.m{grid-column:span 6}.widget.l,.widget.xl{grid-column:span 12}}
+@media(max-width:760px){.app{display:block;padding-bottom:66px}.customGrid{display:block}.widget{margin-bottom:8px}.widgetCatalog{grid-template-columns:1fr}.sidebar{position:fixed;left:-270px;width:248px;transition:.18s;box-shadow:30px 0 80px #0007}.sidebar.open{left:0}.hamb{display:inline-grid;place-items:center;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;width:36px;height:36px}.topbar{padding:12px 13px;min-height:76px}.headCopy h1{font-size:18px}.headCopy p,.seg,.commandBtn,.avatar{display:none}.content{padding:12px}.hero{align-items:flex-start}.hero h2{font-size:18px}.heroActions .secondary{display:none}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.kpi{min-height:92px;padding:10px}.kpi strong{font-size:19px}.workspace{display:block}.aiPanel{display:block;margin-top:8px}.table{min-width:0}.tr{grid-template-columns:1fr .8fr .8fr;gap:7px;padding:9px 10px}.tr.head span:nth-child(2),.tr.head span:nth-child(4),.tr.row span:nth-child(2),.tr.row span:nth-child(4){display:none}.toolbar{flex-wrap:wrap}.search{flex-basis:100%}.mobileNav{display:grid;position:fixed;bottom:0;left:0;right:0;grid-template-columns:repeat(5,1fr);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--line);z-index:30}.mobileNav button{border:0;background:transparent;color:var(--muted);padding:10px 3px;min-height:56px;font-size:9px}.mobileNav button b{display:block;font-size:15px;color:inherit}.mobileNav button.on{color:var(--accent)}}
 `;
 
 function toneClass(t){return "kpi "+t}
 function statusChip(value){return <span className="chip">{value}</span>}
+
+const widgetDefs={
+ cash:{title:"Denarni tok",desc:"Prihodki, odhodki in trend",size:"l"},
+ tasks:{title:"Moje naloge",desc:"Odprte prioritete",size:"m"},
+ ai:{title:"AI Copilot",desc:"Predlogi in avtomatizacija",size:"m"},
+ deadlines:{title:"Davčni roki",desc:"Roki in tveganja",size:"m"},
+ activity:{title:"Aktivnosti",desc:"Revizijska sled",size:"m"},
+ receivables:{title:"Terjatve",desc:"Odprte in zapadle postavke",size:"m"}
+};
+const presets={
+ "Podjetnik":["cash","receivables","deadlines","tasks"],
+ "Računovodja":["tasks","ai","deadlines","activity","cash","receivables"],
+ "DDV":["deadlines","tasks","ai","activity"],
+ "Likvidnost":["cash","receivables","tasks"]
+};
+const defaultLayout=presets["Računovodja"].map(id=>({id,size:widgetDefs[id].size}));
+
+function DashboardWidget({item,onDragStart,onDrop}){
+ const d=widgetDefs[item.id];
+ const body={
+  cash:<><div className="widgetMetric">40.360 €</div><div className="widgetSub">ocenjeni prosti denarni tok · +18,7 %</div><div className="miniBars">{[42,58,46,72,66,88,74,92].map((h,i)=><i key={i} style={{height:h+"%"}}/>)}</div></>,
+  tasks:<div className="miniList"><div><span>Prejeti računi</span><b>7</b></div><div><span>Bančne postavke</span><b>3</b></div><div><span>AI predlogi</span><b>24</b></div></div>,
+  ai:<><div className="widgetMetric">92 %</div><div className="widgetSub">povprečna gotovost predlogov</div><div className="miniList"><div><span>Za odobritev</span><b>18</b></div><div><span>Samodejno</span><b>16</b></div></div></>,
+  deadlines:<div className="miniList"><div><span>DDV-O</span><b>20. 12.</b></div><div><span>REK-O</span><b>18. 12.</b></div><div><span>VIES</span><b>20. 12.</b></div></div>,
+  activity:<div className="miniList"><div><span>Račun potrjen</span><b>09:41</b></div><div><span>Knjižba ustvarjena</span><b>09:15</b></div><div><span>DDV kontrola</span><b>09:02</b></div></div>,
+  receivables:<><div className="widgetMetric">24.560 €</div><div className="widgetSub">odprte terjatve</div><div className="miniList"><div><span>Zapadlo</span><b>3.240 €</b></div><div><span>Do 7 dni</span><b>6.880 €</b></div></div></>
+ }[item.id];
+ return <article className={"widget "+item.size} draggable onDragStart={()=>onDragStart(item.id)} onDragOver={e=>e.preventDefault()} onDrop={()=>onDrop(item.id)}>
+   <div className="widgetHead"><button className="dragHandle" aria-label="Premakni widget">⋮⋮</button><strong>{d.title}</strong><small>{d.desc}</small></div>
+   <div className="widgetBody">{body}</div>
+ </article>
+}
 
 export default function Page(){
  const [section,setSection]=useState("Nadzorna plošča");
@@ -148,11 +180,20 @@ export default function Page(){
  const [command,setCommand]=useState(false);
  const [menu,setMenu]=useState(false);
  const [query,setQuery]=useState("");
+ const [layout,setLayout]=useState(defaultLayout);
+ const [customizer,setCustomizer]=useState(false);
+ const [dragId,setDragId]=useState(null);
  const current=moduleData[section];
  useEffect(()=>{
-   const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false)}};
+   try{const saved=localStorage.getItem("finai:workspace:demo-user");if(saved)setLayout(JSON.parse(saved))}catch{}
+   const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false)}};
    window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler)
  },[]);
+ useEffect(()=>{try{localStorage.setItem("finai:workspace:demo-user",JSON.stringify(layout))}catch{}},[layout]);
+ const applyPreset=(name)=>setLayout(presets[name].map(id=>({id,size:widgetDefs[id].size})));
+ const toggleWidget=(id)=>setLayout(items=>items.some(x=>x.id===id)?items.filter(x=>x.id!==id):[...items,{id,size:widgetDefs[id].size}]);
+ const setWidgetSize=(id,size)=>setLayout(items=>items.map(x=>x.id===id?{...x,size}:x));
+ const dropWidget=(target)=>{if(!dragId||dragId===target)return;setLayout(items=>{const next=[...items];const from=next.findIndex(x=>x.id===dragId),to=next.findIndex(x=>x.id===target);const [moved]=next.splice(from,1);next.splice(to,0,moved);return next});setDragId(null)};
  const rows=useMemo(()=>current.rows.filter(r=>r.join(" ").toLowerCase().includes(query.toLowerCase())),[current,query]);
  const mobile=[["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Knjiženje","⇄"],["Banka","◇"],["Nastavitve","⚙"]];
  return <div className={"app "+(light?"light ":"")+(compact?"compact":"")}>
@@ -179,10 +220,12 @@ export default function Page(){
      <main className="content">
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":"Hitro delo z visoko gostoto podatkov in jasnim kontekstom."}</p></div>
-         <div className="heroActions"><button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
+         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
        </div>
 
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
+
+       {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
 
        <div className="workspace">
          <article className="panel">
@@ -217,6 +260,15 @@ export default function Page(){
      <div className="drawerSection"><h4>AI razlaga</h4><p style={{fontSize:11,color:"var(--muted)",lineHeight:1.6}}>Predlog temelji na potrjenih preteklih vnosih, pravilih podjetja in trenutnem računovodskem kontekstu. Pred knjiženjem je na voljo pregled vseh postavk.</p></div>
      <div className="drawerSection"><h4>Hitra dejanja</h4><div style={{display:"grid",gap:8}}><button className="primary">Odobri in nadaljuj</button><button className="secondary">Odpri celoten zapis</button><button className="secondary">Prikaži revizijsko sled</button></div></div></>}
    </div>
+
+   {customizer&&<div className="customizer" onMouseDown={e=>{if(e.target===e.currentTarget)setCustomizer(false)}}><div className="customBox">
+     <div className="customHead"><div><small style={{color:"var(--accent)",fontWeight:800}}>PERSONALIZACIJA</small><h3>Uredi glavni pogled</h3></div><button className="drawerClose" onClick={()=>setCustomizer(false)}>×</button></div>
+     <div className="customBody">
+       <div className="presetRow">{Object.keys(presets).map(name=><button className="secondary" key={name} onClick={()=>applyPreset(name)}>{name}</button>)}<button className="secondary" onClick={()=>setLayout(defaultLayout)}>Ponastavi</button></div>
+       <div className="widgetCatalog">{Object.entries(widgetDefs).map(([id,d])=>{const item=layout.find(x=>x.id===id);return <div className="widgetOption" key={id}><div><b>{d.title}</b><small>{d.desc}</small></div><button onClick={()=>toggleWidget(id)}>{item?"Skrij":"Dodaj"}</button>{item&&<div className="sizeRow"><span style={{fontSize:9,color:"var(--muted)",padding:"6px 4px"}}>Velikost:</span>{["s","m","l","xl"].map(size=><button className={item.size===size?"on":""} key={size} onClick={()=>setWidgetSize(id,size)}>{size.toUpperCase()}</button>)}</div>}</div>})}</div>
+       <p style={{fontSize:10,color:"var(--muted)",marginBottom:0}}>Postavitev se v tem MVP-ju shrani lokalno za uporabnika. V produkciji se bo shranjevala v uporabniški profil v bazi.</p>
+     </div>
+   </div></div>}
 
    {command&&<div className="command" onMouseDown={e=>{if(e.target===e.currentTarget)setCommand(false)}}><div className="commandBox"><input autoFocus placeholder="Vpiši ukaz ali modul ..." onKeyDown={e=>{if(e.key==="Enter")setCommand(false)}}/><div className="commandList">{nav.slice(0,6).map(([label,icon])=><button key={label} onClick={()=>{setSection(label);setCommand(false)}}>{icon} &nbsp; Odpri {label}</button>)}</div></div></div>}
 
