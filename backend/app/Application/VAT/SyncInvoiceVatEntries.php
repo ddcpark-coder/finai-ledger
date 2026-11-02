@@ -60,7 +60,11 @@ final class SyncInvoiceVatEntries
                     throw new \DomainException('Invalid VAT tax code.');
                 }
 
-                $tags = json_decode($taxCode->metadata ?? '{}', true)['reporting_tags'] ?? [];
+                $metadata = json_decode($taxCode->metadata ?? '{}', true) ?? [];
+                $tags = $metadata['reporting_tags'] ?? [];
+                $deductiblePercent = $isIncoming ? (float) ($metadata['deductible_percent'] ?? 0) : 0;
+                $deductiblePercent = max(0, min(100, $deductiblePercent));
+                $deductibleTax = round(((float) $line->tax_amount) * ($deductiblePercent / 100), 2);
 
                 DB::table('vat_entries')->insert([
                     'company_id' => $period->company_id,
@@ -69,12 +73,13 @@ final class SyncInvoiceVatEntries
                     'tax_code_id' => $line->tax_code_id,
                     'source_type' => $sourceType,
                     'source_id' => $sourceId,
+                    'source_line_no' => $line->line_no,
                     'document_date' => $invoice->issue_date,
                     'document_number' => $isIncoming ? $invoice->invoice_number : $invoice->number,
                     'direction' => $isIncoming ? 'input' : 'output',
                     'taxable_base' => $line->net_amount,
                     'tax_amount' => $line->tax_amount,
-                    'deductible_tax_amount' => $isIncoming ? $line->tax_amount : 0,
+                    'deductible_tax_amount' => $deductibleTax,
                     'country_code' => $partner?->country_code ?? 'SI',
                     'partner_vat_id' => $partner?->vat_id,
                     'reporting_tags' => json_encode($tags),
