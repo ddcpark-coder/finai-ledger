@@ -30,8 +30,16 @@ final class VerifyPartner
             ? $this->vat->verify($partner->vat_id)
             : ['checked' => false, 'valid' => null];
 
+        $registryOk = (bool) ($registryResult['valid'] ?? $registryResult['found'] ?? false);
+        $vatChecked = (bool) ($vatResult['checked'] ?? false);
+        $vatValid = $vatResult['valid'] ?? null;
+        $verificationStatus = $registryOk && (! $vatChecked || $vatValid === true)
+            ? 'verified'
+            : 'review';
+
         DB::table('partners')->where('id', $partnerId)->update([
-            'verified_at' => now(),
+            'last_checked_at' => now(),
+            'verification_status' => $verificationStatus,
             'verification_source' => $partner->country_code === 'SI' ? 'registry+vat' : 'vat',
             'updated_at' => now(),
         ]);
