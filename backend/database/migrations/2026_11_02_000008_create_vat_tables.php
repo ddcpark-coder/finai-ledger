@@ -33,6 +33,7 @@ return new class extends Migration {
             $table->foreignId('tax_code_id')->constrained();
             $table->string('source_type', 30);
             $table->unsignedBigInteger('source_id');
+            $table->unsignedInteger('source_line_no')->default(1);
             $table->date('document_date');
             $table->string('document_number', 120)->nullable();
             $table->string('direction', 20);
@@ -44,7 +45,7 @@ return new class extends Migration {
             $table->json('reporting_tags')->nullable();
             $table->timestamps();
 
-            $table->unique(['company_id', 'source_type', 'source_id', 'tax_code_id'], 'vat_entry_source_unique');
+            $table->unique(['company_id', 'source_type', 'source_id', 'source_line_no'], 'vat_entry_source_unique');
             $table->index(['vat_period_id', 'direction']);
             $table->index(['partner_vat_id', 'country_code']);
         });
