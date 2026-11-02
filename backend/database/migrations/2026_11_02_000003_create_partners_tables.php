@@ -22,7 +22,8 @@ return new class extends Migration {
             $table->unsignedSmallInteger('payment_terms_days')->default(15);
             $table->string('status', 20)->default('active');
             $table->string('risk_level', 20)->default('normal');
-            $table->timestamp('verified_at')->nullable();
+            $table->timestamp('last_checked_at')->nullable();
+            $table->string('verification_status', 20)->default('unverified');
             $table->string('verification_source', 30)->nullable();
             $table->timestamps();
 
