@@ -27,7 +27,7 @@ Osnovni podatki:
 - plačilni rok
 - status
 - risk level
-- čas in vir zadnje verifikacije
+- čas zadnjega preverjanja, rezultat in vir verifikacije
 
 ## Saldakonti
 JournalEntry in OpenItem imata partner_id. To omogoča:
@@ -46,7 +46,7 @@ Integracijska sloja sta namerno definirana kot interface:
 - PartnerRegistryVerifier — slovenski poslovni register / drug register;
 - VatNumberVerifier — VAT/VIES preverjanje.
 
-FAZA 5 ne simulira produkcijske verifikacije. Dejanski ponudnik in pogodbeni/API pogoji se konfigurirajo ločeno.
+FAZA 5 ne simulira produkcijske verifikacije. Dejanski ponudnik in pogodbeni/API pogoji se konfigurirajo ločeno. Sistem loči čas zadnjega preverjanja od rezultata (`verified` / `review` / `unverified`).
 
 ## Kontrole
 - ime partnerja je obvezno;
