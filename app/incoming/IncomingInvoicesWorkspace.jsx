@@ -13,6 +13,7 @@ export default function IncomingInvoicesWorkspace(){
  const [status,setStatus]=useState("Vsi");
  const [selected,setSelected]=useState(invoices[0]);
  const [approved,setApproved]=useState(false);
+ const [aiDecision,setAiDecision]=useState(null);
  const list=useMemo(()=>invoices.filter(x=>{
    const q=query.toLowerCase();
    return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status);
@@ -35,7 +36,7 @@ export default function IncomingInvoicesWorkspace(){
    .confidenceRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:10px}.confidenceBar{height:6px;background:var(--line);border-radius:99px;overflow:hidden}.confidenceBar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--accent));border-radius:inherit}
    .invoiceSection{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.invoiceSection h4{margin:0 0 8px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
    .lineItem{display:grid;grid-template-columns:1.3fr .65fr .65fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:9px}.lineItem span:last-child,.lineItem b{text-align:right}
-   .aiBox{border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--violet) 6%,var(--panel))}.aiBox b,.aiBox small{display:block}.aiBox small{font-size:8px;color:var(--muted);margin-top:3px}
+   .aiBox{border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--violet) 6%,var(--panel))}.aiBox b,.aiBox small{display:block}.aiBox small{font-size:8px;color:var(--muted);margin-top:3px}.aiExplain{margin-top:8px;display:grid;gap:6px}.aiSignal{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:6px;font-size:8px}.aiSignal span{color:var(--muted)}.aiActions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.aiActions button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:7px 6px;font-size:8px}.aiActions button.on{border-color:var(--accent);color:var(--accent)}.anomaly{margin-top:8px;border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line));border-radius:9px;padding:8px;background:color-mix(in srgb,var(--warn) 6%,var(--panel));font-size:8px}.anomaly b{color:var(--warn)}
    .statusStrip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 12px 12px}.statusStrip div{border:1px solid var(--line);border-radius:8px;padding:7px;text-align:center;font-size:8px;color:var(--muted)}.statusStrip .on{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
    @media(max-width:1100px){.incomingGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow{grid-template-columns:1.3fr .8fr .7fr}.invoiceRow>*:nth-child(2),.invoiceRow>*:nth-child(4){display:none}.detailGrid{grid-template-columns:1fr}.statusStrip{grid-template-columns:1fr 1fr 1fr}.incomingTools input{width:100%}}
    `}</style>
@@ -46,7 +47,7 @@ export default function IncomingInvoicesWorkspace(){
        <div className="dropZone"><b>Spusti PDF, XML ali e-račun sem</b><small>Original ostane varen; OCR/XML/AI obdelava poteka ločeno.</small></div>
        <div className="statusStrip"><div className="on">Prejeto</div><div className="on">Obdelava</div><div className="on">Pregled</div><div>Odobreno</div><div>Knjiženo</div></div>
        <div className="invoiceRow head"><span>Partner / račun</span><span>Datum / rok</span><span>Znesek</span><span>OCR / AI</span><span>Status</span></div>
-       {list.map(x=><button className="invoiceRow" key={x.id} onClick={()=>{setSelected(x);setApproved(false)}}>
+       {list.map(x=><button className="invoiceRow" key={x.id} onClick={()=>{setSelected(x);setApproved(false);setAiDecision(null)}}>
          <span><b>{x.partner}</b><small>{x.number} · {x.id}</small></span>
          <span><b>{x.date}</b><small>rok {x.due}</small></span>
          <b className="invoiceAmount">{x.gross}</b>
@@ -78,7 +79,19 @@ export default function IncomingInvoicesWorkspace(){
        </div>
 
        <div className="invoiceSection"><h4>AI predlog knjiženja</h4>
-         <div className="aiBox"><b>{selected.account==="—"?"Predlog še ni pripravljen":selected.account+" · stroškovno mesto "+selected.cost}</b><small>{selected.ai?selected.ai+" % gotovost · predlog zahteva pregled":"Čaka na uspešno ekstrakcijo dokumenta."}</small></div>
+         <div className="aiBox">
+           <b>{selected.account==="—"?"Predlog še ni pripravljen":selected.account+" · stroškovno mesto "+selected.cost}</b>
+           <small>{selected.ai?selected.ai+" % gotovost · "+(selected.ai>=98?"kandidat za avtomatizacijo":selected.ai>=90?"visoka gotovost, pregled":"zahteva pregled"):"Čaka na uspešno ekstrakcijo dokumenta."}</small>
+           {selected.ai>0&&<div className="aiExplain">
+             <div className="aiSignal"><span>Pravilo partnerja</span><b>{selected.partner==="Merkur d.o.o."?"ujema se":"ni determinističnega ujemanja"}</b></div>
+             <div className="aiSignal"><span>Potrjena zgodovina</span><b>{selected.partner==="Merkur d.o.o."?"18 podobnih knjižb":"6 podobnih knjižb"}</b></div>
+             <div className="aiSignal"><span>Predlagan DDV</span><b>{selected.vat}</b></div>
+             <div className="aiSignal"><span>Risk signal</span><b>{selected.partner==="Merkur d.o.o."?"brez":"brez"}</b></div>
+           </div>}
+           {selected.partner==="Merkur d.o.o."&&<div className="anomaly"><b>Kontrola anomalij: brez kritičnega odstopanja</b><div style={{marginTop:3,color:"var(--muted)"}}>Znesek in vzorec sta skladna z zgodovino partnerja.</div></div>}
+           {selected.ai>0&&<div className="aiActions"><button className={aiDecision==="accepted"?"on":""} onClick={()=>setAiDecision("accepted")}>Potrdi</button><button className={aiDecision==="modified"?"on":""} onClick={()=>setAiDecision("modified")}>Spremeni</button><button className={aiDecision==="rejected"?"on":""} onClick={()=>setAiDecision("rejected")}>Zavrni</button></div>}
+           {aiDecision&&<small style={{marginTop:7,color:"var(--accent)"}}>Feedback “{aiDecision==="accepted"?"potrjeno":aiDecision==="modified"?"spremenjeno":"zavrnjeno"}” bo uporabljen kot učni dogodek.</small>}
+         </div>
        </div>
 
        <div className="invoiceSection"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>
