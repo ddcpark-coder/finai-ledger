@@ -2,6 +2,7 @@
 
 namespace App\Application\VAT;
 
+use App\Domain\VAT\VatMath;
 use Illuminate\Support\Facades\DB;
 
 final class BuildVatReturn
@@ -26,8 +27,8 @@ final class BuildVatReturn
                 'deductible_input_tax' => (string) $entries->where('direction', 'input')->sum('deductible_tax_amount'),
             ];
 
-            $fields['vat_payable'] = (string) (
-                (float) $fields['output_tax'] - (float) $fields['deductible_input_tax']
+            $fields['vat_payable'] = VatMath::fromCents(
+                VatMath::toCents($fields['output_tax']) - VatMath::toCents($fields['deductible_input_tax'])
             );
 
             $version = ((int) DB::table('vat_returns')
