@@ -34,7 +34,10 @@ Hrani:
 - odbitni DDV;
 - državo;
 - VAT ID partnerja;
-- reporting tags.
+- reporting tags;
+- odbitni delež vstopnega DDV prek konfiguracije DDV oznake.
+
+Vstopni DDV se ne šteje avtomatsko kot 100 % odbiten. Če tax_code nima eksplicitnega `deductible_percent`, je privzeta odbitnost 0 %, dokler konfiguracija ni potrjena.
 
 ## DDV-O
 BuildVatReturn iz evidenc ustvari verzioniran osnutek DDV obračuna. calculated_fields ostajajo interni izračuni; natančen mapping na aktualno DDV-O XML shemo izvede VatReturnExporter.
