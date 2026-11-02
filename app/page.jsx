@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import PartnerWorkspace from "./partners/PartnerWorkspace";
+import IncomingInvoicesWorkspace from "./incoming/IncomingInvoicesWorkspace";
 
 const nav=[
 ["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Izdani računi","▧"],["Knjiženje","⇄"],
@@ -356,8 +357,9 @@ export default function Page(){
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
        {section==="Knjiženje"&&<AccountingCorePanel/>}
        {section==="Partnerji"&&<PartnerWorkspace/>}
+       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace/>}
 
-       {section!=="Knjiženje"&&section!=="Partnerji"&&<div className="workspace">
+       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>
