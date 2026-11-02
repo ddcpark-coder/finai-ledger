@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 final class BuildIssuedInvoiceJournal
 {
-    public function execute(int $invoiceId, int $userId, int $receivableAccountId): int
+    public function execute(int $invoiceId, int $userId, int $receivableAccountId, ?int $outputVatAccountId = null): int
     {
-        return DB::transaction(function () use ($invoiceId, $userId, $receivableAccountId) {
+        return DB::transaction(function () use ($invoiceId, $userId, $receivableAccountId, $outputVatAccountId) {
             $invoice = DB::table('issued_invoices')->lockForUpdate()->find($invoiceId);
             if (! $invoice || ! in_array($invoice->status, ['issued', 'sent', 'partially_paid', 'paid'], true)) {
                 throw new \DomainException('Invoice must be issued before posting.');
@@ -103,21 +103,25 @@ final class BuildIssuedInvoiceJournal
             }
 
             if ((float) $invoice->tax_amount > 0) {
-                $taxAccountId = DB::table('accounts')
+                if (! $outputVatAccountId) {
+                    throw new \DomainException('Output VAT account must be configured explicitly.');
+                }
+
+                $taxAccount = DB::table('accounts')
+                    ->where('id', $outputVatAccountId)
                     ->where('company_id', $invoice->company_id)
-                    ->where('code', '2600')
                     ->where('active', true)
                     ->where('postable', true)
-                    ->value('id');
+                    ->first();
 
-                if (! $taxAccountId) {
-                    throw new \DomainException('Output VAT account is not configured.');
+                if (! $taxAccount) {
+                    throw new \DomainException('Invalid output VAT account.');
                 }
 
                 $entries[] = [
                     'journal_id' => $journalId,
                     'line_no' => $lineNo,
-                    'account_id' => $taxAccountId,
+                    'account_id' => $outputVatAccountId,
                     'partner_id' => $invoice->partner_id,
                     'description' => 'Izhodni DDV '.$invoice->number,
                     'debit' => 0,
