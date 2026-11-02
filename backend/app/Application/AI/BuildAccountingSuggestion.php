@@ -71,6 +71,49 @@ final class BuildAccountingSuggestion
             $proposal['reason'] .= ' Reinforced by approved posting history.';
         }
 
+        if (! empty($proposal['account_id'])) {
+            $accountValid = DB::table('accounts')
+                ->where('id', $proposal['account_id'])
+                ->where('company_id', $invoice->company_id)
+                ->where('active', true)
+                ->where('postable', true)
+                ->exists();
+
+            if (! $accountValid) {
+                $proposal['account_id'] = null;
+                $proposal['reason'] .= ' Proposed account was rejected by tenant/account validation.';
+                $confidence = min($confidence, 65.0);
+            }
+        }
+
+        if (! empty($proposal['tax_code_id'])) {
+            $taxCodeValid = DB::table('tax_codes')
+                ->where('id', $proposal['tax_code_id'])
+                ->where('company_id', $invoice->company_id)
+                ->where('active', true)
+                ->exists();
+
+            if (! $taxCodeValid) {
+                $proposal['tax_code_id'] = null;
+                $proposal['reason'] .= ' Proposed tax code was rejected by tenant validation.';
+                $confidence = min($confidence, 65.0);
+            }
+        }
+
+        if (! empty($proposal['cost_center_id'])) {
+            $costCenterValid = DB::table('cost_centers')
+                ->where('id', $proposal['cost_center_id'])
+                ->where('company_id', $invoice->company_id)
+                ->where('active', true)
+                ->exists();
+
+            if (! $costCenterValid) {
+                $proposal['cost_center_id'] = null;
+                $proposal['reason'] .= ' Proposed cost center was rejected by tenant validation.';
+                $confidence = min($confidence, 65.0);
+            }
+        }
+
         $riskLevel = ($partner?->risk_level && $partner->risk_level !== 'normal') ? 'review' : 'normal';
         $classification = ConfidencePolicy::classify($confidence, $riskLevel);
 
