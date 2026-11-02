@@ -2,10 +2,10 @@
 import {useMemo,useState} from "react";
 
 const invoices=[
- {id:"IR-2026-0054",number:"2026-0054",partner:"ABC d.o.o.",gross:"1.220,00 €",issue:"02. 11. 2026",due:"17. 11. 2026",status:"Plačano",delivery:"E-pošta",sent:true,paid:true},
- {id:"IR-2026-0053",number:"2026-0053",partner:"Gamma d.o.o.",gross:"2.440,00 €",issue:"01. 11. 2026",due:"16. 11. 2026",status:"Poslano",delivery:"e-račun",sent:true,paid:false},
- {id:"IR-2026-0052",number:"—",partner:"Studio Kreativ s.p.",gross:"915,00 €",issue:"—",due:"—",status:"Osnutek",delivery:"—",sent:false,paid:false},
- {id:"IR-2026-0051",number:"2026-0051",partner:"Delta d.o.o.",gross:"1.830,00 €",issue:"25. 10. 2026",due:"30. 10. 2026",status:"Zapadlo",delivery:"E-pošta",sent:true,paid:false}
+ {id:"IR-2026-0054",number:"2026-0054",partner:"ABC d.o.o.",net:"1.000,00 €",tax:"220,00 €",gross:"1.220,00 €",issue:"02. 11. 2026",due:"17. 11. 2026",status:"Plačano",delivery:"E-pošta",sent:true,paid:true},
+ {id:"IR-2026-0053",number:"2026-0053",partner:"Gamma d.o.o.",net:"2.000,00 €",tax:"440,00 €",gross:"2.440,00 €",issue:"01. 11. 2026",due:"16. 11. 2026",status:"Poslano",delivery:"e-račun",sent:true,paid:false},
+ {id:"IR-2026-0052",number:"—",partner:"Studio Kreativ s.p.",net:"750,00 €",tax:"165,00 €",gross:"915,00 €",issue:"—",due:"—",status:"Osnutek",delivery:"—",sent:false,paid:false},
+ {id:"IR-2026-0051",number:"2026-0051",partner:"Delta d.o.o.",net:"1.500,00 €",tax:"330,00 €",gross:"1.830,00 €",issue:"25. 10. 2026",due:"30. 10. 2026",status:"Zapadlo",delivery:"E-pošta",sent:true,paid:false}
 ];
 
 export default function IssuedInvoicesWorkspace(){
@@ -68,8 +68,8 @@ export default function IssuedInvoicesWorkspace(){
        </div>
 
        <div className="invoiceSection2"><h4>Postavke</h4>
-         <div className="line2"><span>Storitev / projekt</span><span>1 ×</span><b>1.000,00 €</b><span>22 % DDV</span></div>
-         <div className="totals"><div><span>Neto</span><b>1.000,00 €</b></div><div><span>DDV</span><b>220,00 €</b></div><div><span>Skupaj</span><b>{selected.gross}</b></div></div>
+         <div className="line2"><span>Storitev / projekt</span><span>1 ×</span><b>{selected.net}</b><span>22 % DDV</span></div>
+         <div className="totals"><div><span>Neto</span><b>{selected.net}</b></div><div><span>DDV</span><b>{selected.tax}</b></div><div><span>Skupaj</span><b>{selected.gross}</b></div></div>
        </div>
 
        <div className="invoiceSection2"><h4>Terjatev in knjiženje</h4>
