@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReserveSalesOrderInventory
 {
-    public function execute(int $salesOrderReservationId,int $warehouseId,int $userId,?int $locationId=null): int
+    public function execute(int $salesOrderReservationId,int $warehouseId,int $locationId,int $userId): int
     {
         return DB::transaction(function () use ($salesOrderReservationId,$warehouseId,$locationId) {
             $request=DB::table('sales_order_reservations')->lockForUpdate()->find($salesOrderReservationId);
