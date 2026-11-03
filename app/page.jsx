@@ -2,7 +2,8 @@
 import {useEffect,useMemo,useState} from "react";
 import dynamic from "next/dynamic";
 import {defaultNavigation as nav} from "./modules/moduleRegistry";
-import ContextNavigation,{getDefaultContext} from "./components/ContextNavigation";
+import ContextNavigation from "./components/ContextNavigation";
+import {getDefaultContext} from "./modules/contextNavigation";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
