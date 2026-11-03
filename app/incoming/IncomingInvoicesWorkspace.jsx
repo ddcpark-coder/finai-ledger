@@ -8,7 +8,9 @@ const invoices=[
  {id:"PR-2026-0185",partner:"Lidl Slovenija",number:"LIDL-2026-7788",gross:"214,50 €",date:"30. 10. 2026",due:"14. 11. 2026",status:"Napaka",ocr:0,ai:0,vat:"—",account:"—",cost:"—"}
 ];
 
-export default function IncomingInvoicesWorkspace(){
+export default function IncomingInvoicesWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Vsi";
  const [query,setQuery]=useState("");
  const [status,setStatus]=useState("Vsi");
  const [selected,setSelected]=useState(invoices[0]);
@@ -16,8 +18,13 @@ export default function IncomingInvoicesWorkspace(){
  const [aiDecision,setAiDecision]=useState(null);
  const list=useMemo(()=>invoices.filter(x=>{
    const q=query.toLowerCase();
-   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status);
- }),[query,status]);
+   const contextMatch=section==="Pregled"?(subView==="V obdelavi"?x.status==="Obdelava":subView==="Novo"?x.status==="Pregled":true)
+    :section==="Za pregled"?(subView==="Napake"?x.status==="Napaka":subView==="OCR"?x.ocr>0&&x.status!=="Odobreno":x.ai>0&&x.status==="Pregled")
+    :section==="Odobritve"?(subView==="Odobreno"?x.status==="Odobreno":subView==="Zavrnjeno"?false:x.status==="Pregled")
+    :section==="Knjiženje"?(subView==="Predlog"?x.account!=="—":subView==="Temeljnica"?x.status==="Odobreno":x.status==="Odobreno")
+    :true;
+   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status)&&contextMatch;
+ }),[query,status,section,subView]);
 
  return <section className="incomingWorkspace">
    <style>{`
@@ -41,12 +48,14 @@ export default function IncomingInvoicesWorkspace(){
    @media(max-width:1100px){.incomingGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow{grid-template-columns:1.3fr .8fr .7fr}.invoiceRow>*:nth-child(2),.invoiceRow>*:nth-child(4){display:none}.detailGrid{grid-template-columns:1fr}.statusStrip{grid-template-columns:1fr 1fr 1fr}.incomingTools input{width:100%}}
    `}</style>
 
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · pregled prikaznih podatkov</div>
    <div className="incomingGrid">
      <article className="incomingCard">
-       <div className="incomingHead"><h3>Prejeti računi</h3><div className="incomingTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja ali račun ..."/><select value={status} onChange={e=>setStatus(e.target.value)}><option>Vsi</option><option>Pregled</option><option>Odobreno</option><option>Obdelava</option><option>Napaka</option></select><button className="primary">＋ Naloži račun</button></div></div>
+       <div className="incomingHead"><h3>Prejeti računi · {section} / {subView}</h3><div className="incomingTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja ali račun ..."/><select value={status} onChange={e=>setStatus(e.target.value)}><option>Vsi</option><option>Pregled</option><option>Odobreno</option><option>Obdelava</option><option>Napaka</option></select><button className="primary">＋ Naloži račun</button></div></div>
        <div className="dropZone"><b>Spusti PDF, XML ali e-račun sem</b><small>Original ostane varen; OCR/XML/AI obdelava poteka ločeno.</small></div>
        <div className="statusStrip"><div className="on">Prejeto</div><div className="on">Obdelava</div><div className="on">Pregled</div><div>Odobreno</div><div>Knjiženo</div></div>
        <div className="invoiceRow head"><span>Partner / račun</span><span>Datum / rok</span><span>Znesek</span><span>OCR / AI</span><span>Status</span></div>
+       {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>V demonstracijskih podatkih ni zapisov za izbrani pogled.</p>}
        {list.map(x=><button className="invoiceRow" key={x.id} onClick={()=>{setSelected(x);setApproved(false);setAiDecision(null)}}>
          <span><b>{x.partner}</b><small>{x.number} · {x.id}</small></span>
          <span><b>{x.date}</b><small>rok {x.due}</small></span>
