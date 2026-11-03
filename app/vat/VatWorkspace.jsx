@@ -8,7 +8,9 @@ const rows=[
  {id:"VAT-004",doc:"PR-2026-0187",partner:"Petrol d.d.",dir:"Vstopni",base:"262,30 €",tax:"57,70 €",deduct:"57,70 €",country:"SI",tag:"DDV-O"}
 ];
 
-export default function VatWorkspace(){
+export default function VatWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Obdobje";
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
  const [approved,setApproved]=useState(false);
@@ -19,8 +21,11 @@ export default function VatWorkspace(){
  ]);
  const filtered=useMemo(()=>rows.filter(r=>{
    const q=query.toLowerCase();
-   return (!q||[r.doc,r.partner,r.tag].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||r.dir===filter);
- }),[query,filter]);
+   const subFilter=section==="DDV evidence"?(subView==="Vstopni DDV"?"Vstopni":subView==="Izhodni DDV"?"Izhodni":null):null;
+   const euOnly=section==="DDV evidence"&&subView==="EU transakcije";
+   return (!q||[r.doc,r.partner,r.tag].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||r.dir===filter)
+     &&(!subFilter||r.dir===subFilter)&&(!euOnly||r.country!=="SI");
+ }),[query,filter,section,subView]);
 
  return <section className="vatWorkspace">
    <style>{`
@@ -44,14 +49,14 @@ export default function VatWorkspace(){
 
    <div className="flow10"><div className="on">Evidence</div><div className="on">Kontrole</div><div className={approved?"on":""}>Odobritev</div><div>Oddaja eDavki</div></div>
 
-   <div className="vatGrid">
-     <article className="vatCard">
-       <div className="vatHead"><h3>DDV evidence · 11/2026</h3><div className="vatTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči dokument ali partnerja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Vstopni</option><option>Izhodni</option></select><button className="secondary" onClick={()=>setControls(x=>x)}>Zaženi kontrole</button></div></div>
+   <div className="vatGrid" style={section!=="Pregled"?{gridTemplateColumns:"minmax(0,1fr)"}:{}}>
+     {(section==="Pregled"||section==="DDV evidence")&&<article className="vatCard">
+       <div className="vatHead"><h3>DDV evidence · {section==="DDV evidence"?subView:"11/2026"}</h3><div className="vatTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči dokument ali partnerja ..."/>{section==="Pregled"&&<select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Vstopni</option><option>Izhodni</option></select>}<button className="secondary" onClick={()=>setControls(x=>x)}>Zaženi kontrole</button></div></div>
        <div className="vatRow head"><span>Dokument</span><span>Partner</span><span>Smer</span><span>Osnova</span><span>DDV</span><span>Poročilo</span></div>
        {filtered.map(r=><div className="vatRow" key={r.id}><span><b>{r.doc}</b><small style={{display:"block",color:"var(--muted)",fontSize:8}}>{r.id}</small></span><span>{r.partner}</span><span>{r.dir}</span><b className="money">{r.base}</b><b className="money">{r.tax}</b><span className="tag">{r.tag}</span></div>)}
-     </article>
+     </article>}
 
-     <aside className="vatCard returnBox">
+     {(section==="Pregled"||section==="DDV-O")&&<aside className="vatCard returnBox">
        <span className="tag">{approved?"Odobreno":"Osnutek"}</span>
        <h3 style={{marginTop:9}}>DDV-O · 11/2026</h3><small>Interni izračun · verzija 1</small>
        <div className="returnMeta"><div><small>Obdobje</small><b>01.–30. 11. 2026</b></div><div><small>Rok oddaje</small><b>20. 12. 2026</b></div><div><small>RP-O</small><b>Potrebno</b></div><div><small>Status</small><b>{approved?"Odobreno":"V pripravi"}</b></div></div>
@@ -67,7 +72,22 @@ export default function VatWorkspace(){
        <div className="vatSec"><h4>RP-O / VIES</h4><div className="calcLine"><span>EU partnerji</span><strong>1</strong></div><div className="calcLine"><span>Vrednost</span><strong>2.000,00 €</strong></div><button className="secondary" style={{width:"100%",marginTop:8}}>Preglej rekapitulacijo</button></div>
 
        <div className="vatSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={approved} onClick={()=>setApproved(true)}>{approved?"Odobreno":"Odobri DDV obračun"}</button><button className="secondary">Generiraj XML osnutek</button><button className="secondary">Prikaži audit sled</button></div></div>
-     </aside>
+     </aside>}
+
+     {section==="RP-O / VIES"&&<article className="vatCard" style={{padding:14}}><h3>RP-O / VIES · {subView}</h3><div className="vatSec"><h4>Rekapitulacijsko poročilo</h4><div className="calcLine"><span>Gamma GmbH · DE · EU transakcije</span><strong>2.000,00 €</strong></div><div className="calcLine"><span>EU partnerji</span><strong>1</strong></div></div></article>}
+     {section==="Kontrole"&&<article className="vatCard" style={{padding:14}}><h3>DDV kontrole · {subView}</h3><div className="vatSec">{controls.filter(c=>
+       subView==="Napake"?c.sev==="error":subView==="Opozorila"?c.sev==="warning":c.sev==="ok"
+     ).map(c=><div className={"control "+c.sev} key={c.title}><b>{c.title}</b><small>{c.text}</small></div>)}
+     {subView==="Napake"&&<p>V demonstracijskih podatkih ni odprtih kontrolnih napak.</p>}</div></article>}
+     {section==="Obdobja"&&<article className="vatCard" style={{padding:14}}><h3>Davčna obdobja · {subView}</h3>{[
+       {key:"09/2026",state:"Zaklenjeno"},{key:"10/2026",state:"Zaklenjeno"},{key:"11/2026",state:"Odprto"}
+     ].filter(p=>subView==="Pretekla"?p.key!=="11/2026":subView==="Odprto"?p.state==="Odprto":p.state==="Zaklenjeno")
+      .map(p=><div className="calcLine" key={p.key}><span>{p.key}</span><strong>{p.state}</strong></div>)}</article>}
+     {section==="Oddaja"&&<article className="vatCard" style={{padding:14}}><h3>Oddaja DDV · {subView}</h3><div className="vatSec">
+       <div className="calcLine"><span>Obračun</span><strong>DDV-O 11/2026</strong></div>
+       <div className="calcLine"><span>Status</span><strong>{approved?"Odobren za nadaljnjo pripravo":"Osnutek"}</strong></div>
+       <p>Priprava in spremljanje oddaje potekata prek ločenega modula eDavki / FURS. Ta prikaz je demonstracijski; oddaja na FURS se tukaj ne izvede.</p>
+     </div></article>}
    </div>
  </section>
 }
