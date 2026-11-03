@@ -22,14 +22,16 @@ const communications=[
 
 const stageOrder=["Kvalifikacija","Odkrivanje","Ponudba","Pogajanja"];
 
-export default function CrmWorkspace(){
+export default function CrmWorkspace({context}){
  const [query,setQuery]=useState("");
  const [selected,setSelected]=useState(deals[0]);
- const [view,setView]=useState("Pipeline");
+ const view=({"Pregled":"Pipeline","Lead-i":"Leadi","Priložnosti":"Pipeline","Kontakti":"Kontakti","Aktivnosti":"Aktivnosti","Napoved":"Napoved"})[context?.level2]??"Pipeline";
+ const subView=context?.level3??"KPI";
  const filtered=useMemo(()=>deals.filter(d=>{
    const q=query.toLowerCase();
-   return !q||[d.name,d.partner,d.id].join(" ").toLowerCase().includes(q);
- }),[query]);
+   const matches=!q||[d.name,d.partner,d.id].join(" ").toLowerCase().includes(q);
+   return matches&&(context?.level2!=="Priložnosti"||subView==="Pipeline"||(subView==="Moje"?d.owner==="DD":false));
+ }),[query,context?.level2,subView]);
  const pipelineValue=deals.reduce((s,d)=>s+d.value,0);
  const weighted=deals.reduce((s,d)=>s+d.value*d.prob/100,0);
 
@@ -51,7 +53,7 @@ export default function CrmWorkspace(){
    <div className="crmKpi"><small>Naslednje aktivnosti</small><b>{activities.length}</b></div>
   </div>
 
-  <div className="crmTabs"><button className={view==="Pipeline"?"on":""} onClick={()=>setView("Pipeline")}>Pipeline</button><button className={view==="Leadi"?"on":""} onClick={()=>setView("Leadi")}>Leadi</button><button className={view==="Aktivnosti"?"on":""} onClick={()=>setView("Aktivnosti")}>Aktivnosti</button></div>
+
 
   {view==="Pipeline"&&<div className="crmGrid">
    <article className="crmCard">
@@ -68,8 +70,19 @@ export default function CrmWorkspace(){
    </aside>
   </div>}
 
-  {view==="Leadi"&&<article className="crmCard"><div className="crmHead"><h3>Leadi</h3><button className="primary">＋ Nov lead</button></div><div className="listRow head"><span>Lead</span><span>Vir</span><span>Vrednost</span><span>Score</span></div><div className="listRow"><b>Hotel Panorama</b><span>Priporočilo</span><span>8.000 €</span><span className="score">84</span></div><div className="listRow"><b>Nova trgovina Center</b><span>Splet</span><span>5.500 €</span><span className="score">72</span></div><div className="listRow"><b>Občina Projekt X</b><span>Dogodek</span><span>18.000 €</span><span className="score">91</span></div></article>}
+  {view==="Leadi"&&<article className="crmCard"><div className="crmHead"><h3>Lead-i · {subView}</h3><button className="primary">＋ Nov lead</button></div><div className="listRow head"><span>Lead</span><span>Vir</span><span>Vrednost</span><span>Score</span></div><div className="listRow"><b>Hotel Panorama</b><span>Priporočilo</span><span>8.000 €</span><span className="score">84</span></div><div className="listRow"><b>Nova trgovina Center</b><span>Splet</span><span>5.500 €</span><span className="score">72</span></div><div className="listRow"><b>Občina Projekt X</b><span>Dogodek</span><span>18.000 €</span><span className="score">91</span></div></article>}
 
-  {view==="Aktivnosti"&&<article className="crmCard"><div className="crmHead"><h3>Moje naslednje aktivnosti</h3><button className="primary">＋ Nova aktivnost</button></div>{activities.map((a,i)=><div className="listRow" key={i}><b>{a.time}</b><span>{a.subject}</span><span>{a.who}</span><span>{a.type}</span></div>)}</article>}
+  {view==="Aktivnosti"&&<article className="crmCard"><div className="crmHead"><h3>Aktivnosti · {subView}</h3><button className="primary">＋ Nova aktivnost</button></div>{activities.filter(a=>subView==="Klici"?a.type==="Klic":subView==="Sestanki"?a.type==="Sestanek":subView==="E-pošta"?a.type==="E-pošta":true).map((a,i)=><div className="listRow" key={i}><b>{a.time}</b><span>{a.subject}</span><span>{a.who}</span><span>{a.type}</span></div>)}</article>}
+  {view==="Kontakti"&&<article className="crmCard"><div className="crmHead"><h3>Kontakti · {subView}</h3></div><div className="listRow head"><span>Ime / podjetje</span><span>Organizacija</span><span>Vloga</span><span>Stik</span></div>
+     {[
+       {name:"Janez Novak",company:"ABC d.o.o.",role:"Kupec",contact:"janez@example.si"},
+       {name:"Anna Müller",company:"Gamma GmbH",role:"Kupec",contact:"anna@example.de"}
+     ].map(p=><div className="listRow" key={p.name}><b>{p.name}</b><span>{p.company}</span><span>{p.role}</span><span>{p.contact}</span></div>)}
+  </article>}
+  {view==="Napoved"&&<article className="crmCard"><div className="crmHead"><h3>Prodajna napoved · {subView}</h3></div><div style={{padding:14}}>
+     <div className="crmMeta"><div><small>Pipeline</small><b>{pipelineValue.toLocaleString("sl-SI")} €</b></div><div><small>Utežena vrednost</small><b>{weighted.toLocaleString("sl-SI")} €</b></div></div>
+     {deals.map(d=><div className="listRow" key={d.id}><b>{d.partner}</b><span>{d.name}</span><span>{d.prob} %</span><b>{(d.value*d.prob/100).toLocaleString("sl-SI")} €</b></div>)}
+  </div></article>}
+
  </section>
 }

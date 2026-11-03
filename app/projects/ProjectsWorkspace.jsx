@@ -22,15 +22,17 @@ const costs=[
  ["Ostalo","1.000,00 €","storitve"]
 ];
 
-export default function ProjectsWorkspace(){
+export default function ProjectsWorkspace({context}){
  const [query,setQuery]=useState("");
- const [filter,setFilter]=useState("Vsi");
+
  const [selected,setSelected]=useState(projects[0]);
- const [tab,setTab]=useState("Projekti");
+ const tab=({Pregled:"Projekti",Naloge:"Naloge","Delovni nalogi":"Delovni nalogi",Čas:"Čas",Material:"Material",Finance:"Finance",Dokumenti:"Dokumenti"})[context?.level2]??"Projekti";
+ const subView=context?.level3??"Aktivni";
  const rows=useMemo(()=>projects.filter(p=>{
    const q=query.toLowerCase();
-   return (!q||[p.id,p.name,p.partner,p.order].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||p.status===filter);
- }),[query,filter]);
+   const state=({"Aktivni":"Aktiven","Na čakanju":"Na čakanju","Zaključeni":"Zaključeno"})[subView];
+   return (!q||[p.id,p.name,p.partner,p.order].join(" ").toLowerCase().includes(q))&&(!state||p.status===state);
+ }),[query,subView]);
 
  return <section className="projects">
   <style>{`
@@ -45,10 +47,10 @@ export default function ProjectsWorkspace(){
   `}</style>
 
   <div className="pkpi"><div className="pk"><small>Aktivni projekti</small><b>12</b></div><div className="pk"><small>Prihodki projektov</small><b>41.400 €</b></div><div className="pk"><small>Stroški</small><b>30.060 €</b></div><div className="pk"><small>Dejanska marža</small><b>27,4 %</b></div></div>
-  <div className="ptabs"><button className={tab==="Projekti"?"on":""} onClick={()=>setTab("Projekti")}>Projekti</button><button className={tab==="Naloge"?"on":""} onClick={()=>setTab("Naloge")}>Naloge</button><button className={tab==="Delovni nalogi"?"on":""} onClick={()=>setTab("Delovni nalogi")}>Delovni nalogi</button><button className={tab==="Čas"?"on":""} onClick={()=>setTab("Čas")}>Evidenca časa</button></div>
+
 
   {tab==="Projekti"&&<div className="pgrid">
-   <article className="pcard"><div className="phead"><h3>Projekti</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči projekt, partnerja, naročilo ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Aktiven</option><option>Na čakanju</option><option>Zaključeno</option></select><button className="primary">＋ Nov projekt</button></div></div>
+   <article className="pcard"><div className="phead"><h3>Projekti · {subView}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči projekt, partnerja, naročilo ..."/><button className="primary">＋ Nov projekt</button></div></div>
    <div className="prow head"><span>Projekt</span><span>Naziv</span><span>Rok</span><span>Napredek</span><span>Marža</span><span>Status</span></div>
    {rows.map(p=><button className="prow" key={p.id} onClick={()=>setSelected(p)}><span><b>{p.id}</b><small>{p.order}</small></span><span><b>{p.name}</b><small>{p.partner} · {p.owner}</small></span><span>{p.due}</span><span><b>{p.progress} %</b></span><span><b className={p.marginPct>=30?"ok":p.marginPct>=20?"warn":"info"}>{p.marginPct.toFixed(1)} %</b></span><span className={"state "+(p.status==="Zaključeno"?"ok":p.status==="Na čakanju"?"warn":"info")}>{p.status}</span></button>)}
    </article>
@@ -60,10 +62,33 @@ export default function ProjectsWorkspace(){
    </aside>
   </div>}
 
-  {tab==="Naloge"&&<article className="pcard"><div className="phead"><h3>Naloge · {selected.name}</h3><button className="primary">＋ Nova naloga</button></div>{tasks.map((t,i)=><div className="taskrow" key={i}><b>{t[0]}</b><span className="state info">{t[1]}</span><span>{t[2]}</span><span>{t[3]}</span></div>)}</article>}
+  {tab==="Naloge"&&<article className="pcard"><div className="phead"><h3>Naloge · {selected.name}</h3><button className="primary">＋ Nova naloga</button></div>{tasks.filter(t=>subView==="V delu"?t[1]==="V delu":subView==="Zamujene"?false:true).map((t,i)=><div className="taskrow" key={i}><b>{t[0]}</b><span className="state info">{t[1]}</span><span>{t[2]}</span><span>{t[3]}</span></div>)}</article>}
 
-  {tab==="Delovni nalogi"&&<div className="woGrid"><article className="wo"><h3>DN-2026-0048 · Produkcija</h3><small>PROJ-2026-0012 · Boštjan</small><div className="line"><span>Status</span><b>V delu</b></div><div className="line"><span>Termin</span><b>03.–05. 11.</b></div></article><article className="wo"><h3>DN-2026-0049 · Montaža</h3><small>PROJ-2026-0012 · Jerica</small><div className="line"><span>Status</span><b>Planirano</b></div><div className="line"><span>Termin</span><b>07. 11.</b></div></article><article className="wo"><h3>DN-2026-0050 · Kontrola</h3><small>PROJ-2026-0011 · Nina</small><div className="line"><span>Status</span><b>Planirano</b></div><div className="line"><span>Termin</span><b>06. 11.</b></div></article></div>}
+  {tab==="Delovni nalogi"&&<div className="woGrid">{[
+    {id:"DN-2026-0048",title:"Produkcija",project:"PROJ-2026-0012",person:"Boštjan",status:"V delu",date:"03.–05. 11."},
+    {id:"DN-2026-0049",title:"Montaža",project:"PROJ-2026-0012",person:"Jerica",status:"Planirano",date:"07. 11."},
+    {id:"DN-2026-0050",title:"Kontrola",project:"PROJ-2026-0011",person:"Nina",status:"Planirano",date:"06. 11."}
+   ].filter(w=>w.status===subView).map(w=><article className="wo" key={w.id}><h3>{w.id} · {w.title}</h3><small>{w.project} · {w.person}</small><div className="line"><span>Status</span><b>{w.status}</b></div><div className="line"><span>Termin</span><b>{w.date}</b></div></article>)}</div>}
 
-  {tab==="Čas"&&<article className="pcard"><div className="phead"><h3>Evidenca časa</h3><button className="primary">＋ Dodaj ure</button></div><div style={{padding:12}}><div className="line"><span>03. 11. · Dalibor · Izdelava grafik</span><b>6,5 h · 260,00 €</b></div><div className="line"><span>03. 11. · Boštjan · Produkcija</span><b>8,0 h · 224,00 €</b></div><div className="line"><span>02. 11. · Nina · Priprava</span><b>4,0 h · 144,00 €</b></div><div className="line"><span>02. 11. · Jerica · Koordinacija</span><b>2,5 h · 90,00 €</b></div></div></article>}
+  {tab==="Čas"&&<article className="pcard"><div className="phead"><h3>Evidenca časa · {subView}</h3><button className="primary">＋ Dodaj ure</button></div><div style={{padding:12}}><div className="line"><span>03. 11. · Dalibor · Izdelava grafik</span><b>6,5 h · 260,00 €</b></div><div className="line"><span>03. 11. · Boštjan · Produkcija</span><b>8,0 h · 224,00 €</b></div>{subView!=="Danes"&&<><div className="line"><span>02. 11. · Nina · Priprava</span><b>4,0 h · 144,00 €</b></div><div className="line"><span>02. 11. · Jerica · Koordinacija</span><b>2,5 h · 90,00 €</b></div></>}</div></article>}
+  {tab==="Material"&&<article className="pcard"><div className="phead"><h3>Projektni material · {subView}</h3></div><div style={{padding:12}}>
+     {(subView==="Rezervirano"?
+       [["Pogonski modul PM-200","12 kos rezervirano"],["Krmilnik KC-100","20 kos rezervirano"]]:
+       subView==="Porabljeno"?
+       [["Material iz skladišča","3.740,00 €"],["Montažni material","1.120,00 €"]]:
+       [["Nabava za projekt","PO-2026-0045"],["Dobavni rok","08. 11. 2026"]]
+     ).map(([name,value])=><div className="line" key={name}><span>{name}</span><b>{value}</b></div>)}
+   </div></article>}
+  {tab==="Finance"&&<article className="pcard"><div className="phead"><h3>Finance projekta · {subView} · {selected.id}</h3></div><div style={{padding:12}}>
+      {subView==="Prihodki"&&<div className="line"><span>Izdani računi projekta</span><b>{selected.revenue.toFixed(2)} €</b></div>}
+      {subView==="Stroški"&&costs.map(c=><div className="line" key={c[0]}><span>{c[0]}</span><b>{c[1]}</b></div>)}
+      {subView==="Marža"&&<div className="profit"><strong>{selected.margin.toFixed(2)} €</strong><small>Dejanska marža {selected.marginPct.toFixed(2)} %</small></div>}
+   </div></article>}
+  {tab==="Dokumenti"&&<article className="pcard"><div className="phead"><h3>Projektni dokumenti · {subView}</h3></div><div style={{padding:12}}>
+     {subView==="Dobavnice"&&<div className="line"><span>DOB-2026-0048 · podpisan prevzem</span><b>Dokument</b></div>}
+     {subView==="Računi"&&<div className="line"><span>IR-2026-0054 · projektni račun</span><b>Račun</b></div>}
+     {subView==="Priloge"&&<p>V prikaznem naboru za projekt ni dodatnih prilog.</p>}
+   </div></article>}
+
  </section>
 }

@@ -2,7 +2,8 @@
 import {useEffect,useMemo,useState} from "react";
 import dynamic from "next/dynamic";
 import {defaultNavigation as nav} from "./modules/moduleRegistry";
-import ContextNavigation,{getDefaultContext} from "./components/ContextNavigation";
+import ContextNavigation from "./components/ContextNavigation";
+import {getDefaultContext} from "./modules/contextNavigation";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -240,13 +241,11 @@ const demoAccounts=[
  ["7600","Prihodki od storitev","Prihodki"]
 ];
 
-function AccountingCorePanel(){
- const [tab,setTab]=useState("Temeljnice");
+function AccountingCorePanel({context}){
+ const tab=context?.level2??"Temeljnice";
  const [posted,setPosted]=useState(false);
  const [periodLocked,setPeriodLocked]=useState(false);
- const tabs=["Temeljnice","Kontni načrt","Obdobja","Stroškovna mesta"];
  return <section className="accountingShell">
-   <div className="accountingTabs">{tabs.map(t=><button key={t} className={tab===t?"on":""} onClick={()=>setTab(t)}>{t}</button>)}</div>
 
    {tab==="Temeljnice"&&<div className="accountingGrid">
      <article className="accCard">
@@ -268,6 +267,7 @@ function AccountingCorePanel(){
      </aside>
    </div>}
 
+   {tab==="Glavna knjiga"&&<article className="accCard"><div className="accHead"><h3>Glavna knjiga · {context?.level3}</h3></div><div className="accBody">{demoAccounts.map(a=><div className="accountRow" key={a[0]}><b>{a[0]}</b><span>{a[1]}</span><span className="roleBadge">{a[2]}</span></div>)}</div></article>}
    {tab==="Kontni načrt"&&<article className="accCard">
      <div className="accHead"><h3>Kontni načrt</h3><button className="primary">＋ Dodaj konto</button></div>
      <div className="accBody">{demoAccounts.map(a=><div className="accountRow" key={a[0]}><b>{a[0]}</b><span>{a[1]}</span><span className="roleBadge">{a[2]}</span></div>)}</div>
@@ -346,6 +346,7 @@ export default function Page(){
    setMenu(false);
    setQuery("");
  };
+ const activeContext=useMemo(()=>({level2:contextLevel2,level3:contextLevel3}),[contextLevel2,contextLevel3]);
  const mobile=[["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Knjiženje","⇄"],["Banka","◇"],["Nastavitve","⚙"]];
  return <div className={"app "+(light?"light ":"")+(compact?"compact":"")}>
    <style>{css}</style>
@@ -382,21 +383,21 @@ export default function Page(){
 
        {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
-       {section==="Knjiženje"&&<AccountingCorePanel/>}
+       {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
        {section==="Partnerji"&&<PartnerWorkspace/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace/>}
        {section==="Banka"&&<BankingWorkspace/>}
-       {section==="DDV in poročila"&&<VatWorkspace/>}
+       {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
        {section==="eDavki / FURS"&&<EdavkiWorkspace/>}
        {section==="Dokumenti"&&<DocumentsWorkspace/>}
-       {section==="Artikli in ceniki"&&<CatalogWorkspace/>}
-       {section==="CRM"&&<CrmWorkspace/>}
+       {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
+       {section==="CRM"&&<CrmWorkspace context={activeContext}/>}
        {section==="Ponudbe"&&<QuotesWorkspace/>}
        {section==="Naročila"&&<SalesOrdersWorkspace/>}
-       {section==="Nabava"&&<ProcurementWorkspace/>}
-       {section==="Zaloge"&&<InventoryWorkspace/>}
-       {section==="Projekti"&&<ProjectsWorkspace/>}
+       {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
+       {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
+       {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
 
        {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
          <article className="panel">

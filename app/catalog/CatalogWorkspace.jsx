@@ -14,15 +14,17 @@ const priceLists=[
  {name:"Količinski rabati",scope:"Količinski pragovi",currency:"EUR",valid:"stalno",priority:75}
 ];
 
-export default function CatalogWorkspace(){
+export default function CatalogWorkspace({context}){
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
  const [selected,setSelected]=useState(products[0]);
- const [tab,setTab]=useState("Katalog");
+ const tab=({Katalog:"Katalog",Ceniki:"Ceniki",Dobavitelji:"Dobavitelji",Računovodstvo:"Računovodstvo",Zaloga:"Zaloga"})[context?.level2]??"Katalog";
+ const subView=context?.level3??"Artikli";
  const filtered=useMemo(()=>products.filter(p=>{
    const q=query.toLowerCase();
-   return (!q||[p.sku,p.name,p.category].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||p.type===filter);
- }),[query,filter]);
+   const type=subView==="Artikli"?"Artikel":subView==="Storitve"?"Storitev":null;
+   return (!q||[p.sku,p.name,p.category].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||p.type===filter)&&(!type||p.type===type);
+ }),[query,filter,subView]);
 
  return <section className="catalogWorkspace">
   <style>{`
@@ -34,11 +36,11 @@ export default function CatalogWorkspace(){
   @media(max-width:1100px){.catalogGrid{grid-template-columns:1fr}.priceListGrid{grid-template-columns:1fr 1fr}}@media(max-width:760px){.catalogRow{grid-template-columns:.9fr 1.4fr .8fr}.catalogRow>*:nth-child(3),.catalogRow>*:nth-child(4),.catalogRow>*:nth-child(6){display:none}.catalogMeta{grid-template-columns:1fr}.catalogTools input{width:100%}.priceListGrid{grid-template-columns:1fr}}
   `}</style>
 
-  <div className="catalogTabs"><button className={tab==="Katalog"?"on":""} onClick={()=>setTab("Katalog")}>Katalog</button><button className={tab==="Ceniki"?"on":""} onClick={()=>setTab("Ceniki")}>Ceniki</button><button className={tab==="Dobavitelji"?"on":""} onClick={()=>setTab("Dobavitelji")}>Dobavitelji</button></div>
 
-  {tab==="Katalog"&&<div className="catalogGrid">
+
+  {tab==="Katalog"&&subView!=="Kategorije"&&<div className="catalogGrid">
    <article className="catalogCard">
-    <div className="catalogHead"><h3>Artikli in storitve</h3><div className="catalogTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči SKU, naziv ali kategorijo ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Artikel</option><option>Storitev</option></select><button className="primary">＋ Nov artikel / storitev</button></div></div>
+    <div className="catalogHead"><h3>Katalog · {subView}</h3><div className="catalogTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči SKU, naziv ali kategorijo ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Artikel</option><option>Storitev</option></select><button className="primary">＋ Nov artikel / storitev</button></div></div>
     <div className="catalogRow head"><span>SKU</span><span>Naziv</span><span>Tip</span><span>Nabavna</span><span>Prodajna</span><span>Marža</span></div>
     {filtered.map(p=><button className="catalogRow" key={p.sku} onClick={()=>setSelected(p)}><span><b>{p.sku}</b><small>{p.category}</small></span><span><b>{p.name}</b><small>{p.unit} · DDV {p.tax}</small></span><span className="typeChip">{p.type}</span><b className="money">{p.buy.toFixed(2)} €</b><b className="money">{p.sell.toFixed(2)} €</b><span><b>{p.margin.toFixed(2)} %</b></span></button>)}
    </article>
@@ -53,8 +55,12 @@ export default function CatalogWorkspace(){
    </aside>
   </div>}
 
-  {tab==="Ceniki"&&<div className="priceListGrid">{priceLists.map(p=><article className="priceList" key={p.name}><h3>{p.name}</h3><small>{p.scope}</small><div className="meta"><div><span>Valuta</span><b>{p.currency}</b></div><div><span>Veljavnost</span><b>{p.valid}</b></div><div><span>Prioriteta</span><b>{p.priority}</b></div></div><button className="secondary" style={{width:"100%",marginTop:10}}>Odpri cenik</button></article>)}</div>}
+  {tab==="Ceniki"&&<div className="priceListGrid">{priceLists.filter(p=>subView==="Standardni"?p.name.startsWith("Standard"):subView==="B2B"?p.name.startsWith("B2B"):subView==="Količinski"?p.name.startsWith("Količinski"):true).map(p=><article className="priceList" key={p.name}><h3>{p.name}</h3><small>{p.scope}</small><div className="meta"><div><span>Valuta</span><b>{p.currency}</b></div><div><span>Veljavnost</span><b>{p.valid}</b></div><div><span>Prioriteta</span><b>{p.priority}</b></div></div><button className="secondary" style={{width:"100%",marginTop:10}}>Odpri cenik</button></article>)}</div>}
 
   {tab==="Dobavitelji"&&<article className="catalogCard"><div className="catalogHead"><h3>Dobavitelji po artiklih</h3><button className="primary">＋ Poveži dobavitelja</button></div><div style={{padding:12}}><div className="listLine"><span>Reklamna tabla 100 × 70 cm · MaterialPartner d.o.o.</span><b>32,50 € · 3 dni</b></div><div className="listLine"><span>Samolepilna folija · FolijePlus d.o.o.</span><b>4,20 € · 2 dni</b></div><div className="listLine"><span>Montažni material · GradnjaTrade d.o.o.</span><b>18,70 € · 5 dni</b></div></div></article>}
+  {tab==="Katalog"&&subView==="Kategorije"&&<article className="catalogCard"><div className="catalogHead"><h3>Kategorije artiklov in storitev</h3></div><div style={{padding:12}}>{[...new Set(products.map(p=>p.category))].map(cat=><div key={cat} className="listLine"><span>{cat}</span><b>{products.filter(p=>p.category===cat).length} zapisov</b></div>)}</div></article>}
+  {tab==="Računovodstvo"&&<article className="catalogCard"><div className="catalogHead"><h3>Računovodske povezave · {subView}</h3></div><div style={{padding:12}}>{products.map(p=><div key={p.sku} className="listLine"><span>{p.name}</span><b>{subView==="DDV"?p.tax:subView==="Konti"?"7600 / 4100":"Standardno"}</b></div>)}</div></article>}
+  {tab==="Zaloga"&&<article className="catalogCard"><div className="catalogHead"><h3>Katalog · {subView}</h3></div><div style={{padding:12}}>{products.filter(p=>p.type==="Artikel").map(p=><div key={p.sku} className="listLine"><span>{p.name}</span><b>{subView==="Minimumi"?"Minimalna zaloga: 10":subView==="Gibanje"?"Pregled premikov v modulu Zaloge":p.stock}</b></div>)}</div></article>}
+
  </section>
 }
