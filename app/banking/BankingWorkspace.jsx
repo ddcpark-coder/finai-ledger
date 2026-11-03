@@ -8,7 +8,9 @@ const txs=[
  {id:"TX-8838",date:"01. 11. 2026",party:"Neznan priliv",ref:"BREZ SKLICA",amount:"+480,00 €",raw:480,status:"Neusklajeno",confidence:42,item:"—",open:"—"}
 ];
 
-export default function BankingWorkspace(){
+export default function BankingWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Računi";
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
  const [selected,setSelected]=useState(txs[0]);
@@ -17,8 +19,11 @@ export default function BankingWorkspace(){
  const list=useMemo(()=>txs.filter(x=>{
    const q=query.toLowerCase();
    const ok=!q||[x.party,x.ref,x.id,x.item].join(" ").toLowerCase().includes(q);
-   return ok&&(filter==="Vsi"||x.status===filter);
- }),[query,filter]);
+   const contextMatch=section==="Transakcije"?(subView==="Prilivi"?x.raw>0:subView==="Odlivi"?x.raw<0:true)
+     :section==="Usklajevanje"?(subView==="Predlogi"?x.status==="Predlagano":subView==="Delno"?x.status==="Delno":x.status==="Neusklajeno")
+     :section==="SEPA"?x.raw<0:true;
+   return ok&&(filter==="Vsi"||x.status===filter)&&contextMatch;
+ }),[query,filter,section,subView]);
  const isMatched=matched[selected.id];
 
  return <section className="bankWorkspace">
@@ -40,12 +45,14 @@ export default function BankingWorkspace(){
    @media(max-width:1100px){.bankGrid{grid-template-columns:1fr}}@media(max-width:760px){.accountStrip{grid-template-columns:1fr 1fr}.bankRow{grid-template-columns:.9fr 1.2fr .8fr}.bankRow>*:nth-child(3),.bankRow>*:nth-child(5){display:none}.bankMeta{grid-template-columns:1fr}.bankTools input{width:100%}}
    `}</style>
 
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Aktivno: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski bančni podatki</div>
    <div className="bankGrid">
      <article className="bankCard">
-       <div className="bankHead"><h3>NLB · SI56 1910 •••• 5678</h3><div className="bankTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči transakcijo, partnerja, sklic ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Predlagano</option><option>Delno</option><option>Neusklajeno</option></select><button className="primary">＋ Uvozi izpisek</button></div></div>
+       <div className="bankHead"><h3>Banka · {section} / {subView}</h3><div className="bankTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči transakcijo, partnerja, sklic ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Predlagano</option><option>Delno</option><option>Neusklajeno</option></select><button className="primary">＋ Uvozi izpisek</button></div></div>
        <div className="accountStrip"><div><small>Stanje</small><b>12.450,80 €</b></div><div><small>Prilivi danes</small><b>1.700,00 €</b></div><div><small>Odlivi danes</small><b>320,00 €</b></div><div><small>Neusklajeno</small><b>480,00 €</b></div></div>
        <div className="sepaBox"><div><b>SEPA paket · 3 plačila</b><small>2.980,00 € · osnutek pain.001</small></div><button className="secondary" onClick={()=>setBatch(v=>!v)}>{batch?"Paket pripravljen":"Pripravi SEPA"}</button></div>
        <div className="bankRow head"><span>Datum</span><span>Partner / sklic</span><span>Odprta postavka</span><span>Znesek</span><span>Status</span></div>
+       {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>Ni transakcij za izbrani pogled.</p>}
        {list.map(x=><button className="bankRow" key={x.id} onClick={()=>setSelected(x)}>
          <span><b>{x.date}</b><small>{x.id}</small></span>
          <span><b>{x.party}</b><small>{x.ref}</small></span>
