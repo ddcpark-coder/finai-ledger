@@ -1,14 +1,14 @@
 export const contextNavigation = {
   "Nadzorna plošča":[
     {label:"Pregled",children:["Moj pregled","KPI","Aktivnosti"]},
-    {label:"Odobritve",children:["Čaka name","Zaključeno","Delegirano"]},
+    {label:"Odobritve",children:["Čaka mene","Zaključeno","Delegirano"]},
     {label:"Analitika",children:["Finance","Prodaja","Operativa"]},
     {label:"Moje naloge",children:["Danes","Ta teden","Zamujeno"]}
   ],
   "Prejeti računi":[
     {label:"Pregled",children:["Vsi","Novo","V obdelavi"]},
     {label:"Za pregled",children:["OCR","AI predlogi","Napake"]},
-    {label:"Odobritve",children:["Čaka name","Odobreno","Zavrnjeno"]},
+    {label:"Odobritve",children:["Čaka mene","Odobreno","Zavrnjeno"]},
     {label:"Knjiženje",children:["Predlog","Temeljnica","Odprta postavka"]},
     {label:"Dokumenti",children:["Original","Priloge","Audit"]}
   ],
