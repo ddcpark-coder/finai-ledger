@@ -7,6 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        Schema::create('sales_order_sequences', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->unsignedSmallInteger('year');
+            $table->unsignedBigInteger('next_number')->default(1);
+            $table->timestamps();
+            $table->unique(['company_id','year']);
+        });
+
         Schema::create('sales_orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
@@ -95,5 +104,6 @@ return new class extends Migration {
         Schema::dropIfExists('sales_order_reservations');
         Schema::dropIfExists('sales_order_lines');
         Schema::dropIfExists('sales_orders');
+        Schema::dropIfExists('sales_order_sequences');
     }
 };
