@@ -11,10 +11,11 @@ const appearanceStorageKey=company=>`finai:appearance:demo-user:company-${compan
 export function useLocalWorkspaceAppearance(company){
   const [light,setLight]=useState(false);
   const [compact,setCompact]=useState(false);
-  const [appearanceReady,setAppearanceReady]=useState(false);
+  const [loadedCompany,setLoadedCompany]=useState(null);
+  const appearanceReady=loadedCompany===company;
 
   useEffect(()=>{
-    setAppearanceReady(false);
+    setLoadedCompany(null);
     try{
       const stored=JSON.parse(window.localStorage.getItem(appearanceStorageKey(company))??"null");
       setLight(stored?.theme==="light");
@@ -23,7 +24,7 @@ export function useLocalWorkspaceAppearance(company){
       setLight(false);
       setCompact(false);
     }
-    setAppearanceReady(true);
+    setLoadedCompany(company);
   },[company]);
 
   useEffect(()=>{
