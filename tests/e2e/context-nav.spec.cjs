@@ -120,3 +120,10 @@ test("appearance controls persist on browser reload",async({page})=>{
   await page.reload();
   await expect(page.locator(".app")).toHaveClass(/light/);
 });
+
+test("auth route stays inactive without a verified Laravel API configuration",async({page})=>{
+  await page.goto("/auth");
+  await expect(page.getByRole("heading",{name:"Prijava še ni aktivirana"})).toBeVisible();
+  await expect(page.getByText(/first-party domeni/)).toBeVisible();
+  await expect(page.getByRole("textbox",{name:"E-naslov"})).toHaveCount(0);
+});
