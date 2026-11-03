@@ -43,12 +43,12 @@ Ko se filtrirani pogled spremeni, se izbira podrobnega zapisa sinhronizira s sez
 - Dejanska pošiljanja e-pošte, kvalificirani podpisi, povezave z banko in FURS zahtevajo zaledne integracije in dodatne varnostne teste.
 - Vzorčna UI interakcija z dobavnico je simulacija; potrjen build ne pomeni uspešno ustvarjenega PDF ali odposlanega sporočila.
 - Uporabniško pravico za vsak podpogled bo treba vezati na strežniški RBAC.
-- URL deep-linki, navigacija nazaj/naprej in vztrajnost zadnjega podpogleda so samostojen naslednji korak.
+- URL deep-linki, navigacija Nazaj/Naprej in lokalno pomnjenje zadnjega pogleda so izvedeni v UX-CONTEXT-04 (glej `docs/UX_CONTEXT_04.md`).
 
 ### Omejitve
 - To so prikazni podatki in interaktivni previewi; frontend build ni dokaz delovanja Laravel API-jev ali produkcijskih poslovnih procesov.
 - Nekateri podfiltri tretjega nivoja in moduli zunaj zgornjega seznama še nimajo lastnih podatkovnih pogledov. Ne predstavljamo jih kot produkcijsko zaključene.
-- Zgornji zavihki še niso povezani z URL deep-linki ali server-side RBAC za vsak podpogled; to spada v naslednji funkcionalni korak.
+- Zgornji zavihki so zdaj povezani z URL deep-linki; server-side RBAC za vsak podpogled ostaja predpogoj za produkcijo.
 
 ## Minimalni QA
 1. Zamenjava modula ponastavi aktivni 2. in 3. nivo.
