@@ -1,9 +1,9 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import dynamic from "next/dynamic";
-import {defaultNavigation as nav} from "./modules/moduleRegistry";
+import {defaultNavigation as nav,modules} from "./modules/moduleRegistry";
 import ContextNavigation from "./components/ContextNavigation";
-import {getDefaultContext} from "./modules/contextNavigation";
+import useContextNavigation from "./hooks/useContextNavigation";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -116,6 +116,17 @@ rows:[
 };
 
 const css=`
+.contextQuickAccess{display:flex;gap:7px;align-items:center;min-width:0;flex-wrap:wrap;margin:-3px 0 12px}
+.contextQuickAction,.contextFavorite{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:9px;min-height:32px;padding:6px 10px;font-size:9px;font-weight:700}
+.contextQuickAction:hover,.contextFavorite:hover{color:var(--text);border-color:var(--accent)}
+.contextQuickAction.saved{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel))}
+.contextFavoriteList{display:flex;align-items:center;gap:6px;overflow-x:auto;max-width:100%;min-width:0;scrollbar-width:none}
+.contextFavoriteList::-webkit-scrollbar{display:none}
+.contextFavorite{white-space:nowrap;font-size:9px;max-width:235px;overflow:hidden;text-overflow:ellipsis}
+.contextFavorite span{color:var(--accent)}
+.contextFavorite[aria-current="page"]{border-color:var(--accent);color:var(--text)}
+.contextQuickNotice{font-size:9px;color:var(--accent);min-width:0}
+@media(max-width:760px){.contextQuickAccess{flex-wrap:wrap;margin-bottom:10px}.contextFavoriteList{flex-basis:100%;order:2}.contextQuickAction{min-height:36px}}
 *{box-sizing:border-box}button,input{font:inherit}body{margin:0}.app{
 --bg:#07111d;--bg2:#0a1624;--panel:#0d1b2b;--panel2:#0a1724;--text:#f4f8ff;--muted:#8fa2b8;--line:#1c3147;
 --accent:#17dfbe;--accent2:#2f7cff;--violet:#9a6cff;--warn:#ffae57;--danger:#ff657a;--ok:#4fd18b;
@@ -309,10 +320,11 @@ function DashboardWidget({item,onDragStart,onDrop}){
 }
 
 export default function Page(){
- const initialContext=getDefaultContext("Nadzorna plošča");
- const [section,setSection]=useState("Nadzorna plošča");
- const [contextLevel2,setContextLevel2]=useState(initialContext.level2);
- const [contextLevel3,setContextLevel3]=useState(initialContext.level3);
+ const [company,setCompany]=useState(1);
+ const {
+   section,contextLevel2,contextLevel3,activeRoute,
+   favorites,isFavorite,navNotice,navigateTo,toggleFavorite,copyCurrentLink
+ }=useContextNavigation(company);
  const [light,setLight]=useState(false);
  const [compact,setCompact]=useState(false);
  const [drawer,setDrawer]=useState(null);
@@ -322,7 +334,6 @@ export default function Page(){
  const [layout,setLayout]=useState(defaultLayout);
  const [customizer,setCustomizer]=useState(false);
  const [dragId,setDragId]=useState(null);
- const [company,setCompany]=useState(1);
  const [twoFactor,setTwoFactor]=useState(true);
  const [userPanel,setUserPanel]=useState(false);
  const current=moduleData[section];
@@ -338,10 +349,14 @@ export default function Page(){
  const dropWidget=(target)=>{if(!dragId||dragId===target)return;setLayout(items=>{const next=[...items];const from=next.findIndex(x=>x.id===dragId),to=next.findIndex(x=>x.id===target);const [moved]=next.splice(from,1);next.splice(to,0,moved);return next});setDragId(null)};
  const rows=useMemo(()=>current.rows.filter(r=>r.join(" ").toLowerCase().includes(query.toLowerCase())),[current,query]);
  const navigateSection=(label)=>{
-   const next=getDefaultContext(label);
-   setSection(label);
-   setContextLevel2(next.level2);
-   setContextLevel3(next.level3);
+   navigateTo({moduleLabel:label});
+   setMenu(false);
+   setQuery("");
+ };
+ const navigateSubmodule=(view)=>navigateTo({moduleLabel:section,view});
+ const navigateSubview=(subview)=>navigateTo({moduleLabel:section,view:contextLevel2,subview});
+ const openFavorite=(favorite)=>{
+   navigateTo(favorite);
    setMenu(false);
    setQuery("");
  };
@@ -376,13 +391,26 @@ export default function Page(){
            <button className="userBtn" onClick={()=>setUserPanel(v=>!v)}>DD</button>
          </div>
        </div>
-       <ContextNavigation moduleLabel={section} level2={contextLevel2} setLevel2={setContextLevel2} level3={contextLevel3} setLevel3={setContextLevel3}/>
+       <ContextNavigation moduleLabel={section} level2={contextLevel2} onLevel2={navigateSubmodule} level3={contextLevel3} onLevel3={navigateSubview}/>
      </header>
 
      <main className="content">
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
          <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
+       </div>
+
+       <div className="contextQuickAccess" aria-label="Hitri dostop do podpogledov">
+         <button type="button" className={"contextQuickAction "+(isFavorite?"saved":"")} aria-pressed={isFavorite} onClick={toggleFavorite} title={isFavorite?"Odstrani med priljubljenimi":"Dodaj med priljubljene"}>
+           {isFavorite?"★ Priljubljeno":"☆ Pripni pogled"}
+         </button>
+         <button type="button" className="contextQuickAction" onClick={copyCurrentLink} title="Kopiraj neposredno povezavo do tega podpogleda">⧉ Kopiraj povezavo</button>
+         {favorites.length>0&&<nav className="contextFavoriteList" aria-label="Priljubljeni podpogledi">
+           {favorites.map(item=><button type="button" key={[item.module,item.view,item.subview].join("::")} className="contextFavorite" aria-current={item.module===activeRoute.module&&item.view===activeRoute.view&&item.subview===activeRoute.subview?"page":undefined} title={modules.find(m=>m.key===item.module)?.label+" / "+item.view+" / "+item.subview} onClick={()=>openFavorite(item)}>
+             <span>★</span> {modules.find(m=>m.key===item.module)?.label} · {item.view} · {item.subview}
+           </button>)}
+         </nav>}
+         {navNotice&&<span role="status" className="contextQuickNotice">{navNotice}</span>}
        </div>
 
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
