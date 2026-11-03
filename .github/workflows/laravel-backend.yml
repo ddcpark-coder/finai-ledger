@@ -31,6 +31,8 @@ jobs:
         run: composer validate --no-check-publish
       - name: Install reviewed dependencies without secrets
         run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare isolated test environment
+        run: cp .env.example .env
       - name: Check application can bootstrap
         env:
           APP_ENV: testing
