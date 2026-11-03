@@ -15,15 +15,17 @@ const moves=[
  ["02. 11. 16:05","FOL-M2","-5","Prenos","Glavno → Material"]
 ];
 
-export default function InventoryWorkspace(){
+export default function InventoryWorkspace({context}){
  const [query,setQuery]=useState("");
  const [warehouse,setWarehouse]=useState("Vsa skladišča");
  const [selected,setSelected]=useState(stock[0]);
- const [tab,setTab]=useState("Zaloga");
+ const tab=({Stanje:"Zaloga",Premiki:"Premiki",Rezervacije:"Rezervacije",Skladišča:"Skladišča",Inventura:"Inventura",Opozorila:"Opozorila"})[context?.level2]??"Zaloga";
+ const subView=context?.level3??"Vsa skladišča";
  const rows=useMemo(()=>stock.filter(x=>{
    const q=query.toLowerCase();
-   return (!q||[x.sku,x.name,x.loc].join(" ").toLowerCase().includes(q))&&(warehouse==="Vsa skladišča"||x.wh===warehouse);
- }),[query,warehouse]);
+   return (!q||[x.sku,x.name,x.loc].join(" ").toLowerCase().includes(q))&&(warehouse==="Vsa skladišča"||x.wh===warehouse)
+     &&(subView!=="Na poti"||x.incoming>0);
+ }),[query,warehouse,subView]);
 
  return <section className="inv">
  <style>{`
@@ -37,10 +39,10 @@ export default function InventoryWorkspace(){
  `}</style>
 
  <div className="ikpi"><div className="ik"><small>Vrednost zaloge</small><b>128.400 €</b></div><div className="ik"><small>Rezervirano</small><b>67 kos / enot</b></div><div className="ik"><small>Na poti</small><b>92 enot</b></div><div className="ik"><small>Opozorila</small><b>2</b></div></div>
- <div className="itabs"><button className={tab==="Zaloga"?"on":""} onClick={()=>setTab("Zaloga")}>Zaloga</button><button className={tab==="Premiki"?"on":""} onClick={()=>setTab("Premiki")}>Premiki</button><button className={tab==="Skladišča"?"on":""} onClick={()=>setTab("Skladišča")}>Skladišča</button><button className={tab==="Inventura"?"on":""} onClick={()=>setTab("Inventura")}>Inventura</button></div>
+
 
  {tab==="Zaloga"&&<div className="igrid">
-  <article className="icard"><div className="ihead"><h3>Stanje zalog</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči artikel, SKU, lokacijo ..."/><select value={warehouse} onChange={e=>setWarehouse(e.target.value)}><option>Vsa skladišča</option><option>Glavno</option><option>Material</option><option>Končni izdelki</option></select><button className="primary">＋ Premik</button></div></div>
+  <article className="icard"><div className="ihead"><h3>{subView==="Na poti"?"Zaloga na poti":subView==="Po lokacijah"?"Zaloga po lokacijah":"Stanje zalog"}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči artikel, SKU, lokacijo ..."/><select value={warehouse} onChange={e=>setWarehouse(e.target.value)}><option>Vsa skladišča</option><option>Glavno</option><option>Material</option><option>Končni izdelki</option></select><button className="primary">＋ Premik</button></div></div>
   <div className="irow head"><span>SKU</span><span>Artikel</span><span>Lokacija</span><span>Na zalogi</span><span>Rezervirano</span><span>Na voljo</span></div>
   {rows.map(x=><button className="irow" key={x.sku+x.loc} onClick={()=>setSelected(x)}><span><b>{x.sku}</b><small>{x.wh}</small></span><span><b>{x.name}</b><small className={x.status==="OK"?"ok":x.status==="Kritično"?"bad":"warn"}>{x.status}</small></span><span>{x.loc}</span><b>{x.on}</b><b>{x.res}</b><b>{x.avail}</b></button>)}
   </article>
@@ -50,10 +52,18 @@ export default function InventoryWorkspace(){
   <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Rezerviraj za naročilo</button><button className="secondary">Prenos med lokacijami</button><button className="secondary">Evidentiraj popravek</button><button className="secondary">Zgodovina premikov</button></div></div></aside>
  </div>}
 
- {tab==="Premiki"&&<article className="icard"><div className="ihead"><h3>Zgodovina premikov</h3><button className="secondary">Izvozi</button></div>{moves.map((m,i)=><div className="move" key={i}><span>{m[0]}</span><b>{m[1]}</b><b className={m[2].startsWith("+")?"ok":"warn"}>{m[2]}</b><span>{m[3]}</span><span>{m[4]}</span></div>)}</article>}
+ {tab==="Premiki"&&<article className="icard"><div className="ihead"><h3>Zgodovina premikov</h3><button className="secondary">Izvozi</button></div>{moves.filter(m=>subView==="Prevzemi"?m[3]==="Prevzem":subView==="Izdaje"?m[3]==="Izdaja":subView==="Prenosi"?m[3]==="Prenos":true).map((m,i)=><div className="move" key={i}><span>{m[0]}</span><b>{m[1]}</b><b className={m[2].startsWith("+")?"ok":"warn"}>{m[2]}</b><span>{m[3]}</span><span>{m[4]}</span></div>)}</article>}
 
- {tab==="Skladišča"&&<div className="whgrid"><article className="wh"><h3>Glavno skladišče</h3><small>Privzeti prevzem · 6 lokacij</small><div className="line"><span>Artikli</span><b>486</b></div><div className="line"><span>Vrednost</span><b>76.200 €</b></div></article><article className="wh"><h3>Material</h3><small>Surovine · 8 lokacij</small><div className="line"><span>Artikli</span><b>118</b></div><div className="line"><span>Vrednost</span><b>34.600 €</b></div></article><article className="wh"><h3>Končni izdelki</h3><small>Privzeta odprema · 4 lokacije</small><div className="line"><span>Artikli</span><b>92</b></div><div className="line"><span>Vrednost</span><b>17.600 €</b></div></article></div>}
+ {tab==="Skladišča"&&subView==="Lokacije"&&<article className="icard"><div className="ihead"><h3>Lokacije skladišč</h3></div>{stock.map(x=><div key={x.sku} className="move"><span>{x.wh}</span><b>{x.loc}</b><span>{x.sku}</span><span>Na voljo</span><b>{x.avail}</b></div>)}</article>}
+ {tab==="Skladišča"&&subView==="Nastavitve"&&<article className="icard" style={{padding:14}}><h3>Nastavitve skladišč</h3><p>Privzeto prevzemno in odpremno skladišče ter pravila lokacijskega vodenja so pripravljeni v podatkovnem modelu. Urejanje nastavitev bo na voljo po priklopu zalednih obrazcev.</p></article>}
+ {tab==="Skladišča"&&subView!=="Lokacije"&&subView!=="Nastavitve"&&<div className="whgrid"><article className="wh"><h3>Glavno skladišče</h3><small>Privzeti prevzem · 6 lokacij</small><div className="line"><span>Artikli</span><b>486</b></div><div className="line"><span>Vrednost</span><b>76.200 €</b></div></article><article className="wh"><h3>Material</h3><small>Surovine · 8 lokacij</small><div className="line"><span>Artikli</span><b>118</b></div><div className="line"><span>Vrednost</span><b>34.600 €</b></div></article><article className="wh"><h3>Končni izdelki</h3><small>Privzeta odprema · 4 lokacije</small><div className="line"><span>Artikli</span><b>92</b></div><div className="line"><span>Vrednost</span><b>17.600 €</b></div></article></div>}
 
- {tab==="Inventura"&&<article className="icard"><div className="ihead"><h3>Inventura · Glavno skladišče</h3><button className="primary">＋ Nova inventura</button></div><div style={{padding:12}}><div className="line"><span>INV-2026-003 · 31. 10. 2026</span><b className="ok">Zaključena · 2 popravka</b></div><div className="line"><span>INV-2026-002 · 30. 09. 2026</span><b className="ok">Zaključena · brez razlik</b></div><div className="line"><span>INV-2026-004 · priprava</span><b className="warn">Osnutek</b></div></div></article>}
+ {tab==="Inventura"&&<article className="icard"><div className="ihead"><h3>Inventura · {subView}</h3><button className="primary">＋ Nova inventura</button></div><div style={{padding:12}}>{[
+  {number:"INV-2026-003",date:"31. 10. 2026",status:"Zaključene",description:"Zaključena · 2 popravka"},
+  {number:"INV-2026-002",date:"30. 09. 2026",status:"Zaključene",description:"Zaključena · brez razlik"},
+  {number:"INV-2026-004",date:"03. 11. 2026",status:"Osnutki",description:"Osnutek"}
+ ].filter(x=>x.status===subView||subView==="V teku"&&x.status==="V teku").map(x=><div className="line" key={x.number}><span>{x.number} · {x.date}</span><b>{x.description}</b></div>)}</div></article>}
+ {tab==="Rezervacije"&&<article className="icard"><div className="ihead"><h3>Rezervacije · {subView}</h3></div><div style={{padding:12}}>{stock.filter(x=>x.res>0&&(subView!=="Pomanjkanje"||x.avail<x.min)&&(subView!=="Sproščene")).map(x=><div key={x.sku} className="line"><span>{x.name} · {x.wh}</span><b>{x.res} rezervirano</b></div>)}{subView==="Sproščene"&&<p>Trenutno ni evidentiranih sproščenih rezervacij v demonstracijskem naboru.</p>}</div></article>}
+ {tab==="Opozorila"&&<article className="icard"><div className="ihead"><h3>Opozorila · {subView}</h3></div><div style={{padding:12}}>{subView==="Minimum"?stock.filter(x=>x.avail<x.min).map(x=><div key={x.sku} className="line"><span>{x.name}</span><b className="warn">Na voljo {x.avail} / minimum {x.min}</b></div>):<p>V demonstracijskih podatkih za ta pregled ni odprtih opozoril.</p>}</div></article>}
  </section>
 }
