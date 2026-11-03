@@ -40,7 +40,9 @@ function SignaturePad({onChange}){
  return <div><canvas ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{width:"100%",height:180,touchAction:"none",border:"1px dashed var(--line)",borderRadius:12,background:"var(--bg2)"}}/><button className="secondary" style={{marginTop:7}} onClick={clear}>Počisti podpis</button></div>
 }
 
-export default function DocumentsWorkspace(){
+export default function DocumentsWorkspace({context}){
+ const section=context?.level2??"Vsi dokumenti";
+ const subView=context?.level3??"Nedavno";
  const [selected,setSelected]=useState(docs[0]);
  const [signer,setSigner]=useState("Janez Novak");
  const [email,setEmail]=useState("janez@example.si");
@@ -48,6 +50,14 @@ export default function DocumentsWorkspace(){
  const [completed,setCompleted]=useState(false);
  const [sent,setSent]=useState(false);
  const [photo,setPhoto]=useState(false);
+ const visibleDocs=docs.filter(d=>{
+   if(section==="Vsi dokumenti")return subView==="Arhiv"?d.status==="Final":subView==="Za pregled"?d.status!=="Final":true;
+   if(section==="Računi")return subView==="Prejeti"?d.type==="Prejeti račun":subView==="Izdani"?d.type==="Izdani račun":false;
+   if(section==="Dobavnice")return d.type==="Dobavnica"&&(subView==="Za podpis"?d.status==="Za podpis":false);
+   if(section==="Podpisi")return subView==="Na zaslonu"&&d.type==="Dobavnica"&&d.status==="Za podpis";
+   return false;
+ });
+ const showSignature=(section==="Dobavnice"||section==="Podpisi"&&subView==="Na zaslonu")&&selected.type==="Dobavnica";
 
  return <section className="docsWorkspace">
   <style>{`
@@ -55,17 +65,19 @@ export default function DocumentsWorkspace(){
   @media(max-width:1100px){.docsGrid{grid-template-columns:1fr}}@media(max-width:760px){.docRow{grid-template-columns:1fr .9fr .7fr}.docRow>*:nth-child(3){display:none}.deliveryMeta{grid-template-columns:1fr}}
   `}</style>
 
+  <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Dokumenti · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
   <div className="docsGrid">
    <article className="docCard">
-    <div className="docHead"><h3>Dokumenti</h3><button className="primary">＋ Nov dokument</button></div>
-    <div className="pwaBox"><b>Mobilna dobavnica · PWA pripravljena smer</b><small>Android / iPhone / iPad · podpis s prstom ali pisalom · kamera · e-mail kopija · brez papirja.</small></div>
+    <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary">＋ Nov dokument</button></div>
+    <div className="pwaBox"><b>Mobilna dobavnica · načrtovani PWA potek</b><small>Android / iPhone / iPad · podpis s prstom ali pisalom · kamera · e-mail kopija · brez papirja.</small></div>
     <div className="docRow head"><span>Tip</span><span>Dokument</span><span>Povezava</span><span>Status</span></div>
-    {docs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false)}}>
+    {!visibleDocs.length&&<p style={{fontSize:10,color:"var(--muted)",padding:12}}>Za izbrani podpogled še ni dokumentov v demonstracijskem naboru.</p>}
+    {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false)}}>
       <span><b>{d.type}</b><small>{d.date}</small></span><span><b>{d.title}</b></span><span>{d.link}</span><span className={"docStatus "+(d.status==="Final"?"ok":"warn")}>{d.status}</span>
     </button>)}
    </article>
 
-   <aside className="docCard delivery">
+   {showSignature?<aside className="docCard delivery">
     <span className={"docStatus "+(completed?"ok":"warn")}>{completed?"Zaključena":"Za podpis"}</span>
     <h3>DOB-2026-0048</h3><small>ABC d.o.o. · 03. 11. 2026</small>
     <div className="deliveryMeta"><div><small>Prejemnik</small><b>{signer||"—"}</b></div><div><small>E-pošta</small><b>{email||"—"}</b></div><div><small>Lokacija</small><b>Opcijsko</b></div><div><small>Način podpisa</small><b>Podpis na zaslonu</b></div></div>
@@ -78,8 +90,8 @@ export default function DocumentsWorkspace(){
 
     <div className="deliverySec"><h4>Dokaz prevzema</h4><div className="proof"><b>{signature?"✓ Podpis zajet":"Podpis še ni zajet"}</b><small>Ob zaključku se zapišejo čas, SHA-256, naprava/IP ter po potrebi lokacija. Podpis na zaslonu ni avtomatično kvalificirani e-podpis.</small></div><button className="secondary" style={{width:"100%",marginTop:7}} onClick={()=>setPhoto(v=>!v)}>{photo?"✓ Fotografija dodana":"＋ Dodaj fotografijo dostave"}</button></div>
 
-    <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!signature||!signer||!email||completed} onClick={()=>setCompleted(true)}>{completed?"Dobavnica zaključena":"Zaključi in ustvari PDF"}</button><button className="secondary" disabled={!completed||sent} onClick={()=>setSent(true)}>{sent?"✓ Kopija poslana":"Pošlji PDF kopijo stranki"}</button><button className="secondary">Uporabi kvalificiran SI-PASS podpis</button></div></div>
-   </aside>
+    <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!signature||!signer||!email||completed} onClick={()=>setCompleted(true)}>{completed?"Dobavnica zaključena (demo)":"Simuliraj zaključek dobavnice"}</button><button className="secondary" disabled={!completed||sent} onClick={()=>setSent(true)}>{sent?"✓ Simulirano pošiljanje":"Simuliraj pošiljanje kopije"}</button><button className="secondary">Uporabi kvalificiran SI-PASS podpis</button></div></div>
+   </aside>:<aside className="docCard delivery"><h3>{selected.title}</h3><small>{selected.type} · {selected.status}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
   </div>
  </section>
 }
