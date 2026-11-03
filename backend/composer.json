@@ -42,5 +42,6 @@
     "allow-plugins": {}
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "license": "proprietary"
 }
