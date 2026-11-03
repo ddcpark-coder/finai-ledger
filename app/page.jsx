@@ -193,39 +193,38 @@ const securityAudit=[
  {event:"Vloga uporabnika spremenjena",actor:"Admin",when:"včeraj"}
 ];
 
-function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor}){
- return <div className="identityGrid">
-   <section className="identityCard">
-     <div className="identityHead"><h3>Uporabniki in vloge</h3><button className="primary">＋ Povabi uporabnika</button></div>
-     <div className="identityBody">
-       {teamUsers.map(u=><div className="personRow" key={u.email}><div><b>{u.name}</b><small>{u.email}</small></div><span className="roleBadge">{u.role}</span><span style={{color:u.twoFactor?"var(--ok)":"var(--warn)"}}>{u.twoFactor?"2FA vključena":"2FA priporočena"}</span></div>)}
-     </div>
-   </section>
-   <div>
-     <section className="identityCard">
-       <div className="identityHead"><h3>Aktivno podjetje</h3></div>
-       <div className="identityBody">
-         <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
-         <div className="securityTile" style={{marginTop:10}}><b>{companies.find(x=>x.id===company)?.name}</b><small>{companies.find(x=>x.id===company)?.tax} · aktivni tenant</small></div>
-       </div>
-     </section>
-     <section className="identityCard" style={{marginTop:10}}>
-       <div className="identityHead"><h3>Varnost</h3></div>
-       <div className="identityBody">
-         <div className="securityTile"><b>Dvofaktorska prijava</b><small>{twoFactor?"TOTP je vključena. Recovery codes so pripravljene.":"Za Owner/Admin bo v produkciji obvezna."}</small><button className="secondary" style={{marginTop:8}} onClick={()=>setTwoFactor(v=>!v)}>{twoFactor?"Izključi demo 2FA":"Vključi demo 2FA"}</button></div>
-         <div className="securityTile"><b>Preverjen e-mail</b><small>dalibor@example.si · verificirano</small></div>
-       </div>
-     </section>
-   </div>
-   <section className="identityCard">
-     <div className="identityHead"><h3>Aktivne seje</h3><button className="secondary">Odjavi druge seje</button></div>
-     <div className="identityBody">{sessions.map(s=><div className="sessionRow" key={s.device}><div><b>{s.device}</b><small>{s.place}</small></div><span>{s.when}</span><span className="roleBadge">Varna seja</span></div>)}</div>
-   </section>
-   <section className="identityCard">
-     <div className="identityHead"><h3>Varnostna revizijska sled</h3><span style={{fontSize:9,color:"var(--muted)"}}>append-only</span></div>
-     <div className="identityBody">{securityAudit.map((a,i)=><div className="auditRow2" key={i}><div><b>{a.event}</b><small>{a.actor}</small></div><span>{a.when}</span><span className="roleBadge">zabeleženo</span></div>)}</div>
-   </section>
- </div>
+function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor,light,setLight,compact,setCompact,context}){
+ const section=context?.level2??"Podjetje";
+ const sub=context?.level3??"Osnovni podatki";
+ const card=(title,content)=><section className="identityCard" style={{minWidth:0}}><div className="identityHead"><h3>{title}</h3></div><div className="identityBody">{content}</div></section>;
+ return <div style={{display:"grid",gap:10}}>
+  <div style={{fontSize:10,color:"var(--muted)"}}>Nastavitve / <b style={{color:"var(--text)"}}>{section} / {sub}</b> · demonstracijsko okolje</div>
+  {section==="Podjetje"&&card("Podjetje · "+sub,<>
+   <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+   <div className="securityTile" style={{marginTop:10}}><b>{companies.find(x=>x.id===company)?.name}</b><small>Davčna številka: {companies.find(x=>x.id===company)?.tax}</small></div>
+   {sub==="Branding"&&<p style={{fontSize:10,color:"var(--muted)"}}>Nastavitve logotipa in celostne grafične podobe bodo dodane ob povezavi z zaledjem.</p>}
+  </>)}
+  {section==="Uporabniki"&&card("Uporabniki in vloge · "+sub,<>
+   {teamUsers.map(u=><div className="personRow" key={u.email}><div><b>{u.name}</b><small>{u.email}</small></div><span className="roleBadge">{u.role}</span><span style={{color:u.twoFactor?"var(--ok)":"var(--warn)"}}>{u.twoFactor?"2FA":"Priporočena 2FA"}</span></div>)}
+   {sub==="Dovoljenja"&&<p style={{fontSize:10,color:"var(--muted)"}}>Dovoljenja se bodo v produkciji določala strežniško po vlogi in podjetju; ta tabela prikazuje samo demo vloge.</p>}
+  </>)}
+  {section==="Moduli"&&card("Moduli · "+sub,<>
+   {nav.map(([label,icon])=><div className="auditRow2" key={label}><div><b>{icon} {label}</b><small>Modul v navigacijskem registru</small></div><span>Demo</span><span className="roleBadge">Predogled</span></div>)}
+  </>)}
+  {section==="Integracije"&&card("Integracije · "+sub,<>
+   <div className="securityTile"><b>{sub}</b><small>Pregled integracije. Dejanska povezava in poverilnice niso nastavljene v tem Next.js demonstracijskem prikazu.</small></div>
+  </>)}
+  {section==="Videz"&&card("Videz · "+sub,<>
+   <div className="securityTile"><b>Tema</b><small>Izberi prikaz za ta demo pogled.</small><button className="secondary" onClick={()=>setLight(v=>!v)} style={{marginTop:8}}>{light?"Preklopi na temno":"Preklopi na svetlo"}</button></div>
+   <div className="securityTile" style={{marginTop:9}}><b>Gostota</b><small>Trenutno: {compact?"Kompaktno":"Udobno"}</small><button className="secondary" onClick={()=>setCompact(v=>!v)} style={{marginTop:8}}>Preklopi gostoto</button></div>
+   {sub==="Navigacija"&&<div className="securityTile" style={{marginTop:9}}><b>Hierarhija</b><small>Modul → podmodul → dodatni pogled. Končna prilagoditev navigacije ostane predmet širše UX prenove.</small></div>}
+  </>)}
+  {section==="Varnost"&&sub==="2FA"&&card("Dvofaktorska prijava",<>
+   <div className="securityTile"><b>{twoFactor?"Demo 2FA vključena":"Demo 2FA izključena"}</b><small>Sprememba vpliva samo na simulirani prikaz, ne na resnično prijavo.</small><button className="secondary" onClick={()=>setTwoFactor(v=>!v)} style={{marginTop:8}}>Preklopi demo 2FA</button></div>
+  </>)}
+  {section==="Varnost"&&sub==="Seje"&&card("Aktivne seje",sessions.map(s=><div className="sessionRow" key={s.device}><div><b>{s.device}</b><small>{s.place}</small></div><span>{s.when}</span><span className="roleBadge">Demo</span></div>))}
+  {section==="Varnost"&&sub==="Audit"&&card("Varnostna revizijska sled",securityAudit.map((a,i)=><div className="auditRow2" key={i}><div><b>{a.event}</b><small>{a.actor}</small></div><span>{a.when}</span><span className="roleBadge">Demo</span></div>))}
+ </div>;
 }
 
 const demoJournalLines=[
@@ -382,7 +381,7 @@ export default function Page(){
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
 
        {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
-       {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
+       {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext}/>}
