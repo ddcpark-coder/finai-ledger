@@ -24,11 +24,34 @@ export function normalizeServerPreferences(raw){
   };
 }
 
+function xsrfToken(){
+  if(typeof document==="undefined")return null;
+  const token=document.cookie.split("; ").find(c=>c.startsWith("XSRF-TOKEN="));
+  if(!token)return null;
+  return decodeURIComponent(token.substring("XSRF-TOKEN=".length));
+}
+
 async function request(method,companyId,body,signal){
   if(!workspaceApiConfigured())return null;
+  let token=null;
+  if(method!=="GET"){
+    const url=new URL(apiBase);
+    // Stateful Sanctum requires a session CSRF cookie before unsafe requests.
+    const csrf=await fetch(url.origin+"/sanctum/csrf-cookie",{
+      method:"GET",credentials:"include",cache:"no-store",
+      headers:{"Accept":"application/json","X-Requested-With":"XMLHttpRequest"},
+      ...(signal?{signal}:{})
+    });
+    if(!csrf.ok)throw new Error("Sanctum CSRF cookie is unavailable ("+csrf.status+")");
+    token=xsrfToken();
+    if(!token)throw new Error("XSRF-TOKEN cookie unavailable; use same-site first-party app/api domains.");
+  }
   const response=await fetch(endpoint(companyId),{
     method,credentials:"include",cache:"no-store",
-    headers:{"Accept":"application/json",...(method==="PUT"?{"Content-Type":"application/json"}:{})},
+    headers:{
+      "Accept":"application/json","X-Requested-With":"XMLHttpRequest",
+      ...(method==="PUT"?{"Content-Type":"application/json","X-XSRF-TOKEN":token}:{})
+    },
     ...(body?{body:JSON.stringify(body)}:{}),
     ...(signal?{signal}:{})
   });
