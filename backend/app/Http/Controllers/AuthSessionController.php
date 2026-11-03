@@ -12,6 +12,10 @@ final class AuthSessionController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // Fail closed until Owner/Admin TOTP and secure recovery flows pass release QA.
+        abort_if(app()->environment('production'), 503,
+            'Production login is disabled until the 2FA release gate is completed.');
+
         $credentials = $request->validate([
             'email' => ['required','email','max:255'],
             'password' => ['required','string','max:256'],
