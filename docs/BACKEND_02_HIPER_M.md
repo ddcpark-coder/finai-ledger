@@ -1,7 +1,7 @@
 # BACKEND-02 — Hiper M prednamestitveni pregled in varna uvedba
 
 **Izvedeno:** Laravel Fortify TOTP/recovery, aplikacijski varnostni testi, zaklenjen Composer, read-only preflight.
-**Neizvedeno:** prijava v Hiper M cPanel, produkcijska baza, nameščeni Laravel, DNS/SSL, dejanski front-end prijavni obrazec in popolni end-to-end preizkusi.
+**Neizvedeno:** prijava v Hiper M cPanel, produkcijska baza, nameščeni Laravel, DNS/SSL in popolni end-to-end preizkusi na resničnih domenah. Ločena odjemalska prijavna stran `/auth` je dodana, vendar brez konfiguriranega API-ja ostaja namerno neaktivna.
 
 ## Predpriprava (read-only, brez skrivnosti)
 
@@ -41,11 +41,12 @@ php artisan migrate --path=database/migrations/2026_11_03_000018_create_user_wor
 
 ## 2FA / prijava
 - Uradni Laravel Fortify uporablja TOTP, potrditev kode pred aktivacijo in obnovitvene kode.
+- Ločen frontend `/auth` podpira prijavo, TOTP/obnovitveno kodo ter vključitev novega TOTP po ponovni potrditvi gesla. V predogledu brez nastavitve API ne sprejema prijav.
 - Fortify skrbi za enotno prijavo/odjavo in zaščitene 2FA endpoints, brez javne registracije.
 - Lastni stari `/auth/login` je odstranjen, da ni obvoda.
 - Owner/Admin morata imeti potrjeno 2FA. Brez nje se prijava in privilegiran API zavrneta.
 - **`FINAI_AUTH_RELEASE_ENABLED=false` ostaja privzeta produkcijska varovalka.**
-- Zahtevani so še pravi frontend vmesnik za 2FA in vsebinsko varen vpis prvega administratorja.
+- Osnovni frontend 2FA je pripravljen; še vedno je treba preizkusiti dejanski tok s prijavo na Hiper M in varen vpis prvega administratorja.
 - Ključi za TOTP in recovery se ne zapisujejo v loge ali API `/me`.
 
 ## Produkcijska povezava (še ni aktivna)
