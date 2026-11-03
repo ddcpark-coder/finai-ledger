@@ -9,13 +9,13 @@ final class PostInventoryMovement
     public function execute(
         int $companyId,int $productId,int $warehouseId,int $locationId,
         string $type,float $quantity,string $sourceType,int $sourceId,int $userId,
-        ?float $unitCost=null,?string $reference=null
+        ?float $unitCost=null,?string $reference=null,?int $projectId=null
     ): int {
         InventoryMath::assertPositiveQuantity(abs($quantity));
 
         return DB::transaction(function () use (
             $companyId,$productId,$warehouseId,$locationId,$type,$quantity,
-            $sourceType,$sourceId,$userId,$unitCost,$reference
+            $sourceType,$sourceId,$userId,$unitCost,$reference,$projectId
         ) {
             $product=DB::table('products')->where('id',$productId)->where('company_id',$companyId)->where('active',true)->first();
             $warehouse=DB::table('warehouses')->where('id',$warehouseId)->where('company_id',$companyId)->where('active',true)->first();
@@ -49,7 +49,7 @@ final class PostInventoryMovement
             ]);
 
             return DB::table('inventory_movements')->insertGetId([
-                'company_id'=>$companyId,'product_id'=>$productId,'warehouse_id'=>$warehouseId,
+                'company_id'=>$companyId,'project_id'=>$projectId,'product_id'=>$productId,'warehouse_id'=>$warehouseId,
                 'warehouse_location_id'=>$locationId,'movement_type'=>$type,'quantity'=>$quantity,
                 'unit_cost'=>$unitCost,'source_type'=>$sourceType,'source_id'=>$sourceId,'reference'=>$reference,
                 'created_by'=>$userId,'occurred_at'=>now(),'created_at'=>now(),'updated_at'=>now()
