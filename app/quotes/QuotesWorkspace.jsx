@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const quotes=[
  {id:"PON-2026-0042",partner:"ABC d.o.o.",version:2,status:"Poslano",net:2450,tax:539,gross:2989,valid:"15. 11. 2026",owner:"Dalibor",opportunity:"Prenova označb"},
@@ -27,6 +27,12 @@ export default function QuotesWorkspace({context}){
 
  const status=accepted?"Sprejeto":sent&&selected.status==="Osnutek"?"Poslano":selected.status;
 
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.id===selected.id)){
+     setSelected(list[0]);setAccepted(false);setSent(false);
+   }
+ },[list,selected.id]);
+
  return <section className="quotesWorkspace">
  <style>{`
  .quotesGrid{display:grid;grid-template-columns:minmax(0,1.45fr) 370px;gap:10px}.quoteCard{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.quoteHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.quoteHead h3{margin:0;font-size:12px}.quoteTools{display:flex;gap:7px;flex-wrap:wrap}.quoteTools input,.quoteTools select{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;padding:8px 9px;font-size:9px}
@@ -50,14 +56,14 @@ export default function QuotesWorkspace({context}){
     <span><b>{q.id}</b><small>{q.opportunity}</small></span><span><b>{q.partner}</b><small>{q.owner}</small></span><span>v{q.version}</span><b>{q.gross.toFixed(2)} €</b><span className={"qstate "+(q.status==="Sprejeto"?"ok":q.status==="Poslano"?"info":q.status==="Zavrnjeno"?"bad":"draft")}>{q.status}</span>
    </button>)}
   </article>
-  <aside className="quoteCard quoteDetail">
+  {list.length>0&&<aside className="quoteCard quoteDetail">
    <span className={"qstate "+(status==="Sprejeto"?"ok":status==="Poslano"?"info":status==="Zavrnjeno"?"bad":"draft")}>{status}</span>
    <h3>{selected.id}</h3><small>{selected.partner} · verzija {selected.version}</small>
    <div className="quoteMeta"><div><small>Velja do</small><b>{selected.valid}</b></div><div><small>CRM priložnost</small><b>{selected.opportunity}</b></div><div><small>Lastnik</small><b>{selected.owner}</b></div><div><small>Valuta</small><b>EUR</b></div></div>
    <div className="quoteSec"><h4>Postavke</h4><div className="qline"><span>Reklamna tabla 100 × 70 cm</span><span>20 kos</span><b>58,00 €</b><span>-8 %</span></div><div className="qline"><span>Montaža na lokaciji</span><span>12 h</span><b>42,00 €</b><span>0 %</span></div><div className="totals"><div><span>Neto</span><b>{selected.net.toFixed(2)} €</b></div><div><span>DDV</span><b>{selected.tax.toFixed(2)} €</b></div><div><span>Skupaj</span><b>{selected.gross.toFixed(2)} €</b></div></div></div>
    <div className="quoteSec"><h4>Verzija in sledljivost</h4><div className="quoteMeta"><div><small>Trenutna verzija</small><b>v{selected.version}</b></div><div><small>Cenovni snapshot</small><b>Zaklenjen ob pošiljanju</b></div></div></div>
    <div className="quoteSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>{selected.status==="Osnutek"&&!sent&&<button className="primary" onClick={()=>setSent(true)}>Pošlji ponudbo</button>}<button className="secondary">Predogled PDF</button><button className="secondary">Ustvari novo verzijo</button>{(status==="Poslano"||status==="Sprejeto")&&<button className="secondary" onClick={()=>setAccepted(true)}>Simuliraj sprejem prek povezave</button>}{status==="Sprejeto"&&<button className="primary">Pretvori v naročilo</button>}</div></div>
-  </aside>
+  </aside>}{list.length===0&&<aside className="quoteCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
  </div>
  </section>
 }
