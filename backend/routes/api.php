@@ -1,12 +1,36 @@
 <?php
 
 use App\Http\Controllers\Api\WorkspacePreferencesController;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Requires a bootstrapped Laravel app, Sanctum and the fail-closed 'company.access' Gate.
-Route::middleware(['auth:sanctum','throttle:60,1'])
-    ->prefix('companies/{companyId}/my/workspace-preferences')
-    ->group(function () {
-        Route::get('/',[WorkspacePreferencesController::class,'show']);
-        Route::put('/',[WorkspacePreferencesController::class,'update']);
+// All API responses are JSON. Auth state is verified by Sanctum on the server.
+Route::middleware(['auth:sanctum','verified','throttle:60,1'])->group(function (): void {
+    Route::get('/me', function (Request $request): JsonResponse {
+        $user = $request->user();
+
+        $companies = $user->companies()
+            ->where('companies.active', true)
+            ->wherePivot('status', 'active')
+            ->get(['companies.id','companies.name']);
+
+        return response()->json(['data'=>[
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'companies' => $companies->map(fn ($company): array => [
+                'id' => $company->id,
+                'name' => $company->name,
+            ])->values()->all(),
+        ]])->header('Cache-Control','private, no-store');
     });
+
+    Route::get('/companies/{companyId}/my/workspace-preferences',
+        [WorkspacePreferencesController::class, 'show'])
+        ->whereNumber('companyId');
+
+    Route::put('/companies/{companyId}/my/workspace-preferences',
+        [WorkspacePreferencesController::class, 'update'])
+        ->whereNumber('companyId');
+});
