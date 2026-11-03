@@ -346,6 +346,13 @@ export default function Page(){
    setQuery("");
  };
  const activeContext=useMemo(()=>({level2:contextLevel2,level3:contextLevel3}),[contextLevel2,contextLevel3]);
+ const dashboardOverview=section==="Nadzorna plošča"&&contextLevel2==="Pregled"&&contextLevel3==="Moj pregled";
+ const dashboardRows=section==="Nadzorna plošča"?current.rows.filter(r=>{
+   if(contextLevel2==="Odobritve")return contextLevel3==="Čaka mene"&&r[4]!=="Zaključeno";
+   if(contextLevel2==="Moje naloge")return contextLevel3==="Zamujeno"?false:contextLevel3==="Danes"?r[3]==="Danes":true;
+   if(contextLevel2==="Pregled"&&contextLevel3==="Aktivnosti")return true;
+   return false;
+ }):[];
  const mobile=[["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Knjiženje","⇄"],["Banka","◇"],["Nastavitve","⚙"]];
  return <div className={"app "+(light?"light ":"")+(compact?"compact":"")}>
    <style>{css}</style>
@@ -380,7 +387,19 @@ export default function Page(){
 
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
 
-       {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
+       {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
+       {section==="Nadzorna plošča"&&!dashboardOverview&&<article className="panel" style={{marginBottom:10}}>
+         <div className="panelHead"><h3>{contextLevel2} · {contextLevel3}</h3><span>Demo prikaz · {dashboardRows.length} opravil</span></div>
+         {contextLevel2==="Analitika"?<div className="kpis" style={{padding:12}}>{current.stats.filter(([a])=>
+           contextLevel3==="Finance"?/Bančne|Roki/.test(a):
+           contextLevel3==="Prodaja"?/Računi/.test(a):
+           /AI|Računi/.test(a)).map(([a,b,d,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small></div><strong>{b}</strong><em>{d}</em></article>)}</div>
+         :contextLevel2==="Pregled"&&contextLevel3==="KPI"?<p style={{padding:14,fontSize:10,color:"var(--muted)"}}>Ključni kazalniki so prikazani v karticah zgoraj. Prilagajanje kartic je na voljo v pogledu »Moj pregled«.</p>
+         :<div className="tableWrap"><div className="table"><div className="tr head"><span>Postavka</span><span>Kontekst</span><span>Vrednost</span><span>Datum</span><span>Prioriteta</span></div>
+           {dashboardRows.map((row,i)=><button className="tr row" key={i} onClick={()=>setDrawer(row)}>{row.map((value,j)=><span key={j}>{value}</span>)}</button>)}
+           {!dashboardRows.length&&<p style={{padding:14,fontSize:10,color:"var(--muted)"}}>Za izbrani pogled ni opravil v demonstracijskih podatkih.</p>}
+         </div></div>}
+       </article>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
@@ -398,7 +417,7 @@ export default function Page(){
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
 
-       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
+       {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>
