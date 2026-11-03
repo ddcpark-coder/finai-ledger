@@ -15,5 +15,6 @@ return [
     'quotes' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'quotes.read'],
     'orders' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'orders.read'],
     'procurement' => ['group' => 'operations', 'default_enabled' => true, 'permission' => 'procurement.read'],
+    'inventory' => ['group' => 'operations', 'default_enabled' => true, 'permission' => 'inventory.read'],
     'settings' => ['group' => 'system', 'default_enabled' => true, 'permission' => 'settings.manage'],
 ];
