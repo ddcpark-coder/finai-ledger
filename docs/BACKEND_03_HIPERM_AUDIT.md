@@ -1,6 +1,6 @@
 # FinAI BACKEND-03 – read-only pregled Hiper M
 **Datum:** 3. november 2026  
-**Način:** ogled povezanega Vercel projekta, pregleda repozitorija in javne dokumentacije; brez prijave v gostovanje, brez sprememb na strežniku.
+**Način:** pregled povezanega Vercel projekta in GitHub CI + **izpis dejansko izvedenega read-only skripta v cPanel Terminalu na Hiper M**, ki ga je 3. 11. 2026 posredoval uporabnik. Brez spreminjanja nastavitev strežnika.
 
 ## Dejanska ugotovljena dejstva
 
@@ -10,11 +10,11 @@
 | Lastna domena vezana na FinAI Vercel projekt | NI POVEZANA | Pregled nastavitev trenutnega projekta Vercel |
 | Laravel/PHP 8.4 v GitHub testih | PREVERJENO V CI | Prejšnja faza BACKEND-02, **ne** Hiper M |
 | TOTP, obnovitvene kode in izključena produkcijska prijava | PREVERJENO V CI | 14 PHP testov, 68 preverjanj v prejšnji fazi |
-| PHP 8.4 za FinAI na Hiper M | NEPREVERJENO | Potrebna prijavljena seja cPanel |
-| Razširitve PHP (PDO MySQL, mbstring, intl, zip ...) | NEPREVERJENO | Potreben per-domain PHP pregled ali terminal |
+| PHP CLI 8.4 na Hiper M | POTRJENO | Uporabnikov terminalski izpis: PHP 8.4.27, `/opt/alt/php84/usr/bin/php`; PHP za bodočo **domeno** še ni preverjen |
+| PHP CLI razširitve | POTRJENO | pdo_mysql, mbstring, curl, intl, dom, xml, zip, openssl, fileinfo vse ENABLED; ne dokazuje spletne PHP-FPM konfiguracije |
 | MariaDB server verzija | NEPREVERJENO | CLI `mysql --version` preverja odjemalca, ne strežnika |
-| SSH/Terminal | NEPREVERJENO ZA FINAI | Brez prijavljenega računa ali izpisa s strežnika |
-| Git, Composer 2 in cron na Hiper M | NEPREVERJENO | Brez izvajanja ukaza na Hiper M |
+| cPanel Terminal | POTRJENO | Uporabnik je uspel zagnati read-only skript; to **ne dokazuje zunanjega SSH** dostopa |
+| Git, Composer 2 in cron na Hiper M | POTRJENO ZA CLI | Git 2.56.0; Composer 2.10.3; `crontab` v PATH, ne potrjuje dejanske možnosti ustvarjanja cron opravil |
 | SSL in DNS za lastni FinAI app/API domeni | NEPREVERJENO | Domeni nista določeni/povezani |
 | Document Root `backend/public` | NEPREVERJENO | FinAI strežniška namestitev še ni izvedena |
 | Izolirana MariaDB, kvote, kopije in obnovitev | NEPREVERJENO | Ni dostopa do nastavitve konkretnega FinAI računa |
@@ -22,7 +22,7 @@
 
 **Pomembna ločitev:** cPanel lahko *podpira* MariaDB 10.11, vendar to ni dokaz različice na gostovanju. Prav tako lahko druga aplikacija uporablja isti ponudnik, kar ne dokazuje razpoložljivosti ali nastavitev za FinAI.
 
-## Diagnostični paket (pripravljen, neizveden na Hiper M)
+## Diagnostični paket (izveden na Hiper M)
 
 Datoteka: `backend/scripts/hiperm-readonly-check.sh`
 
@@ -34,6 +34,30 @@ bash backend/scripts/hiperm-readonly-check.sh
 ```
 
 Če repozitorija ni, **ga ne nameščaj samo za pregled**: odpri skript v GitHubu ter njegovo preverjeno vsebino kopiraj v cPanel Terminal. CPanel mora biti prijavljen na pravi račun; ni treba nikamor posredovati gesel.
+
+## Izpis iz dejanskega gostovanja Hiper M
+
+Preverjeno 2026-11-03 z read-only pregledom v uporabnikovem cPanel Terminalu.
+
+| Parameter | Potrjena vrednost | Opomba |
+|---|---|---|
+| OS / arhitektura | Linux / x86_64 | Podpora za PHP/Laravel |
+| PHP CLI | 8.4.27 | PHP_BINARY `/opt/alt/php84/usr/bin/php`; domači PHP domen še neznan |
+| PDO gonilniki | mysql, pgsql, sqlite | Med njimi PDO MySQL |
+| Zahtevane PHP razširitve | pdo_mysql, mbstring, curl, intl, dom, xml, zip, openssl, fileinfo | Vse vključene v CLI |
+| Composer | 2.10.3 | Prisoten |
+| Git | 2.56.0 | Prisoten |
+| OpenSSL | 3.5.8 | Prisoten |
+| MariaDB CLI | 10.11.19 (odjemalec) | Ne dokazuje DB server različice |
+| Node / npm v PATH | Ni najdeno | Ni blokada za Vercel frontend / Laravel API |
+| PHP CLI memory_limit | 256M | Preveriti spletni PHP in končno kapaciteto |
+| PHP CLI max_execution_time | 0 | V CLI 0 pomeni neomejeno; ne dokazuje web timeouts |
+| PHP CLI upload_max_filesize | 20M | Spletna nastavitev je lahko drugačna |
+| PHP CLI post_max_size | 50M | Spletna nastavitev je lahko drugačna |
+| Cron ukaz | Na voljo | Konfiguracija Cron Jobs še ni pregledana |
+| Prostor na datotečnem sistemu | 450.8 GiB prosto | Ne predstavlja nujno kvote hosting računa |
+
+**Ocena:** osnovni PHP/Laravel predpogoji so v CLI **PASS**; gostovanje je tehnično obetavno. Celotna produkcijska namestitev ima še odprte infrastrukturne pogoje (stvarna DB server verzija, web PHP, SSL, domene, backup, dok. koren, varnostna konfiguracija).
 
 ## Preostale preverbe v cPanel (izključno ogled)
 
@@ -48,4 +72,4 @@ bash backend/scripts/hiperm-readonly-check.sh
 
 BACKEND-03 lahko dobi status **PASS na gostovanju** šele po resničnem read-only pregledu. Do takrat ostanejo `FINAI_AUTH_RELEASE_ENABLED=false`, brez migracij na Hiper M, brez lastnih domen, nameščenega API-ja, testnih uporabnikov ali vklopa sinhronizacije.
 
-**Naslednji izvedljivi korak:** s prijavljeno sejo cPanela v načinu ChatGPT Work izvesti zgornji pregled in izpolniti tabelo z dejanskimi različicami ter omejitvami. Tega ne nadomesti PASS iz GitHub Actions.
+**Naslednji izvedljivi korak:** brez Work izvedi samo vizualni pregled cPanel → phpMyAdmin (različica *strežnika*, brez odpiranja podatkov), MultiPHP Manager/Select PHP Version (PHP per-domain), Domains + SSL/TLS Status, Backup/JetBackup, Resource Usage in Cron Jobs. Posreduj samo tehnične podatke ali PS brez občutljivih informacij; produkcijskih migracij ne izvajaj.
