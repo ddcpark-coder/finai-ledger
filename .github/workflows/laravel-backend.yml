@@ -30,7 +30,7 @@ jobs:
       - name: Validate Composer project
         run: composer validate --strict --no-check-publish
       - name: Install reviewed dependencies without secrets
-        run: composer install --no-interaction --prefer-dist --no-progress --no-audit
+        run: composer install --no-interaction --prefer-dist --no-progress
       - name: Check locked package security advisories
         run: composer audit --locked --no-interaction
       - name: Prepare isolated test environment
