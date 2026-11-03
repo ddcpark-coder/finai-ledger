@@ -14,15 +14,19 @@ const offers=[
  {supplier:"Industria d.o.o.",price:"25.120,00 €",lead:"5 dni",score:"Alternativa"}
 ];
 
-export default function ProcurementWorkspace(){
+export default function ProcurementWorkspace({context}){
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
  const [selected,setSelected]=useState(pos[0]);
- const [tab,setTab]=useState("Naročilnice");
+ const tab=context?.level2??"Pregled";
+ const subView=context?.level3??"KPI";
  const list=useMemo(()=>pos.filter(x=>{
    const q=query.toLowerCase();
-   return (!q||[x.id,x.supplier,x.sales].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||x.status===filter);
- }),[query,filter]);
+   const contextStatus=tab==="Naročilnice"?({"Naročeno":"Naročeno","Delno prevzeto":"Delno prevzeto","Osnutki":"Osnutek"})[subView]:null;
+   return (!q||[x.id,x.supplier,x.sales].join(" ").toLowerCase().includes(q))
+     &&(filter==="Vsi"||x.status===filter)
+     &&(!contextStatus||x.status===contextStatus);
+ }),[query,filter,tab,subView]);
 
  return <section className="proc">
   <style>{`
@@ -34,12 +38,12 @@ export default function ProcurementWorkspace(){
   @media(max-width:1100px){.procGrid{grid-template-columns:1fr}.offerGrid{grid-template-columns:1fr 1fr}}@media(max-width:760px){.prow{grid-template-columns:1fr 1fr .8fr}.prow>*:nth-child(3),.prow>*:nth-child(4){display:none}.meta{grid-template-columns:1fr}.offerGrid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,1fr)}.tools input{width:100%}}
   `}</style>
 
-  <div className="procTabs"><button className={tab==="Naročilnice"?"on":""} onClick={()=>setTab("Naročilnice")}>Naročilnice</button><button className={tab==="Povpraševanja"?"on":""} onClick={()=>setTab("Povpraševanja")}>Povpraševanja</button><button className={tab==="Prevzemi"?"on":""} onClick={()=>setTab("Prevzemi")}>Prevzemi</button></div>
 
-  {tab==="Naročilnice"&&<>
+
+  {(tab==="Pregled"||tab==="Naročilnice")&&<>
    <div className="flow"><div className="on">Potreba</div><div className="on">Povpraševanje</div><div className="on">Naročilo</div><div>Prevzem</div><div>Račun</div><div>3-way match</div></div>
    <div className="procGrid">
-    <article className="pcard"><div className="phead"><h3>Nabava · naročilnice</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči naročilnico, dobavitelja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Naročeno</option><option>Delno prevzeto</option><option>Prejeto</option><option>Odstopanje</option></select><button className="primary">＋ Nova naročilnica</button></div></div>
+    <article className="pcard"><div className="phead"><h3>{tab==="Naročilnice"?"Naročilnice · "+subView:"Nabava · pregled naročilnic"}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči naročilnico, dobavitelja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Naročeno</option><option>Delno prevzeto</option><option>Prejeto</option><option>Odstopanje</option></select><button className="primary">＋ Nova naročilnica</button></div></div>
     <div className="prow head"><span>Naročilo</span><span>Dobavitelj</span><span>Dobava</span><span>Vrednost</span><span>Kontrola</span></div>
     {list.map(x=><button className="prow" key={x.id} onClick={()=>setSelected(x)}><span><b>{x.id}</b><small>{x.sales}</small></span><span><b>{x.supplier}</b><small>{x.status}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className={"state "+(x.match==="Ujemanje OK"?"ok":x.status==="Odstopanje"?"bad":"warn")}>{x.match}</span></button>)}
     </article>
@@ -50,8 +54,20 @@ export default function ProcurementWorkspace(){
     <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Evidentiraj prevzem</button><button className="secondary">Primerjaj z računom</button><button className="secondary">Odpri dobavitelja</button><button className="secondary">Prikaži audit sled</button></div></div></aside>
    </div></>}
 
-  {tab==="Povpraševanja"&&<div className="offerGrid">{offers.map(o=><article className="offer" key={o.supplier}><h3>{o.supplier}</h3><small>Ponudba za PM-200 · 12 kos</small><strong>{o.price}</strong><small>Dobavni rok: {o.lead}</small><span className="badge">{o.score}</span><button className="secondary" style={{width:"100%",marginTop:10}}>Izberi ponudbo</button></article>)}</div>}
+  {(tab==="Povpraševanja"||tab==="Ponudbe dobaviteljev")&&<div className="offerGrid">{offers.filter(o=>subView!=="Izbrano"||o.score==="Najboljša cena").map(o=><article className="offer" key={o.supplier}><h3>{o.supplier}</h3><small>Ponudba za PM-200 · 12 kos</small><strong>{o.price}</strong><small>Dobavni rok: {o.lead}</small><span className="badge">{o.score}</span><button className="secondary" style={{width:"100%",marginTop:10}}>Izberi ponudbo</button></article>)}</div>}
 
   {tab==="Prevzemi"&&<article className="pcard"><div className="phead"><h3>Prevzemi blaga in materiala</h3><button className="primary">＋ Nov prevzem</button></div><div style={{padding:12}}><div className="line"><span>GR-PO-2026-0044-1 · FolijePlus d.o.o.</span><b>Delni prevzem · 18/20</b></div><div className="line"><span>GR-PO-2026-0043-1 · GradnjaTrade d.o.o.</span><b>Prejeto · 100 %</b></div><div className="line"><span>GR-PO-2026-0042-1 · ElektroKom d.o.o.</span><b>Prejeto · kontrola cene</b></div></div></article>}
+  {tab==="Potrebe"&&<article className="pcard"><div className="phead"><h3>Nabavne potrebe · {subView}</h3></div><div style={{padding:12}}>{[
+    {ref:"POT-2026-0042",source:"NAR-2026-0008",status:"Nove",detail:"Material za naročilo kupca"},
+    {ref:"POT-2026-0041",source:"Minimalna zaloga",status:"Odobrene",detail:"Dopolnitev zaloge skladišča"}
+   ].filter(x=>x.status===subView).map(x=><div className="line" key={x.ref}><span>{x.ref} · {x.source}</span><b>{x.detail}</b></div>)}
+   {subView==="Pretvorjene"&&<p>V demonstracijskem naboru ni pretvorjenih potreb.</p>}</div></article>}
+
+  {tab==="3-way match"&&<article className="pcard"><div className="phead"><h3>3-way match · {subView}</h3></div><div style={{padding:12}}>{pos.filter(x=>
+   subView==="Ujemanje"?x.match==="Ujemanje OK":
+   subView==="Odstopanja"?x.status==="Odstopanje"||x.match==="Količinsko odstopanje":
+   x.match!=="Ujemanje OK"
+  ).map(x=><div className="line" key={x.id}><span>{x.id} · {x.supplier}</span><b>{x.match}</b></div>)}</div></article>}
+
  </section>
 }
