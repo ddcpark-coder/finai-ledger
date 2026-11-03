@@ -49,13 +49,24 @@ final class CompleteDeliveryNote
                 throw new \DomainException('Qualified signature reference is required.');
             }
 
+            $signatureStored = null;
+            if ($signatureType === 'drawn') {
+                $signatureContents = $this->decodeDataUrl($receipt['signature_data']);
+                $signatureStored = $this->store->put(
+                    'delivery-notes/'.$note->company_id.'/'.$deliveryNoteId.'/signature.png',
+                    $signatureContents,
+                    'image/png'
+                );
+            }
+
             $receiptId = DB::table('delivery_receipts')->insertGetId([
                 'delivery_note_id' => $deliveryNoteId,
                 'signer_name' => trim($receipt['signer_name']),
                 'signer_email' => $receipt['signer_email'] ?? $note->recipient_email,
                 'signature_type' => $signatureType,
-                'signature_data' => $signatureType === 'drawn' ? $receipt['signature_data'] : null,
-                'signature_sha256' => isset($receipt['signature_data']) ? hash('sha256', $receipt['signature_data']) : null,
+                'signature_disk' => $signatureStored['disk'] ?? null,
+                'signature_path' => $signatureStored['path'] ?? null,
+                'signature_sha256' => $signatureStored['sha256'] ?? null,
                 'signed_at' => $receipt['signed_at'],
                 'ip_address' => $receipt['ip_address'] ?? null,
                 'device_info' => $receipt['device_info'] ?? null,
@@ -118,5 +129,19 @@ final class CompleteDeliveryNote
 
             return $documentId;
         });
+    }
+
+    private function decodeDataUrl(string $dataUrl): string
+    {
+        if (! preg_match('/^data:image\/png;base64,(.+)$/', $dataUrl, $matches)) {
+            throw new \DomainException('Invalid drawn signature payload.');
+        }
+
+        $decoded = base64_decode($matches[1], true);
+        if ($decoded === false || strlen($decoded) < 20 || strlen($decoded) > 5 * 1024 * 1024) {
+            throw new \DomainException('Invalid drawn signature image.');
+        }
+
+        return $decoded;
     }
 }
