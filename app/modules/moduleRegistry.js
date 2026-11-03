@@ -11,6 +11,7 @@ export const modules = [
   { key:"catalog", label:"Artikli in ceniki", icon:"◫", group:"sales", defaultEnabled:true },
   { key:"crm", label:"CRM", icon:"◉", group:"sales", defaultEnabled:true },
   { key:"quotes", label:"Ponudbe", icon:"◆", group:"sales", defaultEnabled:true },
+  { key:"orders", label:"Naročila", icon:"▰", group:"sales", defaultEnabled:true },
   { key:"settings", label:"Nastavitve", icon:"⚙", group:"system", defaultEnabled:true },
 ];
 
