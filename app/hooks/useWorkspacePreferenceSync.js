@@ -73,24 +73,35 @@ export default function useWorkspacePreferenceSync({
       try{
         const result=await fetchWorkspacePreferences(company,controller.signal);
         if(controller.signal.aborted||companyRef.current!==company)return;
+        // A fresh account must not destroy existing local preferences.
+        if(result.version===0){
+          session.current={company,version:0,lastHash:null,hydrationTarget:null};
+          setSyncStatus("synced");
+          return;
+        }
         const canRestoreRoute=switching||!hasExternalLink;
         hydrateServerPreferences(result,{restoreRoute:canRestoreRoute});
-        if(result.version>0){
-          setLight(result.appearance.theme==="light");
-          setCompact(result.appearance.density==="compact");
-        }
+        setLight(result.appearance.theme==="light");
+        setCompact(result.appearance.density==="compact");
+        const remoteHash=JSON.stringify({
+          last_route:result.last_route?{
+            module:result.last_route.module,view:result.last_route.view,subview:result.last_route.subview
+          }:null,
+          favorites:result.favorites.map(x=>({module:x.module,view:x.view,subview:x.subview})),
+          appearance:result.appearance
+        });
         session.current={
-          company,version:result.version,
-          // A newly linked account should upload existing local settings.
-          lastHash:result.version>0?JSON.stringify({
-            last_route:result.last_route?{
-              module:result.last_route.module,view:result.last_route.view,subview:result.last_route.subview
-            }:null,
-            favorites:result.favorites.map(x=>({module:x.module,view:x.view,subview:x.subview})),
-            appearance:result.appearance
-          }):null
+          company,version:result.version,lastHash:remoteHash,
+          hydrationTarget:{
+            favorites:JSON.stringify(result.favorites.map(x=>({
+              module:x.module,view:x.view,subview:x.subview
+            }))),
+            theme:result.appearance.theme,
+            density:result.appearance.density
+          }
         };
-        setSyncStatus("synced");
+        // Wait for React to apply remote appearance/favorites before enabling writes.
+        setSyncStatus("hydrating");
       }catch(error){
         if(controller.signal.aborted||companyRef.current!==company)return;
         setSyncStatus(error?.status===401||error?.status===403?"blocked":"offline");
@@ -104,6 +115,19 @@ export default function useWorkspacePreferenceSync({
   // Deliberately reload only on company change; other state is persisted separately.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[company]);
+
+  useEffect(()=>{
+    if(syncStatus!=="hydrating"||!appearanceReady)return;
+    const expected=session.current.hydrationTarget;
+    if(!expected||session.current.company!==company)return;
+    const favoritesMatch=JSON.stringify(payload.favorites)===expected.favorites;
+    const appearanceMatch=payload.appearance.theme===expected.theme
+      &&payload.appearance.density===expected.density;
+    if(favoritesMatch&&appearanceMatch){
+      session.current.hydrationTarget=null;
+      setSyncStatus("synced");
+    }
+  },[company,syncStatus,appearanceReady,payloadHash]);
 
   useEffect(()=>{
     if(!workspaceApiConfigured()||syncStatus!=="synced"||!appearanceReady)return;

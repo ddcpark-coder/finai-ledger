@@ -1,0 +1,48 @@
+name: FinAI Laravel foundation tests
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/laravel-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Validate Composer project
+        run: composer validate --no-check-publish
+      - name: Install reviewed dependencies without secrets
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare isolated test environment
+        run: cp .env.example .env
+      - name: Check application can bootstrap
+        env:
+          APP_ENV: testing
+          APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+          SESSION_DRIVER: array
+          CACHE_STORE: array
+        run: |
+          php artisan --version
+          php artisan route:list --path=api
+      - name: Run isolated tenant/API integration tests
+        run: php artisan test --testsuite=Feature --display-warnings --no-ansi --stop-on-failure

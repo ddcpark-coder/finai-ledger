@@ -1,6 +1,6 @@
 # FinAI — strežniške nastavitve uporabnika (pripravljena integracija)
 
-Status: **API pogodba in izvorna koda, ne delujoč produkcijski Laravel API.**
+Status: **API in preverjanje članstva delujeta v testnem Laravel 13/PHP 8.4 okolju (8 integracijskih testov PASS).** Hiper M produkcijska namestitev še ni opravljena.
 
 ## Podatkovni model
 `user_workspace_preferences` je vezan na `user_id + company_id` (unikatni par).
@@ -18,18 +18,18 @@ Primer oblike odgovora:
 
 Middleware: `auth:sanctum`, throttle.
 
-**Dostop je privzeto blokiran.** Storitev zahteva strežniško Gate politiko `company.access`. Identiteta prihaja iz prijave, nikoli iz zahteve odjemalca. Politiko bo treba pravilno povezati z dejansko membership tabelo in testirati zavrnitev za tuj company ID.
+**Dostop je omejen na aktivnega in preverjenega uporabnika z aktivnim članstvom v podjetju.** Gate `company.access` preverja `company_user` in `companies.active`; 401/403 in ločevanje podjetij sta avtomatizirano preizkušena. Produkcijska prijava je začasno blokirana do uvedbe 2FA.
 
-`expected_version` je opcijski varovalni podatek pred izgubo sprememb v več sejah. Ne uporabljati pred aktivacijo avtentikacije, tenant izolacije, database migracij in integracijskih testov.
+`expected_version` je obvezen; neujemanje povzroči odgovor 409 in prepreči prepis sprememb. Ne uporabljati pred aktivacijo avtentikacije, tenant izolacije, database migracij in integracijskih testov.
 
 ## Odjemalec
 Za priklop mora biti nastavljeno `NEXT_PUBLIC_FINAI_API_BASE_URL` do avtoriziranega Laravel API. Odjemalec uporablja `credentials:'include'` in strežniški JSON; do takrat ostaja funkcionalno lokalno shranjevanje.
 
 Pred dejansko aktivacijo:
-1. vzpostaviti Laravel runtime, `composer.json`, `artisan`, registrirane route in Sanctum;
-2. migracije in membership policy/Gate testirati z resničnimi uporabniki dveh podjetij;
-3. vključiti zaščito pred CSRF, CORS/origin omejitve, varne httpOnly session piškotke, autorizacijo tenantov;
-4. dodati funkcionalni test GET/PUT, 401/403/409, omejitev 8 priljubljenih, različna podjetja;
-5. preveriti verzioniranje, konfliktne seje in sinhronizacijo dveh naprav.
+1. nadzorovano vzpostaviti Laravel na Hiper M s PHP 8.4, SSL, MariaDB in dokumentnim korenom v public/;
+2. zakleniti Composer verzije, dodati 2FA in preveriti postopke obnove prijave;
+3. preizkusiti CSRF, CORS in piškotke na dveh first-party poddomenah;
+4. ponoviti 401/403/409 na realni MariaDB, z dvema uporabnikoma in dvema podjetjema;
+5. preveriti resnično sinhronizacijo med računalnikom in telefonom.
 
 Privzetega lokalnega načina ne predstavljamo kot sinhronizacijo v oblak.
