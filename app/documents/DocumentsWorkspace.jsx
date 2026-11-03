@@ -59,6 +59,12 @@ export default function DocumentsWorkspace({context}){
  });
  const showSignature=(section==="Dobavnice"||section==="Podpisi"&&subView==="Na zaslonu")&&selected.type==="Dobavnica";
 
+ useEffect(()=>{
+   if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected.title)){
+     setSelected(visibleDocs[0]);setCompleted(false);setSent(false);
+   }
+ },[visibleDocs,selected.title]);
+
  return <section className="docsWorkspace">
   <style>{`
   .docsWorkspace{margin-top:10px}.docsGrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:10px}.docCard{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.docHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.docHead h3{margin:0;font-size:12px}.docRow{display:grid;grid-template-columns:.8fr 1.2fr 1fr .8fr;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);width:100%;background:transparent;color:var(--text);border-left:0;border-right:0;border-top:0;text-align:left}.docRow.head{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--panel)}.docRow:not(.head):hover{background:color-mix(in srgb,var(--accent) 5%,transparent)}.docRow b{font-size:10px}.docRow small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.docStatus{width:max-content;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:8px}.docStatus.ok{color:var(--ok)}.docStatus.warn{color:var(--warn)}.delivery{padding:14px}.delivery h3{margin:8px 0 2px;font-size:17px}.delivery>small{color:var(--muted);font-size:9px}.deliveryMeta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.deliveryMeta div{border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--bg2)}.deliveryMeta small,.deliveryMeta b{display:block}.deliveryMeta small{font-size:8px;color:var(--muted)}.deliveryMeta b{font-size:10px;margin-top:3px}.deliverySec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.deliverySec h4{margin:0 0 8px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.deliveryLine{display:grid;grid-template-columns:1.3fr .5fr .5fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:9px}.field{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;padding:9px;font-size:9px;margin-bottom:7px}.proof{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--accent) 5%,var(--panel))}.proof b,.proof small{display:block}.proof small{font-size:8px;color:var(--muted);margin-top:3px}.pwaBox{margin:12px;border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:11px;background:color-mix(in srgb,var(--violet) 5%,var(--panel))}.pwaBox b,.pwaBox small{display:block}.pwaBox small{font-size:8px;color:var(--muted);margin-top:3px}
@@ -77,7 +83,7 @@ export default function DocumentsWorkspace({context}){
     </button>)}
    </article>
 
-   {showSignature?<aside className="docCard delivery">
+   {!visibleDocs.length?<aside className="docCard delivery" style={{padding:14,color:"var(--muted)"}}>Za izbrani podpogled ni ustreznega dokumenta.</aside>:showSignature?<aside className="docCard delivery">
     <span className={"docStatus "+(completed?"ok":"warn")}>{completed?"Zaključena":"Za podpis"}</span>
     <h3>DOB-2026-0048</h3><small>ABC d.o.o. · 03. 11. 2026</small>
     <div className="deliveryMeta"><div><small>Prejemnik</small><b>{signer||"—"}</b></div><div><small>E-pošta</small><b>{email||"—"}</b></div><div><small>Lokacija</small><b>Opcijsko</b></div><div><small>Način podpisa</small><b>Podpis na zaslonu</b></div></div>
