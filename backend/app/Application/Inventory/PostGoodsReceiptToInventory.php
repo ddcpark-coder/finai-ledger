@@ -7,7 +7,7 @@ final class PostGoodsReceiptToInventory
 {
     public function __construct(private PostInventoryMovement $movements) {}
 
-    public function execute(int $goodsReceiptId,int $userId,?int $locationId=null): void
+    public function execute(int $goodsReceiptId,int $userId,int $locationId): void
     {
         $receipt=DB::table('goods_receipts')->find($goodsReceiptId);
         if (! $receipt || ! $receipt->warehouse_id) {
