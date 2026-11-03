@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import {defaultNavigation as nav,modules} from "./modules/moduleRegistry";
 import ContextNavigation from "./components/ContextNavigation";
 import useContextNavigation from "./hooks/useContextNavigation";
+import useWorkspacePreferenceSync,{useLocalWorkspaceAppearance} from "./hooks/useWorkspacePreferenceSync";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -126,6 +127,8 @@ const css=`
 .contextFavorite span{color:var(--accent)}
 .contextFavorite[aria-current="page"]{border-color:var(--accent);color:var(--text)}
 .contextQuickNotice{font-size:9px;color:var(--accent);min-width:0}
+.contextSyncState{margin-left:auto;font-size:9px;white-space:nowrap;color:var(--muted)}
+.contextSyncState.synced{color:var(--ok)}.contextSyncState.offline,.contextSyncState.conflict,.contextSyncState.blocked{color:var(--warn)}
 @media(max-width:760px){.contextQuickAccess{flex-wrap:wrap;margin-bottom:10px}.contextFavoriteList{flex-basis:100%;order:2}.contextQuickAction{min-height:36px}}
 *{box-sizing:border-box}button,input{font:inherit}body{margin:0}.app{
 --bg:#07111d;--bg2:#0a1624;--panel:#0d1b2b;--panel2:#0a1724;--text:#f4f8ff;--muted:#8fa2b8;--line:#1c3147;
@@ -323,10 +326,14 @@ export default function Page(){
  const [company,setCompany]=useState(1);
  const {
    section,contextLevel2,contextLevel3,activeRoute,
-   favorites,isFavorite,navNotice,navigateTo,toggleFavorite,copyCurrentLink
+   favorites,isFavorite,navNotice,navigateTo,toggleFavorite,copyCurrentLink,
+   hydrateServerPreferences,hasExternalLink
  }=useContextNavigation(company);
- const [light,setLight]=useState(false);
- const [compact,setCompact]=useState(false);
+ const {light,setLight,compact,setCompact,appearanceReady}=useLocalWorkspaceAppearance(company);
+ const {syncStatus,syncMessage}=useWorkspacePreferenceSync({
+   company,activeRoute,favorites,hydrateServerPreferences,
+   light,setLight,compact,setCompact,appearanceReady,hasExternalLink
+ });
  const [drawer,setDrawer]=useState(null);
  const [command,setCommand]=useState(false);
  const [menu,setMenu]=useState(false);
@@ -411,6 +418,14 @@ export default function Page(){
            </button>)}
          </nav>}
          {navNotice&&<span role="status" className="contextQuickNotice">{navNotice}</span>}
+         <span className={"contextSyncState "+syncStatus} role="status" title={syncMessage||"Način shranjevanja uporabniških nastavitev"}>
+           {syncStatus==="local"?"Samo ta brskalnik":
+            syncStatus==="synced"?"✓ Sinhronizirano":
+            syncStatus==="saving"?"Shranjujem ...":
+            syncStatus==="connecting"?"Povezujem ...":
+            syncStatus==="blocked"?"Zahtevana prijava":
+            syncStatus==="conflict"?"Neskladje med sejami":"Lokalno · strežnik nedosegljiv"}
+         </span>
        </div>
 
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
