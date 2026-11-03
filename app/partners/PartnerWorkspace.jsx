@@ -9,7 +9,9 @@ const partners=[
  {name:"Studio Kreativ s.p.",tax:"SI44556677",country:"SI",balance:"915,00 €",status:"Aktiven",risk:"Opozorilo",vat:"Ni zavezanec",terms:"8 dni",iban:"SI56 •••• 9001",email:"info@studio.si"}
 ];
 
-export default function PartnerWorkspace(){
+export default function PartnerWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Vsi partnerji";
  const [query,setQuery]=useState("");
  const [selected,setSelected]=useState(partners[0]);
  const [risk,setRisk]=useState("Vsi");
@@ -17,8 +19,11 @@ export default function PartnerWorkspace(){
    const q=query.toLowerCase();
    const matches=!q||[p.name,p.tax,p.country,p.email].join(" ").toLowerCase().includes(q);
    const riskMatch=risk==="Vsi"||p.risk===risk;
-   return matches&&riskMatch;
- }),[query,risk]);
+   const contextMatch=section==="Finance"?(subView==="Obveznosti"?false:subView==="Terjatve"?p.balance!=="0,00 €":true)
+     :section==="Pregled"?(subView==="Kupci"?["ACME d.o.o.","Gamma GmbH","Studio Kreativ s.p."].includes(p.name):subView==="Dobavitelji"?["Delta SRL","Beta trgovina d.o.o.","Gamma GmbH"].includes(p.name):true)
+     :section==="Kontakti"||section==="Ceniki"||section==="Dokumenti";
+   return matches&&riskMatch&&contextMatch;
+ }),[query,risk,section,subView]);
 
  return <section className="partnerWorkspace">
    <style>{`
@@ -37,13 +42,15 @@ export default function PartnerWorkspace(){
    .verifyBadge{display:inline-flex;gap:5px;align-items:center;border:1px solid color-mix(in srgb,var(--ok) 45%,var(--line));border-radius:999px;padding:4px 7px;color:var(--ok);font-size:8px}
    @media(max-width:1100px){.partnerGrid{grid-template-columns:1fr}}@media(max-width:760px){.partnerRow{grid-template-columns:1.4fr .8fr .7fr}.partnerRow>*:nth-child(2),.partnerRow>*:nth-child(5){display:none}.partnerTools{flex-wrap:wrap}.partnerTools input{width:100%}.partnerMeta{grid-template-columns:1fr}}
    `}</style>
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · prikazni partnerji</div>
    <div className="partnerGrid">
      <article className="partnerCard">
        <div className="partnerHead">
-         <h3>Register partnerjev</h3>
+         <h3>Partnerji · {section} / {subView}</h3>
          <div className="partnerTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja, VAT ID ..."/><select value={risk} onChange={e=>setRisk(e.target.value)}><option>Vsi</option><option>Normalno</option><option>Pregled</option><option>Opozorilo</option></select><button className="primary">＋ Nov partner</button></div>
        </div>
        <div className="partnerRow head"><span>Partner</span><span>Država / VAT</span><span>Saldo</span><span>Risk</span><span>Status</span></div>
+       {!list.length&&<p style={{padding:12,fontSize:10,color:"var(--muted)"}}>Ni partnerjev za izbrano kombinacijo filtrov.</p>}
        {list.map(p=><button className="partnerRow" key={p.tax} onClick={()=>setSelected(p)}>
          <span><b>{p.name}</b><small>{p.tax}</small></span>
          <span><b>{p.country}</b><small>{p.vat}</small></span>
