@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from "react";
 import dynamic from "next/dynamic";
 import {defaultNavigation as nav} from "./modules/moduleRegistry";
+import ContextNavigation,{getDefaultContext} from "./components/ContextNavigation";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -131,8 +132,9 @@ button{cursor:pointer}.sidebar{height:100vh;position:sticky;top:0;padding:18px 1
 .nav button i{width:21px;text-align:center;font-style:normal;font-size:15px}.nav button:hover{background:color-mix(in srgb,var(--panel) 72%,var(--accent) 8%);color:var(--text)}
 .nav button.active{color:var(--text);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 15%,var(--panel)),color-mix(in srgb,var(--accent2) 8%,var(--panel)));box-shadow:inset 3px 0 var(--accent)}
 .sideMeta{margin-top:auto;border:1px solid var(--line);background:linear-gradient(145deg,color-mix(in srgb,var(--panel) 96%,var(--accent) 4%),var(--panel2));border-radius:14px;padding:12px}.sideMeta span,.sideMeta b,.sideMeta small{display:block}.sideMeta span{color:var(--accent);font-size:9px;font-weight:800;letter-spacing:.12em}.sideMeta b{font-size:12px;margin-top:5px}.sideMeta small{color:var(--muted);font-size:10px;margin-top:3px}
-.shell{min-width:0}.topbar{min-height:92px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:17px 24px;position:sticky;top:0;z-index:15;background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(18px)}
-.headCopy h1{margin:0;font-size:24px;letter-spacing:-.035em}.headCopy p{margin:5px 0 0;color:var(--muted);font-size:11px}.topActions{margin-left:auto;display:flex;align-items:center;gap:8px}.seg{display:flex;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:3px}.seg button{border:0;background:transparent;color:var(--muted);font-size:10px;padding:6px 8px;border-radius:7px}.seg button.on{background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--text)}
+.shell{min-width:0}.topbar{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:15;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(18px)}
+.topbarMain{min-height:92px;display:flex;align-items:center;gap:14px;padding:17px 24px 13px}.headCopy{min-width:0}.headCopy h1{margin:0;font-size:24px;letter-spacing:-.035em}.headCopy p{margin:5px 0 0;color:var(--muted);font-size:11px}.topActions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.contextNav{padding:0 24px 11px;display:grid;gap:7px}.contextRow{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}.contextRow::-webkit-scrollbar{display:none}.contextRow button{flex:0 0 auto;border:1px solid transparent;background:transparent;color:var(--muted);border-radius:9px;white-space:nowrap;transition:.14s ease}.contextRow.level2 button{padding:7px 10px;font-size:10px;font-weight:700}.contextRow.level2 button:hover{color:var(--text);background:color-mix(in srgb,var(--panel) 72%,var(--accent) 6%)}.contextRow.level2 button.active{color:var(--text);border-color:color-mix(in srgb,var(--accent) 46%,var(--line));background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 12%,var(--panel)),color-mix(in srgb,var(--accent2) 6%,var(--panel)))}.contextRow.level3{padding-left:2px}.contextRow.level3:before{content:"↳";color:var(--muted);font-size:10px;margin-right:1px}.contextRow.level3 button{padding:5px 9px;font-size:9px}.contextRow.level3 button:hover{color:var(--text);background:var(--panel)}.contextRow.level3 button.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--panel));border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}.seg{display:flex;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:3px}.seg button{border:0;background:transparent;color:var(--muted);font-size:10px;padding:6px 8px;border-radius:7px}.seg button.on{background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--text)}
 .iconBtn,.themeBtn,.commandBtn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;min-height:36px;padding:0 10px}.commandBtn{color:var(--muted);font-size:11px;min-width:140px;text-align:left}.commandBtn kbd{float:right;color:var(--muted);font-size:9px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#1d3550,#101e31);border:1px solid var(--line);font-size:10px;font-weight:800}
 .content{padding:18px 24px 34px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px}.hero small{color:var(--accent);font-size:9px;font-weight:900;letter-spacing:.13em}.hero h2{margin:5px 0 3px;font-size:21px}.hero p{margin:0;color:var(--muted);font-size:11px}.heroActions{display:flex;gap:8px}
 .primary,.secondary{border-radius:10px;padding:9px 12px;font-size:11px;font-weight:700}.primary{border:1px solid color-mix(in srgb,var(--accent) 80%,white 10%);background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 78%,#04735f),color-mix(in srgb,var(--accent2) 82%,#1649a0));color:white;box-shadow:0 8px 28px color-mix(in srgb,var(--accent) 14%,transparent)}
@@ -308,7 +310,10 @@ function DashboardWidget({item,onDragStart,onDrop}){
 }
 
 export default function Page(){
+ const initialContext=getDefaultContext("Nadzorna plošča");
  const [section,setSection]=useState("Nadzorna plošča");
+ const [contextLevel2,setContextLevel2]=useState(initialContext.level2);
+ const [contextLevel3,setContextLevel3]=useState(initialContext.level3);
  const [light,setLight]=useState(false);
  const [compact,setCompact]=useState(false);
  const [drawer,setDrawer]=useState(null);
@@ -333,27 +338,38 @@ export default function Page(){
  const setWidgetSize=(id,size)=>setLayout(items=>items.map(x=>x.id===id?{...x,size}:x));
  const dropWidget=(target)=>{if(!dragId||dragId===target)return;setLayout(items=>{const next=[...items];const from=next.findIndex(x=>x.id===dragId),to=next.findIndex(x=>x.id===target);const [moved]=next.splice(from,1);next.splice(to,0,moved);return next});setDragId(null)};
  const rows=useMemo(()=>current.rows.filter(r=>r.join(" ").toLowerCase().includes(query.toLowerCase())),[current,query]);
+ const navigateSection=(label)=>{
+   const next=getDefaultContext(label);
+   setSection(label);
+   setContextLevel2(next.level2);
+   setContextLevel3(next.level3);
+   setMenu(false);
+   setQuery("");
+ };
  const mobile=[["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Knjiženje","⇄"],["Banka","◇"],["Nastavitve","⚙"]];
  return <div className={"app "+(light?"light ":"")+(compact?"compact":"")}>
    <style>{css}</style>
    <aside className={"sidebar "+(menu?"open":"")}>
      <div className="brand"><div className="logo">F</div><div><b>FinAI Ledger</b><small>Financial intelligence workspace</small></div></div>
-     <nav className="nav">{nav.map(([label,icon])=><button key={label} className={section===label?"active":""} onClick={()=>{setSection(label);setMenu(false);setQuery("")}}><i>{icon}</i>{label}</button>)}</nav>
+     <nav className="nav">{nav.map(([label,icon])=><button key={label} className={section===label?"active":""} onClick={()=>navigateSection(label)}><i>{icon}</i>{label}</button>)}</nav>
      <div className="sideMeta"><span>WORKSPACE</span><b>Demo d.o.o.</b><small>SI12345678 · Slovenija</small></div>
    </aside>
 
    <section className="shell">
      <header className="topbar">
-       <button className="hamb" onClick={()=>setMenu(v=>!v)}>☰</button>
-       <div className="headCopy"><h1>{section}</h1><p>{current.subtitle}</p></div>
-       <div className="topActions">
-         <button className="commandBtn" onClick={()=>setCommand(true)}>Hitri ukazi <kbd>Ctrl K</kbd></button>
-         <div className="seg"><button className={!compact?"on":""} onClick={()=>setCompact(false)}>Udobno</button><button className={compact?"on":""} onClick={()=>setCompact(true)}>Kompaktno</button></div>
-         <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
-         <button className="themeBtn" onClick={()=>setLight(v=>!v)}>{light?"☾":"☀"}</button>
-         <button className="iconBtn">♢</button>
-         <button className="userBtn" onClick={()=>setUserPanel(v=>!v)}>DD</button>
+       <div className="topbarMain">
+         <button className="hamb" onClick={()=>setMenu(v=>!v)}>☰</button>
+         <div className="headCopy"><h1>{section}</h1><p>{current.subtitle}</p></div>
+         <div className="topActions">
+           <button className="commandBtn" onClick={()=>setCommand(true)}>Hitri ukazi <kbd>Ctrl K</kbd></button>
+           <div className="seg"><button className={!compact?"on":""} onClick={()=>setCompact(false)}>Udobno</button><button className={compact?"on":""} onClick={()=>setCompact(true)}>Kompaktno</button></div>
+           <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+           <button className="themeBtn" onClick={()=>setLight(v=>!v)}>{light?"☾":"☀"}</button>
+           <button className="iconBtn">♢</button>
+           <button className="userBtn" onClick={()=>setUserPanel(v=>!v)}>DD</button>
+         </div>
        </div>
+       <ContextNavigation moduleLabel={section} level2={contextLevel2} setLevel2={setContextLevel2} level3={contextLevel3} setLevel3={setContextLevel3}/>
      </header>
 
      <main className="content">
@@ -409,7 +425,7 @@ export default function Page(){
      </main>
    </section>
 
-   {userPanel&&<div className="userPopover"><b>Dalibor Draškovič</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{setSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
+   {userPanel&&<div className="userPopover"><b>Dalibor Draškovič</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{navigateSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
 
    <div className={"drawer "+(drawer?"open":"")}>
      <div className="drawerHead"><div><small style={{color:"var(--accent)",fontWeight:800}}>KONTEKSTNI PREDAL</small><h3>{drawer?.[0]||"Podrobnosti"}</h3></div><button className="drawerClose" onClick={()=>setDrawer(null)}>×</button></div>
@@ -427,8 +443,8 @@ export default function Page(){
      </div>
    </div></div>}
 
-   {command&&<div className="command" onMouseDown={e=>{if(e.target===e.currentTarget)setCommand(false)}}><div className="commandBox"><input autoFocus placeholder="Vpiši ukaz ali modul ..." onKeyDown={e=>{if(e.key==="Enter")setCommand(false)}}/><div className="commandList">{nav.slice(0,6).map(([label,icon])=><button key={label} onClick={()=>{setSection(label);setCommand(false)}}>{icon} &nbsp; Odpri {label}</button>)}</div></div></div>}
+   {command&&<div className="command" onMouseDown={e=>{if(e.target===e.currentTarget)setCommand(false)}}><div className="commandBox"><input autoFocus placeholder="Vpiši ukaz ali modul ..." onKeyDown={e=>{if(e.key==="Enter")setCommand(false)}}/><div className="commandList">{nav.slice(0,6).map(([label,icon])=><button key={label} onClick={()=>{navigateSection(label);setCommand(false)}}>{icon} &nbsp; Odpri {label}</button>)}</div></div></div>}
 
-   <nav className="mobileNav">{mobile.map(([label,icon])=><button key={label} className={section===label?"on":""} onClick={()=>setSection(label)}><b>{icon}</b>{label.split(" ")[0]}</button>)}</nav>
+   <nav className="mobileNav">{mobile.map(([label,icon])=><button key={label} className={section===label?"on":""} onClick={()=>navigateSection(label)}><b>{icon}</b>{label.split(" ")[0]}</button>)}</nav>
  </div>
 }
