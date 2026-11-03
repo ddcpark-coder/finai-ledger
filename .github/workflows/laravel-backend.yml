@@ -27,6 +27,10 @@ jobs:
           coverage: none
           extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
           tools: composer:v2
+      - name: Validate read-only hosting audit script
+        run: |
+          bash -n scripts/hiperm-readonly-check.sh
+          bash scripts/hiperm-readonly-check.sh
       - name: Validate Composer project
         run: composer validate --strict --no-check-publish
       - name: Install reviewed dependencies without secrets
