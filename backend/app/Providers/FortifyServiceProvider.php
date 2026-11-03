@@ -44,12 +44,9 @@ final class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
-            // Elevated users must first enroll and confirm TOTP. Fortify will then
-            // challenge them on every subsequent login, including recovery fallback.
-            if ($user->requiresTwoFactor()
-                && ! $user->two_factor_confirmed_at) {
-                abort(403, 'Confirmed two-factor authentication is required for this role.');
-            }
+            // A privileged account without TOTP may log in ONLY to enroll.
+            // RequirePrivilegedTwoFactor prevents any API data access until
+            // enrollment is confirmed; Fortify handles later TOTP challenges.
 
             return $user;
         });
