@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test:navigation": "node --test tests/contextRoute.test.mjs",
     "start": "next start"
   },
   "dependencies": {
