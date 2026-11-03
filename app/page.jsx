@@ -193,39 +193,38 @@ const securityAudit=[
  {event:"Vloga uporabnika spremenjena",actor:"Admin",when:"včeraj"}
 ];
 
-function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor}){
- return <div className="identityGrid">
-   <section className="identityCard">
-     <div className="identityHead"><h3>Uporabniki in vloge</h3><button className="primary">＋ Povabi uporabnika</button></div>
-     <div className="identityBody">
-       {teamUsers.map(u=><div className="personRow" key={u.email}><div><b>{u.name}</b><small>{u.email}</small></div><span className="roleBadge">{u.role}</span><span style={{color:u.twoFactor?"var(--ok)":"var(--warn)"}}>{u.twoFactor?"2FA vključena":"2FA priporočena"}</span></div>)}
-     </div>
-   </section>
-   <div>
-     <section className="identityCard">
-       <div className="identityHead"><h3>Aktivno podjetje</h3></div>
-       <div className="identityBody">
-         <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
-         <div className="securityTile" style={{marginTop:10}}><b>{companies.find(x=>x.id===company)?.name}</b><small>{companies.find(x=>x.id===company)?.tax} · aktivni tenant</small></div>
-       </div>
-     </section>
-     <section className="identityCard" style={{marginTop:10}}>
-       <div className="identityHead"><h3>Varnost</h3></div>
-       <div className="identityBody">
-         <div className="securityTile"><b>Dvofaktorska prijava</b><small>{twoFactor?"TOTP je vključena. Recovery codes so pripravljene.":"Za Owner/Admin bo v produkciji obvezna."}</small><button className="secondary" style={{marginTop:8}} onClick={()=>setTwoFactor(v=>!v)}>{twoFactor?"Izključi demo 2FA":"Vključi demo 2FA"}</button></div>
-         <div className="securityTile"><b>Preverjen e-mail</b><small>dalibor@example.si · verificirano</small></div>
-       </div>
-     </section>
-   </div>
-   <section className="identityCard">
-     <div className="identityHead"><h3>Aktivne seje</h3><button className="secondary">Odjavi druge seje</button></div>
-     <div className="identityBody">{sessions.map(s=><div className="sessionRow" key={s.device}><div><b>{s.device}</b><small>{s.place}</small></div><span>{s.when}</span><span className="roleBadge">Varna seja</span></div>)}</div>
-   </section>
-   <section className="identityCard">
-     <div className="identityHead"><h3>Varnostna revizijska sled</h3><span style={{fontSize:9,color:"var(--muted)"}}>append-only</span></div>
-     <div className="identityBody">{securityAudit.map((a,i)=><div className="auditRow2" key={i}><div><b>{a.event}</b><small>{a.actor}</small></div><span>{a.when}</span><span className="roleBadge">zabeleženo</span></div>)}</div>
-   </section>
- </div>
+function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor,light,setLight,compact,setCompact,context}){
+ const section=context?.level2??"Podjetje";
+ const sub=context?.level3??"Osnovni podatki";
+ const card=(title,content)=><section className="identityCard" style={{minWidth:0}}><div className="identityHead"><h3>{title}</h3></div><div className="identityBody">{content}</div></section>;
+ return <div style={{display:"grid",gap:10}}>
+  <div style={{fontSize:10,color:"var(--muted)"}}>Nastavitve / <b style={{color:"var(--text)"}}>{section} / {sub}</b> · demonstracijsko okolje</div>
+  {section==="Podjetje"&&card("Podjetje · "+sub,<>
+   <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+   <div className="securityTile" style={{marginTop:10}}><b>{companies.find(x=>x.id===company)?.name}</b><small>Davčna številka: {companies.find(x=>x.id===company)?.tax}</small></div>
+   {sub==="Branding"&&<p style={{fontSize:10,color:"var(--muted)"}}>Nastavitve logotipa in celostne grafične podobe bodo dodane ob povezavi z zaledjem.</p>}
+  </>)}
+  {section==="Uporabniki"&&card("Uporabniki in vloge · "+sub,<>
+   {teamUsers.map(u=><div className="personRow" key={u.email}><div><b>{u.name}</b><small>{u.email}</small></div><span className="roleBadge">{u.role}</span><span style={{color:u.twoFactor?"var(--ok)":"var(--warn)"}}>{u.twoFactor?"2FA":"Priporočena 2FA"}</span></div>)}
+   {sub==="Dovoljenja"&&<p style={{fontSize:10,color:"var(--muted)"}}>Dovoljenja se bodo v produkciji določala strežniško po vlogi in podjetju; ta tabela prikazuje samo demo vloge.</p>}
+  </>)}
+  {section==="Moduli"&&card("Moduli · "+sub,<>
+   {nav.map(([label,icon])=><div className="auditRow2" key={label}><div><b>{icon} {label}</b><small>Modul v navigacijskem registru</small></div><span>Demo</span><span className="roleBadge">Predogled</span></div>)}
+  </>)}
+  {section==="Integracije"&&card("Integracije · "+sub,<>
+   <div className="securityTile"><b>{sub}</b><small>Pregled integracije. Dejanska povezava in poverilnice niso nastavljene v tem Next.js demonstracijskem prikazu.</small></div>
+  </>)}
+  {section==="Videz"&&card("Videz · "+sub,<>
+   <div className="securityTile"><b>Tema</b><small>Izberi prikaz za ta demo pogled.</small><button className="secondary" onClick={()=>setLight(v=>!v)} style={{marginTop:8}}>{light?"Preklopi na temno":"Preklopi na svetlo"}</button></div>
+   <div className="securityTile" style={{marginTop:9}}><b>Gostota</b><small>Trenutno: {compact?"Kompaktno":"Udobno"}</small><button className="secondary" onClick={()=>setCompact(v=>!v)} style={{marginTop:8}}>Preklopi gostoto</button></div>
+   {sub==="Navigacija"&&<div className="securityTile" style={{marginTop:9}}><b>Hierarhija</b><small>Modul → podmodul → dodatni pogled. Končna prilagoditev navigacije ostane predmet širše UX prenove.</small></div>}
+  </>)}
+  {section==="Varnost"&&sub==="2FA"&&card("Dvofaktorska prijava",<>
+   <div className="securityTile"><b>{twoFactor?"Demo 2FA vključena":"Demo 2FA izključena"}</b><small>Sprememba vpliva samo na simulirani prikaz, ne na resnično prijavo.</small><button className="secondary" onClick={()=>setTwoFactor(v=>!v)} style={{marginTop:8}}>Preklopi demo 2FA</button></div>
+  </>)}
+  {section==="Varnost"&&sub==="Seje"&&card("Aktivne seje",sessions.map(s=><div className="sessionRow" key={s.device}><div><b>{s.device}</b><small>{s.place}</small></div><span>{s.when}</span><span className="roleBadge">Demo</span></div>))}
+  {section==="Varnost"&&sub==="Audit"&&card("Varnostna revizijska sled",securityAudit.map((a,i)=><div className="auditRow2" key={i}><div><b>{a.event}</b><small>{a.actor}</small></div><span>{a.when}</span><span className="roleBadge">Demo</span></div>))}
+ </div>;
 }
 
 const demoJournalLines=[
@@ -347,6 +346,13 @@ export default function Page(){
    setQuery("");
  };
  const activeContext=useMemo(()=>({level2:contextLevel2,level3:contextLevel3}),[contextLevel2,contextLevel3]);
+ const dashboardOverview=section==="Nadzorna plošča"&&contextLevel2==="Pregled"&&contextLevel3==="Moj pregled";
+ const dashboardRows=section==="Nadzorna plošča"?current.rows.filter(r=>{
+   if(contextLevel2==="Odobritve")return contextLevel3==="Čaka mene"&&r[4]!=="Zaključeno";
+   if(contextLevel2==="Moje naloge")return contextLevel3==="Zamujeno"?false:contextLevel3==="Danes"?r[3]==="Danes":true;
+   if(contextLevel2==="Pregled"&&contextLevel3==="Aktivnosti")return true;
+   return false;
+ }):[];
  const mobile=[["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Knjiženje","⇄"],["Banka","◇"],["Nastavitve","⚙"]];
  return <div className={"app "+(light?"light ":"")+(compact?"compact":"")}>
    <style>{css}</style>
@@ -375,31 +381,43 @@ export default function Page(){
 
      <main className="content">
        <div className="hero">
-         <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":"Hitro delo z visoko gostoto podatkov in jasnim kontekstom."}</p></div>
+         <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
          <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
        </div>
 
        <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
 
-       {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
-       {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
+       {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
+       {section==="Nadzorna plošča"&&!dashboardOverview&&<article className="panel" style={{marginBottom:10}}>
+         <div className="panelHead"><h3>{contextLevel2} · {contextLevel3}</h3><span>Demo prikaz · {dashboardRows.length} opravil</span></div>
+         {contextLevel2==="Analitika"?<div className="kpis" style={{padding:12}}>{current.stats.filter(([a])=>
+           contextLevel3==="Finance"?/Bančne|Roki/.test(a):
+           contextLevel3==="Prodaja"?/Računi/.test(a):
+           /AI|Računi/.test(a)).map(([a,b,d,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small></div><strong>{b}</strong><em>{d}</em></article>)}</div>
+         :contextLevel2==="Pregled"&&contextLevel3==="KPI"?<p style={{padding:14,fontSize:10,color:"var(--muted)"}}>Ključni kazalniki so prikazani v karticah zgoraj. Prilagajanje kartic je na voljo v pogledu »Moj pregled«.</p>
+         :<div className="tableWrap"><div className="table"><div className="tr head"><span>Postavka</span><span>Kontekst</span><span>Vrednost</span><span>Datum</span><span>Prioriteta</span></div>
+           {dashboardRows.map((row,i)=><button className="tr row" key={i} onClick={()=>setDrawer(row)}>{row.map((value,j)=><span key={j}>{value}</span>)}</button>)}
+           {!dashboardRows.length&&<p style={{padding:14,fontSize:10,color:"var(--muted)"}}>Za izbrani pogled ni opravil v demonstracijskih podatkih.</p>}
+         </div></div>}
+       </article>}
+       {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
-       {section==="Partnerji"&&<PartnerWorkspace/>}
-       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace/>}
-       {section==="Izdani računi"&&<IssuedInvoicesWorkspace/>}
-       {section==="Banka"&&<BankingWorkspace/>}
+       {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
+       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext}/>}
+       {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext}/>}
+       {section==="Banka"&&<BankingWorkspace context={activeContext}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
-       {section==="eDavki / FURS"&&<EdavkiWorkspace/>}
-       {section==="Dokumenti"&&<DocumentsWorkspace/>}
+       {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
+       {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext}/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
        {section==="CRM"&&<CrmWorkspace context={activeContext}/>}
-       {section==="Ponudbe"&&<QuotesWorkspace/>}
-       {section==="Naročila"&&<SalesOrdersWorkspace/>}
+       {section==="Ponudbe"&&<QuotesWorkspace context={activeContext}/>}
+       {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
 
-       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
+       {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>

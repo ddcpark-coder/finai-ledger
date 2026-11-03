@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const submissions=[
  {id:"ED-2026-0018",doc:"DDV-O 11/2026",env:"TEST",status:"Sprejeto",remote:"EDP-884201",sent:"03. 11. 2026 06:12",attempts:1},
@@ -8,19 +8,30 @@ const submissions=[
  {id:"ED-2026-0015",doc:"DDV-O 09/2026",env:"PROD",status:"Sprejeto",remote:"EDP-870221",sent:"20. 10. 2026 08:11",attempts:1}
 ];
 
-export default function EdavkiWorkspace(){
+export default function EdavkiWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Oddaje";
  const [env,setEnv]=useState("TEST");
  const [selected,setSelected]=useState(submissions[0]);
  const [query,setQuery]=useState("");
  const [validated,setValidated]=useState(true);
  const [signed,setSigned]=useState(true);
  const [submitted,setSubmitted]=useState(false);
+ const activeEnv=section==="Oddaje"&&["TEST","PROD"].includes(subView)?subView:env;
  const filtered=useMemo(()=>submissions.filter(x=>{
    const q=query.toLowerCase();
-   return x.env===env&&(!q||[x.id,x.doc,x.remote].join(" ").toLowerCase().includes(q));
- }),[env,query]);
+   const statusMatch=section==="Statusi"?(subView==="Obdelava"?x.status==="Obdelava":subView==="Sprejeto"?x.status==="Sprejeto":x.status==="Zavrnjeno"):true;
+   const focusMatch=section==="Pregled"&&subView==="Napake"?x.status==="Zavrnjeno":true;
+   return x.env===activeEnv&&statusMatch&&focusMatch&&(!q||[x.id,x.doc,x.remote].join(" ").toLowerCase().includes(q));
+ }),[activeEnv,query,section,subView]);
 
  const effectiveStatus=submitted&&selected.id==="ED-2026-0018"?"Poslano":selected.status;
+
+ useEffect(()=>{
+   if(filtered.length&&!filtered.some(row=>row.id===selected.id)){
+     setSelected(filtered[0]);setSubmitted(false);
+   }
+ },[filtered,selected.id]);
 
  return <section className="edavkiWorkspace">
    <style>{`
@@ -41,8 +52,9 @@ export default function EdavkiWorkspace(){
    @media(max-width:1100px){.edGrid{grid-template-columns:1fr}.edTop{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.edRow{grid-template-columns:1fr .9fr .7fr}.edRow>*:nth-child(2),.edRow>*:nth-child(4){display:none}.edMeta{grid-template-columns:1fr}.edTools input{width:100%}.edFlow{grid-template-columns:1fr 1fr 1fr}}
    `}</style>
 
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki, brez dejanske oddaje na FURS</div>
    <div className="edTop">
-     <div className="edKpi"><small>Aktivno okolje</small><b>{env}</b></div>
+     <div className="edKpi"><small>Aktivno okolje</small><b>{activeEnv}</b></div>
      <div className="edKpi"><small>Certifikat</small><b>Veljaven</b></div>
      <div className="edKpi"><small>Oddaje danes</small><b>2</b></div>
      <div className="edKpi"><small>Odprte napake</small><b>1</b></div>
@@ -50,16 +62,24 @@ export default function EdavkiWorkspace(){
 
    <div className="edFlow"><div className="on">XML</div><div className={validated?"on":""}>XSD validacija</div><div className={signed?"on":""}>Podpis</div><div className={submitted?"on":""}>Oddaja</div><div>FURS status</div></div>
 
+   {(section==="Certifikati"||section==="Audit")?
+   <article className="edCard" style={{padding:14}}>
+     <h3>{section} · {subView}</h3>
+     {section==="Certifikati"?
+       <div className="certBox" style={{marginTop:12}}><b>Konfiguracija digitalnega potrdila</b><small>Predogled nastavitve. Dejanski certifikat in zasebni ključ tukaj nista povezana ali preverjena.</small></div>
+     :submissions.map(x=><div className="check" key={x.id}><span>{x.doc} · {x.env}</span><b>{x.status} · {x.attempts} poskus(i)</b></div>)}
+   </article>:
    <div className="edGrid">
      <article className="edCard">
-       <div className="edHead"><h3>eDavki / FURS oddaje</h3><div className="edTools"><div className="envSwitch"><button className={env==="TEST"?"on":""} onClick={()=>setEnv("TEST")}>TEST</button><button className={env==="PROD"?"on":""} onClick={()=>setEnv("PROD")}>PROD</button></div><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči dokument ali FURS ID ..."/><button className="primary">＋ Nova oddaja</button></div></div>
+       <div className="edHead"><h3>eDavki / FURS · {section} / {subView}</h3><div className="edTools">{!(section==="Oddaje"&&["TEST","PROD"].includes(subView))&&<div className="envSwitch"><button className={activeEnv==="TEST"?"on":""} onClick={()=>setEnv("TEST")}>TEST</button><button className={activeEnv==="PROD"?"on":""} onClick={()=>setEnv("PROD")}>PROD</button></div>}<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči dokument ali FURS ID ..."/><button className="primary">＋ Nova oddaja</button></div></div>
        <div className="edRow head"><span>ID</span><span>Dokument</span><span>Status</span><span>FURS ID</span><span>Poskusi</span></div>
+       {!filtered.length&&<p style={{padding:12,fontSize:10,color:"var(--muted)"}}>Za ta pogled ni oddaj v demonstracijskem naboru.</p>}
        {filtered.map(x=><button className="edRow" key={x.id} onClick={()=>{setSelected(x);setSubmitted(false)}}>
          <span><b>{x.id}</b><small>{x.sent}</small></span><span><b>{x.doc}</b><small>{x.env}</small></span><span className={"edState "+(x.status==="Sprejeto"?"ok":x.status==="Zavrnjeno"?"bad":"info")}>{x.status}</span><span><b>{x.remote}</b></span><span>{x.attempts}</span>
        </button>)}
      </article>
 
-     <aside className="edCard edDetail">
+     {filtered.length>0&&<aside className="edCard edDetail">
        <span className={"edState "+(effectiveStatus==="Sprejeto"?"ok":effectiveStatus==="Zavrnjeno"?"bad":"info")}>{effectiveStatus}</span>
        <h3>{selected.doc}</h3><small>{selected.id} · {selected.env}</small>
 
@@ -79,7 +99,7 @@ export default function EdavkiWorkspace(){
        {selected.status==="Zavrnjeno"&&<div className="edSec"><h4>Napaka FURS</h4><div className="certBox" style={{borderColor:"color-mix(in srgb,var(--danger) 45%,var(--line))"}}><b style={{color:"var(--danger)"}}>Dokument zahteva vsebinski popravek</b><small>Samodejni retry je blokiran do novega veljavnega artefakta.</small></div></div>}
 
        <div className="edSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!validated||!signed||selected.status==="Zavrnjeno"} onClick={()=>setSubmitted(true)}>{submitted?"Oddano":"Oddaj v "+selected.env}</button><button className="secondary">Osveži FURS status</button><button className="secondary">Prikaži XML validacijo</button><button className="secondary">Prikaži audit sled</button></div></div>
-     </aside>
-   </div>
+     </aside>}{filtered.length===0&&<aside className="edCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
+   </div>}
  </section>
 }

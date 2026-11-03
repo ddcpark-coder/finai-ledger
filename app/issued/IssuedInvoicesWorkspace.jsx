@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const invoices=[
  {id:"IR-2026-0054",number:"2026-0054",partner:"ABC d.o.o.",net:"1.000,00 €",tax:"220,00 €",gross:"1.220,00 €",issue:"02. 11. 2026",due:"17. 11. 2026",status:"Plačano",delivery:"E-pošta",sent:true,paid:true},
@@ -8,7 +8,9 @@ const invoices=[
  {id:"IR-2026-0051",number:"2026-0051",partner:"Delta d.o.o.",net:"1.500,00 €",tax:"330,00 €",gross:"1.830,00 €",issue:"25. 10. 2026",due:"30. 10. 2026",status:"Zapadlo",delivery:"E-pošta",sent:true,paid:false}
 ];
 
-export default function IssuedInvoicesWorkspace(){
+export default function IssuedInvoicesWorkspace({context}){
+ const section=context?.level2??"Pregled";
+ const subView=context?.level3??"Vsi";
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
  const [selected,setSelected]=useState(invoices[0]);
@@ -16,11 +18,22 @@ export default function IssuedInvoicesWorkspace(){
  const [sent,setSent]=useState(false);
  const list=useMemo(()=>invoices.filter(x=>{
    const q=query.toLowerCase();
-   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||x.status===filter);
- }),[query,filter]);
+   const selectedContext=section==="Pregled"?(subView==="Osnutki"?x.status==="Osnutek":subView==="Izdani"?x.status!=="Osnutek":true)
+     :section==="Terjatve"?(subView==="Plačano"?x.paid:subView==="Zapadlo"?x.status==="Zapadlo":!x.paid&&x.status!=="Osnutek")
+     :section==="Pošiljanje"?(subView==="E-pošta"?x.delivery==="E-pošta":subView==="e-račun"?x.delivery==="e-račun":x.sent)
+     :section==="Opomini"?(subView==="Predlogi"?x.status==="Zapadlo":false)
+     :section==="Knjiženje"?x.status!=="Osnutek":true;
+   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||x.status===filter)&&selectedContext;
+ }),[query,filter,section,subView]);
 
  const effectiveStatus=issued&&selected.status==="Osnutek"?(sent?"Poslano":"Izdano"):selected.status;
  const effectiveNumber=issued&&selected.status==="Osnutek"?"2026-0055":selected.number;
+
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.id===selected.id)){
+     setSelected(list[0]);setIssued(false);setSent(false);
+   }
+ },[list,selected.id]);
 
  return <section className="issuedWorkspace">
    <style>{`
@@ -42,11 +55,13 @@ export default function IssuedInvoicesWorkspace(){
    @media(max-width:1100px){.issuedGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow2{grid-template-columns:1.2fr .8fr .7fr}.invoiceRow2>*:nth-child(2),.invoiceRow2>*:nth-child(4){display:none}.invoiceMeta{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr 1fr}.issuedTools input{width:100%}.line2{grid-template-columns:1.3fr .7fr .7fr}.line2>*:nth-child(2){display:none}}
    `}</style>
 
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b></div>
    <div className="issuedGrid">
      <article className="issuedCard">
-       <div className="issuedHead"><h3>Izdani računi</h3><div className="issuedTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči kupca ali račun ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Plačano</option><option>Zapadlo</option></select><button className="primary">＋ Nov račun</button></div></div>
+       <div className="issuedHead"><h3>Izdani računi · {section} / {subView}</h3><div className="issuedTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči kupca ali račun ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Plačano</option><option>Zapadlo</option></select><button className="primary">＋ Nov račun</button></div></div>
        <div className="flow"><div className="on">Osnutek</div><div className="on">Izdano</div><div className="on">Poslano</div><div>Plačilo</div><div>Zaključeno</div></div>
        <div className="invoiceRow2 head"><span>Račun</span><span>Partner</span><span>Znesek</span><span>Rok</span><span>Status</span></div>
+       {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>V tem demonstracijskem pogledu ni računov.</p>}
        {list.map(x=><button className="invoiceRow2" key={x.id} onClick={()=>{setSelected(x);setIssued(false);setSent(false)}}>
          <span><b>{x.number}</b><small>{x.id}</small></span>
          <span><b>{x.partner}</b><small>{x.delivery}</small></span>
@@ -56,7 +71,7 @@ export default function IssuedInvoicesWorkspace(){
        </button>)}
      </article>
 
-     <aside className="issuedCard invoicePreview">
+     {list.length>0&&<aside className="issuedCard invoicePreview">
        <span className={"status2 "+(effectiveStatus==="Plačano"?"ok":effectiveStatus==="Zapadlo"?"danger":effectiveStatus==="Poslano"||effectiveStatus==="Izdano"?"info":"draft")}>{effectiveStatus}</span>
        <h3>{effectiveNumber}</h3><small>{selected.partner} · {selected.id}</small>
 
@@ -88,7 +103,7 @@ export default function IssuedInvoicesWorkspace(){
          <button className="secondary">Prikaži temeljnico</button>
          {effectiveStatus==="Zapadlo"&&<button className="secondary">Pripravi opomin</button>}
        </div></div>
-     </aside>
+     </aside>}{list.length===0&&<aside className="issuedCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
