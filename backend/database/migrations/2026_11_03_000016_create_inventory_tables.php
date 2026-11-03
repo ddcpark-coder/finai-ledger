@@ -39,7 +39,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('warehouse_location_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('warehouse_location_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->decimal('on_hand',18,4)->default(0);
             $table->decimal('reserved',18,4)->default(0);
@@ -58,7 +58,7 @@ return new class extends Migration {
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('warehouse_location_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('warehouse_location_id')->constrained()->cascadeOnDelete();
             $table->string('movement_type',30);
             $table->decimal('quantity',18,4);
             $table->decimal('unit_cost',18,4)->nullable();
@@ -81,7 +81,7 @@ return new class extends Migration {
             $table->foreignId('sales_order_line_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('warehouse_location_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('warehouse_location_id')->constrained()->cascadeOnDelete();
             $table->decimal('quantity',18,4);
             $table->string('status',20)->default('active');
             $table->timestamp('reserved_at');
@@ -112,7 +112,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('stock_count_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('warehouse_location_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('warehouse_location_id')->constrained()->cascadeOnDelete();
             $table->decimal('system_quantity',18,4);
             $table->decimal('counted_quantity',18,4)->nullable();
             $table->decimal('difference',18,4)->nullable();
@@ -141,10 +141,19 @@ return new class extends Migration {
         Schema::table('goods_receipts', function (Blueprint $table) {
             $table->foreignId('warehouse_id')->nullable()->after('purchase_order_id')->constrained()->nullOnDelete();
         });
+
+        Schema::table('delivery_note_lines', function (Blueprint $table) {
+            $table->foreignId('sales_order_line_id')->nullable()->after('delivery_note_id')->constrained()->nullOnDelete();
+            $table->foreignId('product_id')->nullable()->after('sales_order_line_id')->constrained()->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('delivery_note_lines', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('product_id');
+            $table->dropConstrainedForeignId('sales_order_line_id');
+        });
         Schema::table('goods_receipts', fn (Blueprint $table) => $table->dropConstrainedForeignId('warehouse_id'));
         Schema::dropIfExists('inventory_alerts');
         Schema::dropIfExists('stock_count_lines');
