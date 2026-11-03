@@ -14,5 +14,6 @@ return [
     'crm' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'crm.read'],
     'quotes' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'quotes.read'],
     'orders' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'orders.read'],
+    'procurement' => ['group' => 'operations', 'default_enabled' => true, 'permission' => 'procurement.read'],
     'settings' => ['group' => 'system', 'default_enabled' => true, 'permission' => 'settings.manage'],
 ];
