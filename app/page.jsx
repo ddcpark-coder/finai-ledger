@@ -343,7 +343,19 @@ export default function Page(){
  const [dragId,setDragId]=useState(null);
  const [twoFactor,setTwoFactor]=useState(true);
  const [userPanel,setUserPanel]=useState(false);
- const current=moduleData[section];
+ const moduleDescriptions={
+   "Artikli in ceniki":"Artikli, storitve, ceniki in povezave z dobavitelji.",
+   "CRM":"Prodajni odnosi, priložnosti in aktivnosti.",
+   "Ponudbe":"Priprava, pregled in spremljanje ponudb.",
+   "Naročila":"Naročila kupcev, izvedba, rezervacije in fakturiranje.",
+   "Nabava":"Povpraševanja, naročilnice, prevzemi in kontrola dobaviteljev.",
+   "Zaloge":"Skladišča, zaloga, premiki, rezervacije in inventure.",
+   "Projekti":"Projekti, delovni nalogi, stroški in donosnost."
+ };
+ const current=moduleData[section]??{
+   subtitle:moduleDescriptions[section]??"Pregled delovnega prostora.",
+   stats:[],rows:[]
+ };
  useEffect(()=>{
    try{const saved=localStorage.getItem("finai:workspace:demo-user");if(saved)setLayout(JSON.parse(saved))}catch{}
    const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false);setUserPanel(false)}};
@@ -404,7 +416,7 @@ export default function Page(){
      <main className="content">
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
-         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
+         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button>{current.rows.length>0&&<button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button>}</div>
        </div>
 
        <div className="contextQuickAccess" aria-label="Hitri dostop do podpogledov">
@@ -428,7 +440,7 @@ export default function Page(){
          </span>
        </div>
 
-       <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
+       {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
        {section==="Nadzorna plošča"&&!dashboardOverview&&<article className="panel" style={{marginBottom:10}}>
