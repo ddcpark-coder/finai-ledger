@@ -10,6 +10,8 @@ enum Permission: string
     case InvoicesRead = 'invoices.read';
     case InvoicesWrite = 'invoices.write';
     case InvoicesApprove = 'invoices.approve';
+    case CrmRead = 'crm.read';
+    case CrmWrite = 'crm.write';
     case LedgerRead = 'ledger.read';
     case LedgerPost = 'ledger.post';
     case LedgerClosePeriod = 'ledger.close_period';
