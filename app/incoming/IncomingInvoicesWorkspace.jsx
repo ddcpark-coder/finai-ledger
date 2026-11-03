@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const invoices=[
  {id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
@@ -25,6 +25,12 @@ export default function IncomingInvoicesWorkspace({context}){
     :true;
    return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status)&&contextMatch;
  }),[query,status,section,subView]);
+
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.id===selected.id)){
+     setSelected(list[0]);setApproved(false);setAiDecision(null);
+   }
+ },[list,selected.id]);
 
  return <section className="incomingWorkspace">
    <style>{`
@@ -65,7 +71,7 @@ export default function IncomingInvoicesWorkspace({context}){
        </button>)}
      </article>
 
-     <aside className="incomingCard invoiceDetail">
+     {list.length>0&&<aside className="incomingCard invoiceDetail">
        <span className={"state "+(selected.status==="Pregled"?"review":selected.status==="Odobreno"?"ok":selected.status==="Obdelava"?"process":"error")}>{approved?"Odobreno":selected.status}</span>
        <h3>{selected.partner}</h3><small>{selected.number} · {selected.id}</small>
 
@@ -109,7 +115,7 @@ export default function IncomingInvoicesWorkspace({context}){
          <button className="secondary">Uredi podatke</button>
          <button className="secondary">Odpri original</button>
        </div></div>
-     </aside>
+     </aside>}{list.length===0&&<aside className="incomingCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
