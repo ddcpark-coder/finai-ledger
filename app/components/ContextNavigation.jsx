@@ -3,7 +3,7 @@ import {contextNavigation} from "../modules/contextNavigation";
 
 const contextTones=["#14b8c9","#8c7bf4","#d59b42","#2bb493","#539fdf","#cf75a4"];
 
-export default function ContextNavigation({moduleLabel,level2,setLevel2,level3,setLevel3}){
+export default function ContextNavigation({moduleLabel,level2,level3,onLevel2,onLevel3}){
   const items=contextNavigation[moduleLabel] ?? [];
   if(!items.length) return null;
   const index=Math.max(0,items.findIndex(item=>item.label===level2));
@@ -11,10 +11,7 @@ export default function ContextNavigation({moduleLabel,level2,setLevel2,level3,s
   const children=active.children ?? [];
   const tone=contextTones[index % contextTones.length];
 
-  const chooseLevel2=item=>{
-    setLevel2(item.label);
-    setLevel3(item.children?.[0] ?? null);
-  };
+  const chooseLevel2=item=>onLevel2(item.label);
 
   return <div className="contextNav" style={{"--context-accent":tone}}>
     <style>{`
@@ -34,7 +31,7 @@ export default function ContextNavigation({moduleLabel,level2,setLevel2,level3,s
       {items.map(item=><button type="button" key={item.label} className={active.label===item.label?"active":""} aria-pressed={active.label===item.label} onClick={()=>chooseLevel2(item)}>{item.label}</button>)}
     </div>
     {children.length>0&&<div className="contextRow level3" role="navigation" aria-label={active.label+" možnosti"}>
-      {children.map(child=><button type="button" key={child} className={level3===child?"active":""} aria-pressed={level3===child} onClick={()=>setLevel3(child)}>{child}</button>)}
+      {children.map(child=><button type="button" key={child} className={level3===child?"active":""} aria-pressed={level3===child} onClick={()=>onLevel3(child)}>{child}</button>)}
     </div>}
   </div>;
 }
