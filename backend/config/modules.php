@@ -10,5 +10,6 @@ return [
     'edavki' => ['group' => 'finance', 'default_enabled' => true, 'permission' => 'tax.read'],
     'partners' => ['group' => 'core', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'documents' => ['group' => 'core', 'default_enabled' => true, 'permission' => 'invoices.read'],
+    'catalog' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'settings' => ['group' => 'system', 'default_enabled' => true, 'permission' => 'settings.manage'],
 ];

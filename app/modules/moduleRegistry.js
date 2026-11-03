@@ -8,6 +8,7 @@ export const modules = [
   { key:"edavki", label:"eDavki / FURS", icon:"↗", group:"finance", defaultEnabled:true },
   { key:"partners", label:"Partnerji", icon:"◎", group:"core", defaultEnabled:true },
   { key:"documents", label:"Dokumenti", icon:"▣", group:"core", defaultEnabled:true },
+  { key:"catalog", label:"Artikli in ceniki", icon:"◫", group:"sales", defaultEnabled:true },
   { key:"settings", label:"Nastavitve", icon:"⚙", group:"system", defaultEnabled:true },
 ];
 
