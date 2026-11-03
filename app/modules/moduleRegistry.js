@@ -9,6 +9,7 @@ export const modules = [
   { key:"partners", label:"Partnerji", icon:"◎", group:"core", defaultEnabled:true },
   { key:"documents", label:"Dokumenti", icon:"▣", group:"core", defaultEnabled:true },
   { key:"catalog", label:"Artikli in ceniki", icon:"◫", group:"sales", defaultEnabled:true },
+  { key:"crm", label:"CRM", icon:"◉", group:"sales", defaultEnabled:true },
   { key:"settings", label:"Nastavitve", icon:"⚙", group:"system", defaultEnabled:true },
 ];
 
