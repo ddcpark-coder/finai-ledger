@@ -11,15 +11,14 @@ final class WorkspacePreferencesTest extends TestCase
 {
     private function user(string $email, bool $verified=true, bool $active=true): User
     {
-        return User::query()->create([
+        $user = User::query()->create([
             'name' => $email,
             'email' => $email,
             'password' => 'dev-test-password-please-change',
-            'email_verified_at' => $verified ? now() : null,
             'active' => $active,
-        ])->forceFill([
-            'email_verified_at' => $verified ? now() : null,
-        ])->tap(fn (User $user) => $user->save());
+        ]);
+        $user->forceFill(['email_verified_at' => $verified ? now() : null])->save();
+        return $user;
     }
 
     private function company(string $name): Company
