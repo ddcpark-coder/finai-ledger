@@ -31,7 +31,7 @@ final class PostGoodsReceiptToInventory
             $this->movements->execute(
                 $receipt->company_id,$line->product_id,$receipt->warehouse_id,$locationId,
                 'receipt',$accepted,'goods_receipt_line',$line->id,$userId,
-                (float)$line->unit_price,$order?->number
+                (float)$line->unit_price,$order?->number,$order?->project_id
             );
         }
     }
