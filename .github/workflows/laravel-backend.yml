@@ -28,13 +28,11 @@ jobs:
           extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
           tools: composer:v2
       - name: Validate Composer project
-        run: composer validate --no-check-publish
+        run: composer validate --strict --no-check-publish
       - name: Install reviewed dependencies without secrets
-        run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Export resolved dependency lock for review
-        # Public package metadata only; no credentials are exported.
-        run: |
-          php -r '$lock=base64_encode(file_get_contents("composer.lock")); foreach(str_split($lock,2000) as $i=>$chunk){echo "FINAI_LOCK_CHUNK_".$i."=".$chunk.PHP_EOL;}'
+        run: composer install --no-interaction --prefer-dist --no-progress --no-audit
+      - name: Check locked package security advisories
+        run: composer audit --locked --no-interaction
       - name: Prepare isolated test environment
         run: cp .env.example .env
       - name: Check application can bootstrap
