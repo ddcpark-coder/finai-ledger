@@ -16,6 +16,9 @@ enum Permission: string
     case QuotesWrite = 'quotes.write';
     case OrdersRead = 'orders.read';
     case OrdersWrite = 'orders.write';
+    case ProcurementRead = 'procurement.read';
+    case ProcurementWrite = 'procurement.write';
+    case ProcurementApprove = 'procurement.approve';
     case LedgerRead = 'ledger.read';
     case LedgerPost = 'ledger.post';
     case LedgerClosePeriod = 'ledger.close_period';
