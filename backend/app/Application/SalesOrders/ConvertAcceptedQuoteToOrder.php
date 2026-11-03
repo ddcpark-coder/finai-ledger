@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\DB;
 
 final class ConvertAcceptedQuoteToOrder
 {
+    public function __construct(private AllocateSalesOrderNumber $numbering) {}
+
     public function execute(int $quoteId,int $userId): int
     {
         return DB::transaction(function () use ($quoteId,$userId) {
@@ -16,8 +18,7 @@ final class ConvertAcceptedQuoteToOrder
             $existing=DB::table('sales_orders')->where('quote_id',$quoteId)->first();
             if ($existing) return (int)$existing->id;
 
-            $next=(int)DB::table('sales_orders')->where('company_id',$quote->company_id)->whereYear('order_date',now()->year)->count()+1;
-            $number=sprintf('NAR-%d-%04d',now()->year,$next);
+            $number=$this->numbering->execute($quote->company_id,(int)now()->year);
 
             $orderId=DB::table('sales_orders')->insertGetId([
                 'company_id'=>$quote->company_id,'partner_id'=>$quote->partner_id,'quote_id'=>$quoteId,
