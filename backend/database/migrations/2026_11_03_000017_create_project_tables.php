@@ -38,6 +38,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(['company_id','number']);
+            $table->unique('sales_order_id');
             $table->index(['company_id','status','due_on']);
             $table->index(['partner_id','status']);
         });
