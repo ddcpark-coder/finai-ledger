@@ -387,7 +387,7 @@ export default function Page(){
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace/>}
        {section==="Banka"&&<BankingWorkspace/>}
-       {section==="DDV in poročila"&&<VatWorkspace/>}
+       {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
        {section==="eDavki / FURS"&&<EdavkiWorkspace/>}
        {section==="Dokumenti"&&<DocumentsWorkspace/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
