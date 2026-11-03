@@ -87,3 +87,36 @@ test("favorite routes are separated by demonstration company",async({page,isMobi
   await companySelect.selectOption(first);
   await expect(page.getByRole("button",{name:"★ Priljubljeno"})).toBeVisible();
 });
+
+test("all 17 direct module routes render without runtime errors",async({page})=>{
+  const modules=[
+    ["dashboard","Nadzorna plošča"],["incoming_invoices","Prejeti računi"],
+    ["issued_invoices","Izdani računi"],["accounting","Knjiženje"],
+    ["banking","Banka"],["vat","DDV in poročila"],
+    ["edavki","eDavki / FURS"],["partners","Partnerji"],
+    ["documents","Dokumenti"],["catalog","Artikli in ceniki"],
+    ["crm","CRM"],["quotes","Ponudbe"],["orders","Naročila"],
+    ["procurement","Nabava"],["inventory","Zaloge"],
+    ["projects","Projekti"],["settings","Nastavitve"]
+  ];
+  const errors=[];
+  page.on("pageerror",e=>errors.push(e.message));
+  for(const [key,label] of modules){
+    await test.step(label,async()=>{
+      await page.goto("/?module="+encodeURIComponent(key));
+      await expect(page.getByRole("heading",{name:label,exact:true})).toBeVisible();
+      await expect(page.getByRole("navigation",{name:label+" podmoduli"})).toBeVisible();
+    });
+  }
+  expect(errors).toEqual([]);
+});
+
+test("appearance controls persist on browser reload",async({page})=>{
+  await page.goto("/?module=settings&view=Videz&subview=Tema");
+  const theme=page.getByRole("button",{name:"Preklopi na svetlo"});
+  await expect(theme).toBeVisible();
+  await theme.click();
+  await expect(page.locator(".app")).toHaveClass(/light/);
+  await page.reload();
+  await expect(page.locator(".app")).toHaveClass(/light/);
+});
