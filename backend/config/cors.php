@@ -6,8 +6,8 @@ $origins = array_filter(array_map(
 ));
 
 return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'auth/login', 'auth/logout'],
-    'allowed_methods' => ['GET','HEAD','POST','PUT','OPTIONS'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'two-factor-challenge', 'user/*'],
+    'allowed_methods' => ['GET','HEAD','POST','PUT','DELETE','OPTIONS'],
     'allowed_origins' => array_values($origins),
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['Content-Type','Accept','X-XSRF-TOKEN','X-Requested-With'],
