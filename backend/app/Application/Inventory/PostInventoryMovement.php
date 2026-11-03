@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 final class PostInventoryMovement
 {
     public function execute(
-        int $companyId,int $productId,int $warehouseId,?int $locationId,
+        int $companyId,int $productId,int $warehouseId,int $locationId,
         string $type,float $quantity,string $sourceType,int $sourceId,int $userId,
         ?float $unitCost=null,?string $reference=null
     ): int {
@@ -21,10 +21,8 @@ final class PostInventoryMovement
             $warehouse=DB::table('warehouses')->where('id',$warehouseId)->where('company_id',$companyId)->where('active',true)->first();
             if (! $product || ! $warehouse) throw new \DomainException('Invalid product or warehouse.');
 
-            if ($locationId) {
-                $location=DB::table('warehouse_locations')->where('id',$locationId)->where('warehouse_id',$warehouseId)->where('active',true)->first();
-                if (! $location) throw new \DomainException('Invalid warehouse location.');
-            }
+            $location=DB::table('warehouse_locations')->where('id',$locationId)->where('warehouse_id',$warehouseId)->where('active',true)->first();
+            if (! $location) throw new \DomainException('Invalid warehouse location.');
 
             $balance=DB::table('inventory_balances')
                 ->where('warehouse_id',$warehouseId)->where('product_id',$productId)
