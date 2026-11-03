@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const partners=[
  {name:"ACME d.o.o.",tax:"SI12345678",country:"SI",balance:"1.240,00 €",status:"Aktiven",risk:"Normalno",vat:"Veljaven",terms:"15 dni",iban:"SI56 •••• 5678",email:"finance@acme.si"},
@@ -24,6 +24,12 @@ export default function PartnerWorkspace({context}){
      :section==="Kontakti"||section==="Ceniki"||section==="Dokumenti";
    return matches&&riskMatch&&contextMatch;
  }),[query,risk,section,subView]);
+
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.tax===selected.tax)){
+     setSelected(list[0]);
+   }
+ },[list,selected.tax]);
 
  return <section className="partnerWorkspace">
    <style>{`
@@ -60,7 +66,7 @@ export default function PartnerWorkspace({context}){
        </button>)}
      </article>
 
-     <aside className="partnerCard partnerDetail">
+     {list.length>0&&<aside className="partnerCard partnerDetail">
        <span className="verifyBadge">✓ Identiteta preverjena</span>
        <h3 style={{marginTop:10}}>{selected.name}</h3>
        <small>{selected.tax} · {selected.country}</small>
@@ -73,7 +79,7 @@ export default function PartnerWorkspace({context}){
        <div className="partnerSection"><h4>Kontakt in plačila</h4><div className="partnerStat"><span>E-pošta</span><b>{selected.email}</b></div><div className="partnerStat"><span>IBAN</span><b>{selected.iban}</b></div></div>
        <div className="partnerSection"><h4>Saldakonti</h4><div className="partnerStat"><span>Terjatve</span><b>{selected.balance}</b></div><div className="partnerStat"><span>Obveznosti</span><b>0,00 €</b></div><div className="partnerStat"><span>Zapadlo</span><b style={{color:"var(--warn)"}}>{selected.risk==="Opozorilo"?"915,00 €":"0,00 €"}</b></div></div>
        <div className="partnerSection"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Odpri partnerja</button><button className="secondary">Preveri VAT / register</button><button className="secondary">Pokaži odprte postavke</button></div></div>
-     </aside>
+     </aside>}{list.length===0&&<aside className="partnerCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
