@@ -21,6 +21,30 @@ Zgornja navigacija združi module, podmodule in tretji nivo v jasno, hitro in ba
 - Zaloge: stanje, premiki, rezervacije, skladišča, inventura in opozorila
 - Projekti: pregled, naloge, delovni nalogi, čas, material, finance in dokumenti
 
+## Razširitev UX-CONTEXT-03 (3. 11. 2026)
+
+Povezani so tudi preostali navigacijski sklopi:
+- Prejeti računi: pregled, OCR/AI pregled, odobritve, predlogi knjiženja in dokumenti; podpogledi filtrirajo demonstracijske račune.
+- Izdani računi: osnutki, odprte/zapadle/plačane terjatve, e-poštno/e-računsko pošiljanje, opomini in knjiženje.
+- Banka: prilivi, odlivi, neusklajene/delne transakcije, SEPA in izpiski.
+- eDavki/FURS: oddaje TEST/PROD, statusi obdelave, zavrnitve, validacijski/kontrolni pogledi. Ni dejanskega oddajanja.
+- Dokumenti: vsi dokumenti, prejeti/izdani računi, dobavnice, podpis na zaslonu in prazna stanja za še neimplementirane kategorije.
+- Partnerji: pregled, kontakti, saldakonti, ceniki in dokumenti. Razvrstitev demo kupcev/dobaviteljev je ilustrativna.
+- Ponudbe: osnutki, poslane, sprejete, zavrnjene, predloge in demonstracijska analitika.
+- Naročila: faze izvedbe, rezervacije, dobavnice in fakturiranje.
+- Nadzorna plošča: prilagojeni pregled, KPI, aktivnosti, odobritve in naloge.
+- Nastavitve: podjetje, uporabniki/vloge, moduli, integracije, tema/gostota in varnostni pregledi.
+
+Ko se filtrirani pogled spremeni, se izbira podrobnega zapisa sinhronizira s seznamom. Kadar podatkov ni, se pokaže prazno stanje, ne nepovezan zapis iz prejšnjega pogleda.
+
+### Meja izvedenosti
+- Uvedene so funkcionalne frontend poti in filtriranje obstoječih demo zapisov, ne popolne poslovne operacije.
+- Prazni podpogledi jasno povedo, da ni demo podatkov; ne generiramo navideznih računov ali izvedenih FURS transakcij.
+- Dejanska pošiljanja e-pošte, kvalificirani podpisi, povezave z banko in FURS zahtevajo zaledne integracije in dodatne varnostne teste.
+- Vzorčna UI interakcija z dobavnico je simulacija; potrjen build ne pomeni uspešno ustvarjenega PDF ali odposlanega sporočila.
+- Uporabniško pravico za vsak podpogled bo treba vezati na strežniški RBAC.
+- URL deep-linki, navigacija nazaj/naprej in vztrajnost zadnjega podpogleda so samostojen naslednji korak.
+
 ### Omejitve
 - To so prikazni podatki in interaktivni previewi; frontend build ni dokaz delovanja Laravel API-jev ali produkcijskih poslovnih procesov.
 - Nekateri podfiltri tretjega nivoja in moduli zunaj zgornjega seznama še nimajo lastnih podatkovnih pogledov. Ne predstavljamo jih kot produkcijsko zaključene.
