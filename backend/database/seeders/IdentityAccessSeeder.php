@@ -36,19 +36,19 @@ class IdentityAccessSeeder extends Seeder
             Role::Owner->value => array_column(Permission::cases(), 'value'),
             Role::Admin->value => [
                 'company.manage','users.manage','roles.manage','invoices.read','invoices.write',
-                'invoices.approve','crm.read','crm.write','ledger.read','ledger.post','bank.read','bank.reconcile',
+                'invoices.approve','crm.read','crm.write','quotes.read','quotes.write','ledger.read','ledger.post','bank.read','bank.reconcile',
                 'tax.read','tax.prepare','integrations.manage','audit.read','settings.manage',
             ],
             Role::Accountant->value => [
-                'invoices.read','invoices.write','invoices.approve','crm.read','ledger.read','ledger.post',
+                'invoices.read','invoices.write','invoices.approve','crm.read','quotes.read','quotes.write','ledger.read','ledger.post',
                 'ledger.close_period','bank.read','bank.reconcile','tax.read','tax.prepare',
                 'tax.submit','audit.read',
             ],
             Role::Operator->value => [
-                'invoices.read','invoices.write','crm.read','crm.write','bank.read','tax.read',
+                'invoices.read','invoices.write','crm.read','crm.write','quotes.read','quotes.write','bank.read','tax.read',
             ],
             Role::Viewer->value => [
-                'invoices.read','crm.read','ledger.read','bank.read','tax.read',
+                'invoices.read','crm.read','quotes.read','ledger.read','bank.read','tax.read',
             ],
         ];
 
