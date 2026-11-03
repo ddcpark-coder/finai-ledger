@@ -13,6 +13,7 @@ const EdavkiWorkspace=dynamic(()=>import("./edavki/EdavkiWorkspace"),{loading});
 const DocumentsWorkspace=dynamic(()=>import("./documents/DocumentsWorkspace"),{loading});
 const CatalogWorkspace=dynamic(()=>import("./catalog/CatalogWorkspace"),{loading});
 const CrmWorkspace=dynamic(()=>import("./crm/CrmWorkspace"),{loading});
+const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
 
 const moduleData={
 "Nadzorna plošča":{
@@ -371,8 +372,9 @@ export default function Page(){
        {section==="Dokumenti"&&<DocumentsWorkspace/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace/>}
        {section==="CRM"&&<CrmWorkspace/>}
+       {section==="Ponudbe"&&<QuotesWorkspace/>}
 
-       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&<div className="workspace">
+       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>
