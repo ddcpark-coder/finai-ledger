@@ -36,7 +36,7 @@ class IdentityAccessSeeder extends Seeder
             Role::Owner->value => array_column(Permission::cases(), 'value'),
             Role::Admin->value => [
                 'company.manage','users.manage','roles.manage','invoices.read','invoices.write',
-                'invoices.approve','crm.read','crm.write','quotes.read','quotes.write','orders.read','orders.write','procurement.read','procurement.write','procurement.approve','inventory.read','inventory.write','inventory.count','ledger.read','ledger.post','bank.read','bank.reconcile',
+                'invoices.approve','crm.read','crm.write','quotes.read','quotes.write','orders.read','orders.write','procurement.read','procurement.write','procurement.approve','inventory.read','inventory.write','inventory.count','projects.read','projects.write','projects.time','ledger.read','ledger.post','bank.read','bank.reconcile',
                 'tax.read','tax.prepare','integrations.manage','audit.read','settings.manage',
             ],
             Role::Accountant->value => [
@@ -45,10 +45,10 @@ class IdentityAccessSeeder extends Seeder
                 'tax.submit','audit.read',
             ],
             Role::Operator->value => [
-                'invoices.read','invoices.write','crm.read','crm.write','quotes.read','quotes.write','orders.read','orders.write','procurement.read','procurement.write','inventory.read','inventory.write','bank.read','tax.read',
+                'invoices.read','invoices.write','crm.read','crm.write','quotes.read','quotes.write','orders.read','orders.write','procurement.read','procurement.write','inventory.read','inventory.write','projects.read','projects.write','projects.time','bank.read','tax.read',
             ],
             Role::Viewer->value => [
-                'invoices.read','crm.read','quotes.read','orders.read','procurement.read','inventory.read','ledger.read','bank.read','tax.read',
+                'invoices.read','crm.read','quotes.read','orders.read','procurement.read','inventory.read','projects.read','ledger.read','bank.read','tax.read',
             ],
         ];
 

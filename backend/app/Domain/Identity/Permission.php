@@ -22,6 +22,9 @@ enum Permission: string
     case InventoryRead = 'inventory.read';
     case InventoryWrite = 'inventory.write';
     case InventoryCount = 'inventory.count';
+    case ProjectsRead = 'projects.read';
+    case ProjectsWrite = 'projects.write';
+    case ProjectsTime = 'projects.time';
     case LedgerRead = 'ledger.read';
     case LedgerPost = 'ledger.post';
     case LedgerClosePeriod = 'ledger.close_period';

@@ -17,6 +17,7 @@ const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
 const SalesOrdersWorkspace=dynamic(()=>import("./orders/SalesOrdersWorkspace"),{loading});
 const ProcurementWorkspace=dynamic(()=>import("./procurement/ProcurementWorkspace"),{loading});
 const InventoryWorkspace=dynamic(()=>import("./inventory/InventoryWorkspace"),{loading});
+const ProjectsWorkspace=dynamic(()=>import("./projects/ProjectsWorkspace"),{loading});
 
 const moduleData={
 "Nadzorna plošča":{
@@ -379,8 +380,9 @@ export default function Page(){
        {section==="Naročila"&&<SalesOrdersWorkspace/>}
        {section==="Nabava"&&<ProcurementWorkspace/>}
        {section==="Zaloge"&&<InventoryWorkspace/>}
+       {section==="Projekti"&&<ProjectsWorkspace/>}
 
-       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&<div className="workspace">
+       {section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>
