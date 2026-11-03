@@ -46,5 +46,6 @@ jobs:
         run: |
           php artisan --version
           php artisan route:list --path=api
+          php artisan finai:preflight
       - name: Run isolated tenant/API integration tests
         run: php artisan test --testsuite=Feature --display-warnings --no-ansi --stop-on-failure
