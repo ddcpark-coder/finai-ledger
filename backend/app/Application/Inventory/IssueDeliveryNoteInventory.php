@@ -60,7 +60,7 @@ final class IssueDeliveryNoteInventory
 
                 $this->movements->execute(
                     $note->company_id,$line->product_id,$warehouseId,$locationId,
-                    'issue',-$qty,'delivery_note',$deliveryNoteId,$userId,null,$note->number
+                    'issue',-$qty,'delivery_note',$deliveryNoteId,$userId,null,$note->number,$note->project_id
                 );
             }
         });
