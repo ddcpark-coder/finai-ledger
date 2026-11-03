@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const submissions=[
  {id:"ED-2026-0018",doc:"DDV-O 11/2026",env:"TEST",status:"Sprejeto",remote:"EDP-884201",sent:"03. 11. 2026 06:12",attempts:1},
@@ -26,6 +26,12 @@ export default function EdavkiWorkspace({context}){
  }),[activeEnv,query,section,subView]);
 
  const effectiveStatus=submitted&&selected.id==="ED-2026-0018"?"Poslano":selected.status;
+
+ useEffect(()=>{
+   if(filtered.length&&!filtered.some(row=>row.id===selected.id)){
+     setSelected(filtered[0]);setSubmitted(false);
+   }
+ },[filtered,selected.id]);
 
  return <section className="edavkiWorkspace">
    <style>{`
@@ -66,7 +72,7 @@ export default function EdavkiWorkspace({context}){
        </button>)}
      </article>
 
-     <aside className="edCard edDetail">
+     {filtered.length>0&&<aside className="edCard edDetail">
        <span className={"edState "+(effectiveStatus==="Sprejeto"?"ok":effectiveStatus==="Zavrnjeno"?"bad":"info")}>{effectiveStatus}</span>
        <h3>{selected.doc}</h3><small>{selected.id} · {selected.env}</small>
 
@@ -86,7 +92,7 @@ export default function EdavkiWorkspace({context}){
        {selected.status==="Zavrnjeno"&&<div className="edSec"><h4>Napaka FURS</h4><div className="certBox" style={{borderColor:"color-mix(in srgb,var(--danger) 45%,var(--line))"}}><b style={{color:"var(--danger)"}}>Dokument zahteva vsebinski popravek</b><small>Samodejni retry je blokiran do novega veljavnega artefakta.</small></div></div>}
 
        <div className="edSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!validated||!signed||selected.status==="Zavrnjeno"} onClick={()=>setSubmitted(true)}>{submitted?"Oddano":"Oddaj v "+selected.env}</button><button className="secondary">Osveži FURS status</button><button className="secondary">Prikaži XML validacijo</button><button className="secondary">Prikaži audit sled</button></div></div>
-     </aside>
+     </aside>}{filtered.length===0&&<aside className="edCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
