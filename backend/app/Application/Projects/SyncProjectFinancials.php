@@ -28,7 +28,7 @@ final class SyncProjectFinancials
 
     public function upsertEntry(
         int $projectId,string $entryType,string $category,float $amount,
-        string $sourceType,int $sourceId,string $recognizedOn,?string $description=null
+        string $sourceType,int $sourceId,string $recognizedOn,?string $description=null,bool $recalculate=true
     ): void {
         if (! in_array($entryType,['revenue','cost'],true)) throw new \DomainException('Invalid project financial entry type.');
         if ($amount<0) throw new \DomainException('Project financial amount cannot be negative.');
@@ -44,6 +44,8 @@ final class SyncProjectFinancials
             ]
         );
 
-        $this->execute($projectId);
+        if ($recalculate) {
+            $this->execute($projectId);
+        }
     }
 }
