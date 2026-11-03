@@ -17,7 +17,10 @@ final class HostingPreflight extends Command
         $production=app()->environment('production');
         $checks=[
             'PHP >= 8.4' => PHP_VERSION_ID >= 80400,
-            'Required PDO drivers' => extension_loaded('pdo'),
+            'PDO extension enabled' => extension_loaded('pdo'),
+            'PDO MySQL driver for production' => ! $production
+                || extension_loaded('pdo')
+                    && in_array('mysql', \PDO::getAvailableDrivers(), true),
             'Composer lock committed' => is_file(base_path('composer.lock')),
             'APP_KEY configured' => is_string(config('app.key'))
                 && strlen((string) config('app.key')) >= 32,

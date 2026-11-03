@@ -31,6 +31,22 @@ jobs:
         run: |
           bash -n scripts/hiperm-readonly-check.sh
           bash scripts/hiperm-readonly-check.sh
+      - name: Verify BACKEND-04 scaffold without touching hosting
+        run: |
+          bash -n scripts/finai-backend04-scaffold.sh
+          safe_home="$(mktemp -d)"
+          trap 'rm -rf "$safe_home"' EXIT
+          HOME="$safe_home" bash scripts/finai-backend04-scaffold.sh --dry-run
+          test ! -e "$safe_home/apps/finai-ledger"
+          HOME="$safe_home" bash scripts/finai-backend04-scaffold.sh --apply
+          test -d "$safe_home/apps/finai-ledger/releases"
+          test -d "$safe_home/apps/finai-ledger/shared/storage/app/private"
+          test -d "$safe_home/apps/finai-ledger/shared/storage/framework/sessions"
+          test ! -e "$safe_home/apps/finai-ledger/current"
+          if HOME="$safe_home" bash scripts/finai-backend04-scaffold.sh --apply; then
+            echo "Expected an existing-root refusal" >&2
+            exit 1
+          fi
       - name: Validate Composer project
         run: composer validate --strict --no-check-publish
       - name: Install reviewed dependencies without secrets
