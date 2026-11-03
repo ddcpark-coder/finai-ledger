@@ -375,7 +375,7 @@ export default function Page(){
 
      <main className="content">
        <div className="hero">
-         <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":"Hitro delo z visoko gostoto podatkov in jasnim kontekstom."}</p></div>
+         <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
          <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
        </div>
 
@@ -384,17 +384,17 @@ export default function Page(){
        {section==="Nadzorna plošča"&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor}/>}
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
-       {section==="Partnerji"&&<PartnerWorkspace/>}
-       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace/>}
-       {section==="Izdani računi"&&<IssuedInvoicesWorkspace/>}
-       {section==="Banka"&&<BankingWorkspace/>}
+       {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
+       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext}/>}
+       {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext}/>}
+       {section==="Banka"&&<BankingWorkspace context={activeContext}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
-       {section==="eDavki / FURS"&&<EdavkiWorkspace/>}
-       {section==="Dokumenti"&&<DocumentsWorkspace/>}
+       {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
+       {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext}/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
        {section==="CRM"&&<CrmWorkspace context={activeContext}/>}
-       {section==="Ponudbe"&&<QuotesWorkspace/>}
-       {section==="Naročila"&&<SalesOrdersWorkspace/>}
+       {section==="Ponudbe"&&<QuotesWorkspace context={activeContext}/>}
+       {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
