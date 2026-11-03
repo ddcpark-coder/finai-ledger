@@ -12,5 +12,6 @@ return [
     'documents' => ['group' => 'core', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'catalog' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'crm' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'crm.read'],
+    'quotes' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'quotes.read'],
     'settings' => ['group' => 'system', 'default_enabled' => true, 'permission' => 'settings.manage'],
 ];
