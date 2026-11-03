@@ -6,8 +6,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// All API responses are JSON. Auth state is verified by Sanctum on the server.
-Route::middleware(['auth:sanctum','verified',RequirePrivilegedTwoFactor::class,'throttle:60,1'])->group(function (): void {
+// Session-only API. Browser cookies are verified by web guard; bearer tokens
+// cannot bypass Fortify's interactive TOTP challenge.
+Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'throttle:60,1'])->group(function (): void {
     Route::get('/me', function (Request $request): JsonResponse {
         $user = $request->user();
 
