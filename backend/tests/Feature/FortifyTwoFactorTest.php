@@ -43,18 +43,58 @@ final class FortifyTwoFactorTest extends TestCase
         ])->assertNotFound();
     }
 
-    public function test_privileged_user_must_confirm_two_factor_before_login_or_api_use(): void
+    public function test_privileged_user_can_log_in_only_to_enroll_then_is_denied_api_access(): void
     {
         $user=$this->createUser(true);
         $companyId=$user->companies()->firstOrFail()->id;
 
         $this->postJson('/login',[
             'email'=>$user->email,'password'=>'test-password-secure-length',
-        ])->assertForbidden();
+        ])->assertSuccessful();
 
-        $this->actingAs($user)
-            ->getJson("/api/companies/{$companyId}/my/workspace-preferences")
+        $this->getJson("/api/companies/{$companyId}/my/workspace-preferences")
             ->assertForbidden();
+    }
+
+    public function test_owner_can_enroll_confirm_and_manage_totp_after_password_confirmation(): void
+    {
+        $user=$this->createUser(true);
+        $companyId=$user->companies()->firstOrFail()->id;
+
+        $this->postJson('/login',[
+            'email'=>$user->email,'password'=>'test-password-secure-length',
+        ])->assertSuccessful();
+
+        $this->getJson("/api/companies/{$companyId}/my/workspace-preferences")
+            ->assertForbidden();
+
+        $this->postJson('/user/confirm-password',[
+            'password'=>'test-password-secure-length'
+        ])->assertSuccessful();
+
+        $this->postJson('/user/two-factor-authentication',[])
+            ->assertSuccessful();
+        $fresh=$user->fresh();
+        $this->assertNotNull($fresh->two_factor_secret);
+        $this->assertNull($fresh->two_factor_confirmed_at);
+
+        $this->getJson('/user/two-factor-qr-code')
+            ->assertOk()->assertJsonStructure(['svg']);
+
+        $secret=decrypt($fresh->two_factor_secret);
+        $code=(new \PragmaRX\Google2FA\Google2FA)->getCurrentOtp($secret);
+        $this->postJson('/user/confirmed-two-factor-authentication',[
+            'code'=>$code,
+        ])->assertSuccessful();
+
+        $this->assertNotNull($user->fresh()->two_factor_confirmed_at);
+        $this->getJson("/api/companies/{$companyId}/my/workspace-preferences")
+            ->assertOk();
+
+        $codes=$this->getJson('/user/two-factor-recovery-codes')
+            ->assertOk()->json();
+        $this->assertIsArray($codes);
+        $this->assertNotEmpty($codes);
     }
 
     public function test_privileged_user_must_pass_totp_challenge(): void
