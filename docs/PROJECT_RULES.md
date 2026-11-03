@@ -14,4 +14,4 @@
 12. Zaključenih knjižb se ne prepisuje neposredno; uporabljajo se korekcije oziroma storno postopki.
 13. FURS, banke, AJPES in druge zunanje integracije se najprej preverjajo v testnem okolju.
 14. Aplikacija mora biti responsive, večjezično pripravljena in dostopna na desktopu, tablici in telefonu; glavni workspace mora omogočati uporabniško prilagodljive widgete, velikosti in postavitve.
-15. Varnost, zakonodajna skladnost, pravilnost podatkov in možnost rollbacka imajo prednost pred hitrostjo razvoja.
+15. Hitrost delovanja je temeljna produktna zahteva: moduli se nalagajo lazy, težka opravila tečejo asinhrono, poizvedbe so indeksirane/paginirane, performance regresije pa blokirajo release enako kot funkcionalne napake. Varnost, zakonodajna skladnost, pravilnost podatkov in možnost rollbacka imajo pri optimizacijah prednost pred hitrostjo razvoja.
