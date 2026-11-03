@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const invoices=[
  {id:"IR-2026-0054",number:"2026-0054",partner:"ABC d.o.o.",net:"1.000,00 €",tax:"220,00 €",gross:"1.220,00 €",issue:"02. 11. 2026",due:"17. 11. 2026",status:"Plačano",delivery:"E-pošta",sent:true,paid:true},
@@ -28,6 +28,12 @@ export default function IssuedInvoicesWorkspace({context}){
 
  const effectiveStatus=issued&&selected.status==="Osnutek"?(sent?"Poslano":"Izdano"):selected.status;
  const effectiveNumber=issued&&selected.status==="Osnutek"?"2026-0055":selected.number;
+
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.id===selected.id)){
+     setSelected(list[0]);setIssued(false);setSent(false);
+   }
+ },[list,selected.id]);
 
  return <section className="issuedWorkspace">
    <style>{`
@@ -65,7 +71,7 @@ export default function IssuedInvoicesWorkspace({context}){
        </button>)}
      </article>
 
-     <aside className="issuedCard invoicePreview">
+     {list.length>0&&<aside className="issuedCard invoicePreview">
        <span className={"status2 "+(effectiveStatus==="Plačano"?"ok":effectiveStatus==="Zapadlo"?"danger":effectiveStatus==="Poslano"||effectiveStatus==="Izdano"?"info":"draft")}>{effectiveStatus}</span>
        <h3>{effectiveNumber}</h3><small>{selected.partner} · {selected.id}</small>
 
@@ -97,7 +103,7 @@ export default function IssuedInvoicesWorkspace({context}){
          <button className="secondary">Prikaži temeljnico</button>
          {effectiveStatus==="Zapadlo"&&<button className="secondary">Pripravi opomin</button>}
        </div></div>
-     </aside>
+     </aside>}{list.length===0&&<aside className="issuedCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
