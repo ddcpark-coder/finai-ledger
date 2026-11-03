@@ -179,15 +179,19 @@ final class WorkspacePreferencesTest extends TestCase
     public function test_login_requires_correct_password_and_verified_email(): void
     {
         $this->user('verified@example.test');
-        $this->postJson('/auth/login',[
+        $this->postJson('/login',[
             'email'=>'verified@example.test','password'=>'wrong-password',
         ])->assertUnprocessable();
 
-        $this->postJson('/auth/login',[
+        $this->postJson('/login',[
             'email'=>'verified@example.test',
             'password'=>'dev-test-password-please-change',
-        ])->assertOk()->assertJsonPath('data.name','verified@example.test');
+        ])->assertSuccessful();
 
-        $this->postJson('/auth/logout')->assertOk();
+        $this->getJson('/api/me')->assertOk()
+            ->assertJsonPath('data.email','verified@example.test');
+
+        $this->postJson('/logout')->assertSuccessful();
+        $this->getJson('/api/me')->assertUnauthorized();
     }
 }
