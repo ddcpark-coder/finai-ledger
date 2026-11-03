@@ -89,7 +89,8 @@ return new class extends Migration {
             $table->string('signer_name');
             $table->string('signer_email')->nullable();
             $table->string('signature_type', 30)->default('drawn');
-            $table->text('signature_data')->nullable();
+            $table->string('signature_disk', 40)->nullable();
+            $table->string('signature_path')->nullable();
             $table->string('signature_sha256', 64)->nullable();
             $table->timestamp('signed_at');
             $table->ipAddress('ip_address')->nullable();
