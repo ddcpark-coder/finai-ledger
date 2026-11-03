@@ -1,17 +1,16 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
-import PartnerWorkspace from "./partners/PartnerWorkspace";
-import IncomingInvoicesWorkspace from "./incoming/IncomingInvoicesWorkspace";
-import IssuedInvoicesWorkspace from "./issued/IssuedInvoicesWorkspace";
-import BankingWorkspace from "./banking/BankingWorkspace";
-import VatWorkspace from "./vat/VatWorkspace";
-import EdavkiWorkspace from "./edavki/EdavkiWorkspace";
-import DocumentsWorkspace from "./documents/DocumentsWorkspace";
+import dynamic from "next/dynamic";
+import {defaultNavigation as nav} from "./modules/moduleRegistry";
 
-const nav=[
-["Nadzorna plošča","⌂"],["Prejeti računi","▤"],["Izdani računi","▧"],["Knjiženje","⇄"],
-["Banka","◇"],["DDV in poročila","%"],["eDavki / FURS","↗"],["Partnerji","◎"],["Dokumenti","▣"],["Nastavitve","⚙"]
-];
+const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
+const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
+const IncomingInvoicesWorkspace=dynamic(()=>import("./incoming/IncomingInvoicesWorkspace"),{loading});
+const IssuedInvoicesWorkspace=dynamic(()=>import("./issued/IssuedInvoicesWorkspace"),{loading});
+const BankingWorkspace=dynamic(()=>import("./banking/BankingWorkspace"),{loading});
+const VatWorkspace=dynamic(()=>import("./vat/VatWorkspace"),{loading});
+const EdavkiWorkspace=dynamic(()=>import("./edavki/EdavkiWorkspace"),{loading});
+const DocumentsWorkspace=dynamic(()=>import("./documents/DocumentsWorkspace"),{loading});
 
 const moduleData={
 "Nadzorna plošča":{
