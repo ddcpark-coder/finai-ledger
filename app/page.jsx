@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import {defaultNavigation as nav,modules} from "./modules/moduleRegistry";
 import ContextNavigation from "./components/ContextNavigation";
 import useContextNavigation from "./hooks/useContextNavigation";
+import useWorkspacePreferenceSync,{useLocalWorkspaceAppearance} from "./hooks/useWorkspacePreferenceSync";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -126,6 +127,8 @@ const css=`
 .contextFavorite span{color:var(--accent)}
 .contextFavorite[aria-current="page"]{border-color:var(--accent);color:var(--text)}
 .contextQuickNotice{font-size:9px;color:var(--accent);min-width:0}
+.contextSyncState{margin-left:auto;font-size:9px;white-space:nowrap;color:var(--muted)}
+.contextSyncState.synced{color:var(--ok)}.contextSyncState.offline,.contextSyncState.conflict,.contextSyncState.blocked{color:var(--warn)}
 @media(max-width:760px){.contextQuickAccess{flex-wrap:wrap;margin-bottom:10px}.contextFavoriteList{flex-basis:100%;order:2}.contextQuickAction{min-height:36px}}
 *{box-sizing:border-box}button,input{font:inherit}body{margin:0}.app{
 --bg:#07111d;--bg2:#0a1624;--panel:#0d1b2b;--panel2:#0a1724;--text:#f4f8ff;--muted:#8fa2b8;--line:#1c3147;
@@ -323,10 +326,14 @@ export default function Page(){
  const [company,setCompany]=useState(1);
  const {
    section,contextLevel2,contextLevel3,activeRoute,
-   favorites,isFavorite,navNotice,navigateTo,toggleFavorite,copyCurrentLink
+   favorites,isFavorite,navNotice,navigateTo,toggleFavorite,copyCurrentLink,
+   hydrateServerPreferences,hasExternalLink
  }=useContextNavigation(company);
- const [light,setLight]=useState(false);
- const [compact,setCompact]=useState(false);
+ const {light,setLight,compact,setCompact,appearanceReady}=useLocalWorkspaceAppearance(company);
+ const {syncStatus,syncMessage}=useWorkspacePreferenceSync({
+   company,activeRoute,favorites,hydrateServerPreferences,
+   light,setLight,compact,setCompact,appearanceReady,hasExternalLink
+ });
  const [drawer,setDrawer]=useState(null);
  const [command,setCommand]=useState(false);
  const [menu,setMenu]=useState(false);
@@ -336,7 +343,19 @@ export default function Page(){
  const [dragId,setDragId]=useState(null);
  const [twoFactor,setTwoFactor]=useState(true);
  const [userPanel,setUserPanel]=useState(false);
- const current=moduleData[section];
+ const moduleDescriptions={
+   "Artikli in ceniki":"Artikli, storitve, ceniki in povezave z dobavitelji.",
+   "CRM":"Prodajni odnosi, priložnosti in aktivnosti.",
+   "Ponudbe":"Priprava, pregled in spremljanje ponudb.",
+   "Naročila":"Naročila kupcev, izvedba, rezervacije in fakturiranje.",
+   "Nabava":"Povpraševanja, naročilnice, prevzemi in kontrola dobaviteljev.",
+   "Zaloge":"Skladišča, zaloga, premiki, rezervacije in inventure.",
+   "Projekti":"Projekti, delovni nalogi, stroški in donosnost."
+ };
+ const current=moduleData[section]??{
+   subtitle:moduleDescriptions[section]??"Pregled delovnega prostora.",
+   stats:[],rows:[]
+ };
  useEffect(()=>{
    try{const saved=localStorage.getItem("finai:workspace:demo-user");if(saved)setLayout(JSON.parse(saved))}catch{}
    const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false);setUserPanel(false)}};
@@ -397,7 +416,7 @@ export default function Page(){
      <main className="content">
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
-         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button><button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button></div>
+         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button>{current.rows.length>0&&<button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button>}</div>
        </div>
 
        <div className="contextQuickAccess" aria-label="Hitri dostop do podpogledov">
@@ -411,9 +430,17 @@ export default function Page(){
            </button>)}
          </nav>}
          {navNotice&&<span role="status" className="contextQuickNotice">{navNotice}</span>}
+         <span className={"contextSyncState "+syncStatus} role="status" title={syncMessage||"Način shranjevanja uporabniških nastavitev"}>
+           {syncStatus==="local"?"Samo ta brskalnik":
+            syncStatus==="synced"?"✓ Sinhronizirano":
+            syncStatus==="saving"?"Shranjujem ...":
+            syncStatus==="connecting"?"Povezujem ...":
+            syncStatus==="blocked"?"Zahtevana prijava":
+            syncStatus==="conflict"?"Neskladje med sejami":"Lokalno · strežnik nedosegljiv"}
+         </span>
        </div>
 
-       <div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>
+       {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
        {section==="Nadzorna plošča"&&!dashboardOverview&&<article className="panel" style={{marginBottom:10}}>

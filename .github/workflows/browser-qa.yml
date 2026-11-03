@@ -1,0 +1,55 @@
+name: FinAI desktop/mobile interaction QA
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "tests/e2e/**"
+      - "playwright.config.cjs"
+      - ".github/workflows/browser-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop-mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install app and pinned test runner (no secrets)
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+      - name: Install Chromium for desktop and mobile emulation
+        run: npx playwright install --with-deps chromium
+      - name: Build Next.js
+        run: npm run build
+      - name: Start local frontend
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 > /tmp/finai-next.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/finai-next.log
+          exit 1
+      - name: Run 2-device interaction scenarios
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test
+      - name: Publish failure artifacts (screenshots and traces)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa-failures
+          path: |
+            test-results/
+            /tmp/finai-next.log
+          retention-days: 7

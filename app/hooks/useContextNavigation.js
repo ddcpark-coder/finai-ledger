@@ -35,6 +35,9 @@ export default function useContextNavigation(company){
   const [favorites,setFavorites]=useState([]);
   const [navNotice,setNavNotice]=useState("");
   const previousCompany=useRef(company);
+  const initialExternalLink=useRef(
+    typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("module")
+  );
 
   const activeRoute=useMemo(()=>normalizeContextRoute({
     moduleLabel:section,view:contextLevel2,subview:contextLevel3
@@ -56,7 +59,7 @@ export default function useContextNavigation(company){
       const current=window.location.pathname+window.location.search+window.location.hash;
       if(current!==path){
         // Preserve Next.js history metadata to avoid breaking App Router back navigation.
-        window.history.pushState(window.history.state,"",path);
+        window.history[options.replace?"replaceState":"pushState"](window.history.state,"",path);
       }
       saveLastRoute(options.companyId??company,route);
     }
@@ -91,11 +94,20 @@ export default function useContextNavigation(company){
   useEffect(()=>{
     if(previousCompany.current===company)return;
     previousCompany.current=company;
+    initialExternalLink.current=false;
     setFavorites(loadFavorites(company));
     const saved=loadLastRoute(company);
     if(saved) navigateTo(saved,{companyId:company});
     else saveLastRoute(company,activeRoute);
   },[company,navigateTo,activeRoute]);
+
+  const hydrateServerPreferences=useCallback((server,{restoreRoute=false}={})=>{
+    const normalizedFavorites=sanitizeFavoriteRoutes(server?.favorites??[]);
+    setFavorites(normalizedFavorites);
+    saveFavorites(company,normalizedFavorites);
+    const route=server?.last_route?normalizeContextRoute(server.last_route):null;
+    if(restoreRoute&&route)navigateTo(route,{companyId:company,replace:true});
+  },[company,navigateTo]);
 
   const toggleFavorite=useCallback(()=>{
     const route={module:activeRoute.module,view:activeRoute.view,subview:activeRoute.subview};
@@ -126,7 +138,7 @@ export default function useContextNavigation(company){
 
   return {
     section,contextLevel2,contextLevel3,activeRoute,
-    favorites,isFavorite,navNotice,
-    navigateTo,toggleFavorite,copyCurrentLink
+    favorites,isFavorite,navNotice,hasExternalLink:initialExternalLink.current,
+    navigateTo,toggleFavorite,copyCurrentLink,hydrateServerPreferences
   };
 }
