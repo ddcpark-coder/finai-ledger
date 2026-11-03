@@ -11,6 +11,6 @@ return [
     'partners' => ['group' => 'core', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'documents' => ['group' => 'core', 'default_enabled' => true, 'permission' => 'invoices.read'],
     'catalog' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'invoices.read'],
-    'crm' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'invoices.read'],
+    'crm' => ['group' => 'sales', 'default_enabled' => true, 'permission' => 'crm.read'],
     'settings' => ['group' => 'system', 'default_enabled' => true, 'permission' => 'settings.manage'],
 ];
