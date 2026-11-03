@@ -12,10 +12,10 @@
 | TOTP, obnovitvene kode in izključena produkcijska prijava | PREVERJENO V CI | 14 PHP testov, 68 preverjanj v prejšnji fazi |
 | PHP CLI 8.4 na Hiper M | POTRJENO | Uporabnikov terminalski izpis: PHP 8.4.27, `/opt/alt/php84/usr/bin/php`; PHP za bodočo **domeno** še ni preverjen |
 | PHP CLI razširitve | POTRJENO | pdo_mysql, mbstring, curl, intl, dom, xml, zip, openssl, fileinfo vse ENABLED; ne dokazuje spletne PHP-FPM konfiguracije |
-| MariaDB server verzija | NEPREVERJENO | CLI `mysql --version` preverja odjemalca, ne strežnika |
+| MariaDB server verzija | **POTRJENO 10.11.19** | Uporabnikov PS začetnega zaslona phpMyAdmin, dejanski MariaDB Server (ne CLI odjemalec) |
 | cPanel Terminal | POTRJENO | Uporabnik je uspel zagnati read-only skript; to **ne dokazuje zunanjega SSH** dostopa |
 | Git, Composer 2 in cron na Hiper M | POTRJENO ZA CLI | Git 2.56.0; Composer 2.10.3; `crontab` v PATH, ne potrjuje dejanske možnosti ustvarjanja cron opravil |
-| SSL in DNS za lastni FinAI app/API domeni | NEPREVERJENO | Domeni nista določeni/povezani |
+| SSL in DNS za lastni FinAI app/API domeni | NEPREVERJENO | Domeni nista določeni/povezani; phpMyAdmin kaže lokalno povezavo z DB prek UNIX socket brez SSL, kar ne dokazuje HTTPS statusa aplikacije |
 | Document Root `backend/public` | NEPREVERJENO | FinAI strežniška namestitev še ni izvedena |
 | Izolirana MariaDB, kvote, kopije in obnovitev | NEPREVERJENO | Ni dostopa do nastavitve konkretnega FinAI računa |
 | Dejanska produkcijska namestitev in end-to-end API | NI IZVEDENO | V tej fazi ni bilo sprememb na Hiper M |
@@ -35,6 +35,19 @@ bash backend/scripts/hiperm-readonly-check.sh
 
 Če repozitorija ni, **ga ne nameščaj samo za pregled**: odpri skript v GitHubu ter njegovo preverjeno vsebino kopiraj v cPanel Terminal. CPanel mora biti prijavljen na pravi račun; ni treba nikamor posredovati gesel.
 
+## Potrditev prek phpMyAdmin (PS 3. 11. 2026)
+
+Uporabnik je posredoval posnetek začetne strani phpMyAdmin, na katerem so neposredno izpisani:
+
+- **MariaDB SERVER:** 10.11.19-MariaDB-cll-lve-log — MariaDB Server (preverjena različica dejanskega DB strežnika).
+- **Povezava:** localhost preko UNIX socket, SSL ni v uporabi (lokalna DB povezava; to ni dokaz o HTTPS za bodoči API).
+- **PHP v okolju phpMyAdmin:** 8.4.27 — ne dokazuje samodejno PHP-FPM različice za bodočo domeno FinAI.
+- **phpMyAdmin:** 5.2.3; **cPanel cpsrvd:** 11.136.0.51.
+- **Collation povezave:** utf8mb4_unicode_ci; **server character set:** cp1252 West European (latin1). Za *novo* FinAI MariaDB bazo določiti utf8mb4 in primerno kolacijo posebej (ne spreminjati globalne nastavitve obstoječega strežnika).
+- Razširitve phpMyAdmin: mysqli, curl, mbstring.
+
+Brez posega v tabele, baze, uporabnike ali konfiguracijo. Še vedno je treba potrditi ustrezno PHP spletno izvajanje na FinAI domeni, lastno bazo, SSL/HTTPS, kvote, pravice, document root, backup/restore.
+
 ## Izpis iz dejanskega gostovanja Hiper M
 
 Preverjeno 2026-11-03 z read-only pregledom v uporabnikovem cPanel Terminalu.
@@ -48,7 +61,7 @@ Preverjeno 2026-11-03 z read-only pregledom v uporabnikovem cPanel Terminalu.
 | Composer | 2.10.3 | Prisoten |
 | Git | 2.56.0 | Prisoten |
 | OpenSSL | 3.5.8 | Prisoten |
-| MariaDB CLI | 10.11.19 (odjemalec) | Ne dokazuje DB server različice |
+| MariaDB CLI | 10.11.19 (odjemalec) | Neodvisno potrjena tudi **DB server 10.11.19 prek phpMyAdmin** |
 | Node / npm v PATH | Ni najdeno | Ni blokada za Vercel frontend / Laravel API |
 | PHP CLI memory_limit | 256M | Preveriti spletni PHP in končno kapaciteto |
 | PHP CLI max_execution_time | 0 | V CLI 0 pomeni neomejeno; ne dokazuje web timeouts |
@@ -57,13 +70,13 @@ Preverjeno 2026-11-03 z read-only pregledom v uporabnikovem cPanel Terminalu.
 | Cron ukaz | Na voljo | Konfiguracija Cron Jobs še ni pregledana |
 | Prostor na datotečnem sistemu | 450.8 GiB prosto | Ne predstavlja nujno kvote hosting računa |
 
-**Ocena:** osnovni PHP/Laravel predpogoji so v CLI **PASS**; gostovanje je tehnično obetavno. Celotna produkcijska namestitev ima še odprte infrastrukturne pogoje (stvarna DB server verzija, web PHP, SSL, domene, backup, dok. koren, varnostna konfiguracija).
+**Ocena:** osnovni PHP/Laravel predpogoji so v CLI **PASS**, prav tako je neposredno potrjena različica MariaDB strežnika. Gostovanje je tehnično obetavno. Celotna produkcijska namestitev ima še odprte infrastrukturne pogoje (PHP za dejansko FinAI domeno, SSL, domene, backup, dok. koren, varnostna konfiguracija).
 
 ## Preostale preverbe v cPanel (izključno ogled)
 
 1. **MultiPHP Manager ali Select PHP Version:** ali je PHP 8.4 na voljo za želeno domeno in katere razširitve so aktivne.
 2. **Terminal / SSH Access:** delovanje terminala, dovoljen dostop s SSH, morebitne omejitve izvajanja Composer/Git.
-3. **Databases / phpMyAdmin:** dejanska MariaDB/MySQL server verzija, pravice, namestitvene kvote. Ne ustvarjaj baze še.
+3. **Databases / phpMyAdmin:** različica MariaDB SERVER 10.11.19 je že potrjena. Preveriti moramo samo možnost ločene FinAI baze, uporabnika, njegove pravice in kvote. Ne ustvarjaj baze še.
 4. **Domains in SSL/TLS Status:** ali obstaja primerna FinAI domena ter ali sta `app.` in `api.` v istem first-party registracijskem območju; korenska mapa, DNS in certifikat.
 5. **Backup/Restore:** preveri obstoj povratne točke in pot do varne obnove, ne sprožaj obnove.
 6. **Cron Jobs in Resource Usage:** PHP limiti, prosti prostor, CPU/RAM/procesi, možnost kratkotrajnih ozadnih opravil.
