@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 
 const txs=[
  {id:"TX-8841",date:"02. 11. 2026",party:"ABC d.o.o.",ref:"SI00 2026-0054",amount:"+1.220,00 €",raw:1220,status:"Predlagano",confidence:100,item:"2026-0054",open:"1.220,00 €"},
@@ -25,6 +25,12 @@ export default function BankingWorkspace({context}){
    return ok&&(filter==="Vsi"||x.status===filter)&&contextMatch;
  }),[query,filter,section,subView]);
  const isMatched=matched[selected.id];
+
+ useEffect(()=>{
+   if(list.length&&!list.some(row=>row.id===selected.id)){
+     setSelected(list[0]);
+   }
+ },[list,selected.id]);
 
  return <section className="bankWorkspace">
    <style>{`
@@ -62,7 +68,7 @@ export default function BankingWorkspace({context}){
        </button>)}
      </article>
 
-     <aside className="bankCard bankDetail">
+     {list.length>0&&<aside className="bankCard bankDetail">
        <span className={"matchState "+(isMatched?"good":selected.confidence>=95?"info":selected.confidence>=70?"warn":"bad")}>{isMatched?"Usklajeno":selected.status}</span>
        <h3>{selected.party}</h3><small>{selected.ref} · {selected.id}</small>
        <div className="bankMeta"><div><small>Znesek</small><b>{selected.amount}</b></div><div><small>Datum</small><b>{selected.date}</b></div><div><small>Valuta</small><b>EUR</b></div><div><small>Smer</small><b>{selected.raw>0?"Priliv":"Odliv"}</b></div></div>
@@ -79,7 +85,7 @@ export default function BankingWorkspace({context}){
          <button className="secondary">Izberi drugo odprto postavko</button>
          <button className="secondary">Prikaži bančno temeljnico</button>
        </div></div>
-     </aside>
+     </aside>}{list.length===0&&<aside className="bankCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
  </section>
 }
