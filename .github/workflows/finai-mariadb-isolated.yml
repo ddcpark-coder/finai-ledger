@@ -1,0 +1,80 @@
+name: FinAI MariaDB initial schema (isolated)
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/finai-mariadb-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mariadb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: finai_ci
+          MARIADB_USER: finai_ci
+          MARIADB_PASSWORD: ci-only-password
+          MARIADB_ROOT_PASSWORD: ci-only-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: finai_ci
+      DB_USERNAME: finai_ci
+      DB_PASSWORD: ci-only-password
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      FINAI_AUTH_RELEASE_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, pdo_mysql, openssl, fileinfo
+          tools: composer:v2
+      - name: Validate and install locked dependencies
+        run: |
+          composer validate --strict --no-check-publish
+          composer install --no-interaction --prefer-dist --no-progress
+      - name: Apply only approved initial migration candidates to isolated MariaDB
+        run: |
+          cp .env.example .env
+          php artisan migrate --force --path=database/migrations/2026_11_01_000001_create_identity_access_tables.php
+          php artisan migrate --force --path=database/migrations/2026_11_03_000018_create_user_workspace_preferences.php
+          php artisan migrate --force --path=database/migrations/2026_11_01_000001_create_identity_access_tables.php
+          php artisan migrate --force --path=database/migrations/2026_11_03_000018_create_user_workspace_preferences.php
+      - name: Verify schema and migration records
+        run: |
+          php -r '
+          $pdo = new PDO("mysql:host=127.0.0.1;dbname=finai_ci;charset=utf8mb4", "finai_ci", "ci-only-password", [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+          foreach (["users", "companies", "company_user", "user_workspace_preferences"] as $name) {
+            $q = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?");
+            $q->execute([$name]);
+            if ((int) $q->fetchColumn() !== 1) { throw new RuntimeException("Missing expected table: ".$name); }
+          }
+          if ((int) $pdo->query("SELECT COUNT(*) FROM migrations")->fetchColumn() !== 2) { throw new RuntimeException("Unexpected migration count"); }
+          echo "PASS: four initial tables exist and exactly two migrations recorded\n";
+          '
