@@ -1,73 +1,47 @@
-# FinAI BACKEND-05 — priprava samostojnega Hiper M računa brez končne domene
+# BACKEND-05 — razvoj FinAI na obstoječem Hiper M, poznejša selitev na samostojno gostovanje
 
-**Datum:** 2026-11-03  
-**Odločitev:** FinAI bo imel **drug cPanel/sistemski račun**, ne zgolj drugo domeno ali mapo pod obstoječim računom `laskoteka.si`. Končno ime/domene določimo pozneje.  
-**Status:** dokumentacija pripravljena; novi račun **še ni ustvarjen**. Ne spreminjaj Laškoteke, ne ustvarjaj baze ali DNS v njenem računu.
+**Odločitev naročnika: 4. november 2026.** Hiper M omogoča neomejeno dodatnih domen, **ne pa dodatnih, neodvisnih cPanel računov v istem paketu**. Za razvoj in preverjanje FinAI uporabimo obstoječi račun, ki trenutno gosti Laškoteko. **Pred javno produkcijsko uporabo** bo naročnik uredil povsem samostojno Hiper M gostovanje za FinAI.
 
-## Preverjena zunanja podlaga in odprta odvisnost
+**Status:** dogovorjen načrt, še brez nove domene, brez implementacije na Hiper M in brez posega v Laškoteko. Ta dokument nadomesti prejšnjo predpostavko, da je ločen račun pogoj že za razvoj; varnostna zahteva po samostojnem produkcijskem računu OSTANE.
 
-- cPanel/WHM od različice 130 podpira **Choose a domain later** ob ustvarjanju novega računa; WHM lahko dodeli začasno domeno `cpanel.site`, če je funkcija omogočena. Dokumentacija: https://docs.cpanel.net/whm/account-functions/create-a-new-account/
-- Začasna domena ne podpira običajnih e-poštnih storitev, DNS upravljanja in SEO. Prehod na registrirano domeno se izvede prek ponudnika/WHM; preveriti je treba ustrezno konfiguracijo SSL.
-- Pri javni naročilnici Hiper gostovanja Domenca.com je zahtevana **nosilna domena** (https://www.domenca.com/portal/kosarica-hiper-gostovanje/idServiceType/HyperCreateM/period/1). To ne dokazuje, da ponudnik ne more ponuditi začasne domene — zahteva **njihovo potrditev**.
-- Ne domnevaj, da obstoječa naročnina Hiper M omogoča drugi samostojni cPanel račun brez doplačila. Neomejene domene znotraj istega računa **niso** enakovredne ločenim uporabnikom.
-- Uporabnikov trenutni dostop je cPanel, ne potrjen skrbniški WHM. Zato samo novi račun pri ponudniku lahko zagotovi ustrezno izolacijo.
+## Faza A — razvoj v obstoječem računu (samo sintetični/testni podatki)
 
-## Zahteva ponudniku (odprto)
+- Razvojna domena FinAI bo dodatna domena znotraj obstoječega Hiper M računa; ime ni določeno. Tudi poznejša zamenjava domene mora biti izvedljiva prek konfiguracije, brez ponovne namestitve poslovne logike in brez migracije poslovnih tabel zgolj zaradi imena domene.
+- Najprej preveriti, da lahko *nova* domena varno kaže le v mapo `public` Laravel aplikacije. Koren projekta, `.env`, `vendor`, `storage`, zasebni dokumenti in logi morajo biti zunaj javnega document root. Če Hiper M ne omogoča varne korenske mape, **STOP** — ne ustvariti improvizirane javne Laravel namestitve.
+- V razvojni fazi uporabiti zasebno mapo, npr. `$HOME/apps/finai-ledger`, in **samostojno novo MariaDB** bazo ter DB uporabnika z najmanjšimi potrebnimi pravicami; nikoli DB uporabnikov Laškoteke.
+- Obstoječi BACKEND-04 skript `backend/scripts/finai-backend04-scaffold.sh` je samo za prazno drevo in ima `--dry-run`. Zaradi skupnega cPanel računa `--apply` dovoliti šele po potrditvi varne poti in ciljne obnovitvene točke. Skript ne zagotavlja izolacije na ravni operacijskega sistema.
+- Laravel `APP_ENV=production` se lahko uporabi za preverjanje varnih HTTP nastavitev na javnem HTTPS strežniku, **a okolje ostaja neprodukcijsko**. `APP_DEBUG=false`, `FINAI_AUTH_RELEASE_ENABLED=false`; ne objavljati aktivne javne prijave, administracije ali dejanskih računovodskih podatkov.
+- Uporabljati izključno izmišljene partnerje, račune, banke, e-poštne naslove in druge testne podatke. Nobenih osebnih podatkov resničnih strank, pravih davčnih številk, bančnih podatkov, dokumentov ali produkcijskih integracij.
+- Razvojni API mora biti omejen pred nepooblaščenim dostopom (npr. IP allowlist/HTTP auth, če združljivo s testiranimi potmi); njegova prisotnost na istem cPanel računu **ne pomeni** izolacije od Laškoteke. Pred poskusi Fortify/Sanctum preveriti, da zaščita okolja ne pokvari CSRF/2FA QA.
+- Cron opravila FinAI naj se ne vklapljajo samodejno in ne vplivajo na obstoječe Laškotekine razporede; enako velja za PHP globalne nastavitve, `public_html`, obstoječe SSL/DNS in R1Soft.
+- Ločen GitHub repo `ddcpark-coder/finai-ledger` je trenutno `public`; pred dodajanjem kakršnihkoli občutljivih nastavitev ali dostopnih podatkov ga nastaviti na `private` (skrivnosti ne sodijo v repozitorij niti takrat).
+- Next.js ostane na Vercelu kot razvojni frontend. Nobenih pravih strank do ločenega produkcijskega računa.
 
-**Pošiljanje ali naročilo ni izvedeno.** Podpora naj potrdi:
-1. Ali je na voljo **nov, ločen cPanel račun** z začasno `cpanel.site` domeno ali začasno poddomeno v njihovem lastništvu.
-2. Ali zadošča obstoječi paket oziroma je potreben nov paket; cena, resursi, bazne kvote in pogodbeni pogoji.
-3. Ločen OS/cPanel uporabnik, datotečni prostor, MariaDB baza in uporabnik; dostop PHP 8.4/Composer/Git/SSH/cron ter vključitev novega računa v R1Soft.
-4. Ali lahko API domenska korenska mapa kaže izključno v Laravel `backend/public` tudi po poznejši menjavi domene.
-5. Kako se zamenja začasna domena s končno (DNS, HTTPS/AutoSSL, morebitna sprememba primarne domene); brez posega v Laškoteko.
+**Varnostna meja:** Dodatna domena, mapa in DB ustvarijo **logično organizacijsko ločitev**, ne pa prave varnostne ločitve uporabnikov ali procesov. Obe aplikaciji delita cPanel/OS uporabnika, pravice nad datotekami, resurse in možne skupne obnovitvene postopke. To je sprejemljivo le za razvoj brez resničnih podatkov in pod pogojem, da z novimi spremembami ne ogrozimo Laškoteke.
 
-## Kaj lahko opravimo BREZ končne domene
+## Faza B — prehod na povsem samostojen Hiper M račun
 
-| Naloga | Mogoče brez končne domene? | Pogoj |
-|---|---|---|
-| Vzpostavitev izoliranega cPanel uporabnika | Da, *če potrdi ponudnik* | Začasna domena ali druga ureditev |
-| Prazna zasebna struktura `~/apps/finai-ledger` | Da | Preverjen **novi** uporabnik; BACKEND-04 skript `--dry-run` |
-| Namestitev pregledane Laravel kode in Composer odvisnosti | Da | Zasebni GitHub dostop + varna namestitvena pot, brez javne prijave |
-| Ustvarjanje lastne prazne MariaDB | Da | Izrecna odobritev, nove pravice in ločen backup |
-| Izolirani CLI/API testi brez resničnih podatkov | Da | Brez javnega prometa in brez privzetih gesel |
-| Uporabniška prijava, HTTPS, cookie/CSRF, 2FA E2E | **Ne v končni konfiguraciji** | Končni first-party `app.` / `api.` domeni, veljaven SSL |
-| Produkcijsko računovodstvo / realni podatki | **Ne** | Podatkovna izolacija, varnost, backup, domenski QA, izrecna odobritev |
+Prehod pripraviti **pred** aktivacijo prvih pravih uporabnikov in resničnih finančnih podatkov. Aplikacijo lahko vsebinsko dokončamo v razvojni fazi, vendar je treba zaključne produkcijske varnostne in integracijske teste opraviti v novem okolju.
 
-## Vrstni red izvedbe, brez ponavljanja Laškotekinih pregledov
+1. Naročnik uredi samostojen Hiper M paket/cPanel uporabnika za FinAI.
+2. V novem okolju ločeno namestiti isto pregledano izdajo Laravela (Git SHA, Composer lock) in konfiguracijo `shared/.env`; preveriti PHP 8.4/PDO mysql, izolacijo map in pravilen `public` Document Root.
+3. Ustvariti novo namensko MariaDB, varno prenesti samo testno/prehodno shemo in po potrebi preizkusne podatke; za začetek brez realnih računovodskih zapisov. Prenos se izvede po ločenem načrtu, brez posega v Laškotekino bazo.
+4. Nastaviti končno domeno ali usmeriti že izbrano domeno na nov račun; SSL/AutoSSL, `APP_URL`, `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS`, `FINAI_ALLOWED_ORIGINS` in frontend API base URL.
+5. Vzpostaviti FinAI-specifične R1Soft obnovitvene točke in preveriti ciljno obnovljivost baze/datotek na novem računu. Splošnih preverjanj Laškoteke **ne ponavljamo**.
+6. Minimalni produkcijski funkcionalni in varnostni testi: prijava/odjava, Fortify TOTP 2FA in recovery, CSRF/CORS, varni piškotki HTTPS, tenant izolacija, pravice, 401/403 in health. Prijava ostane zaklenjena (`FINAI_AUTH_RELEASE_ENABLED=false`) do potrditve.
+7. Odobren, dokumentiran preklop, preverjen rollback, nato omejena aktivacija. Staro razvojno okolje brez pravih podatkov se lahko po prehodu odstrani ločeno in s potrditvijo.
 
-**GATE A — ponudnik:**
-- Pridobiti pisno potrditev in ponudbo za ločen račun.
-- Brez potrditve ne uporabljaj `laskoteka.si` ali njenih poddomen kot improviziranega gostovanja.
-- Ne ustvarjati novega naročila ali stroškov brez potrditve naročnika.
+## Praktični vrstni red po potrditvi domene
 
-**GATE B — nov račun:**
-- Preveriti le dejansko **identiteto novega cPanel računa**, njegov `HOME` in privzeti document root (ne ponovno splošne Hiper M PHP/R1Soft/cron diagnostike).
-- Potrditi, da je račun različen od računa Laškoteke. Ne prenašati njenih datotek, DB uporabnikov, backupov ali cron opravil.
-- Na novem računu se najprej uporabi `backend/scripts/finai-backend04-scaffold.sh --dry-run`; `--apply` šele po pregledu ciljne poti in odobritvi.
+1. Registrirati/izbrati domeno po odločitvi naročnika — **ime ni arhitekturna odvisnost**.
+2. V obstoječem cPanelu ustvariti **novo dodatno domeno samo za FinAI**, če je mogoče nastaviti varen document root in DNS/SSL.
+3. Potrditi ciljni `HOME`, `public_html` meje, stroškovno/varnostno primernost in zaščito za razvoj. **Ne spreminjati Laškotekinih nastavitev.**
+4. Izvesti BACKEND-04 skript najprej `--dry-run`; po varni odobritvi `--apply`, nato pripraviti razvojno izdajo brez podatkov.
+5. Odpreti namensko prazno MariaDB za FinAI po potrditvi ciljne obnove; najprej testirati read-only povezavo, nato pregledane migracije brez pravih podatkov.
+6. Vzporedno dokončati aplikacijo; **pred produkcijsko objavo** slediti Fazi B.
 
-**GATE C — domena neodvisna namestitev:**
-- Določiti preverjen Git SHA, pripraviti `releases/<sha>` in zasebno `shared/`.
-- `.env` in poverilnice ostanejo samo na novem strežniku, v zaščitenem direktoriju; ne zapisovati v GitHub/klepet/loge.
-- Inicializirati **samo novo FinAI bazo** s potrebnimi pravicami in pred migracijami zagotoviti ciljno obnovitveno točko. Brez resničnih poslovnih podatkov.
-- `FINAI_AUTH_RELEASE_ENABLED=false`; preveriti `php artisan finai:preflight --database`, ki je read-only. Morebitne migracije dovoliti šele po posebni odobritvi in pregledu točnega seznama.
-- Do končnega SSL in first-party domen ne odpirati aplikacije za javno prijavo in ne povezovati frontenda s finančnim API-jem.
+## Kaj ni bilo izvedeno
 
-**GATE D — prihodnja domena in dejanska objava:**
-- Registrirati potrjeno ime domene in uskladiti `app.<domena>` ter `api.<domena>`, DNS, HTTPS/AutoSSL.
-- Posodobiti `APP_URL`, `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS`, `FINAI_ALLOWED_ORIGINS` in `NEXT_PUBLIC_FINAI_API_BASE_URL`.
-- Nastaviti CORS/CSRF, varen HTTPS cookie, testirati 2FA in obnovitvene kode ter izolacijo med podjetji.
-- Potrditi obnovitveno točko **FinAI** in pot obnove; brez skupinskega R1Soft restore, ki bi vplival na Laškoteko.
-- Šele po testih omogočiti produkcijsko prijavo.
+Ta sprememba je samo projektna odločitev v dokumentaciji. **Ni** ustvarjena domena, API, DB, nova mapa, R1Soft kopija ali cron; nobena migracija ni bila pognana; Laškoteka ni spremenjena. BACKEND-04 PR #33 ostaja razvojni osnutek z varovanim pripravljalnim skriptom.
 
-## Varovalke in prepovedani posegi
-
-- **BREZ** dodajanja domene, tabel, cron opravil ali aplikacijskih datotek na računu Laškoteka.
-- **BREZ** pošiljanja plačanega naročila ali registracije domene pred odobritvijo.
-- **BREZ** samodejnega API/prod deploya, migrations ali odklepa prijave samo zato, ker je GitHub CI PASS.
-- **BREZ** ponovnega zbiranja že potrjenih splošnih Hiper M dokazil. Za nov račun preverimo samo konkretno izolacijo, njegove nastavitve in lastne varnostne kopije.
-- GitHub `finai-ledger` ima trenutno **javno** vidnost; pred produkcijsko integracijo in dostopnimi podatki naj bo zaseben.
-
-## Trenutni status
-
-BACKEND-04: pripravljalni skript + CI PASS v draft PR #33.  
-BACKEND-05: odločitev o ločenem računu potrjena, projektni onboarding dokument pripravljen; **dejanska vzpostavitev čaka na odziv ponudnika in odobritev njegove ponudbe**.
+**Opomba o prejšnjem povpraševanju:** predlog pošiljanja ponudniku za samostojni razvojni račun je s to odločitvijo **nepotreben**; morebitni prejšnji neposlani Gmail osnutek naj se ne pošlje, razen če naročnik želi preveriti pogoje bodoče produkcijske selitve.
