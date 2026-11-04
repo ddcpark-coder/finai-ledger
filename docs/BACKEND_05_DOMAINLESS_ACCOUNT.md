@@ -1,13 +1,15 @@
-# BACKEND-05 — razvoj FinAI na obstoječem Hiper M, poznejša selitev na samostojno gostovanje
+# BACKEND-05 — e-integrator.si: razvoj FinAI na obstoječem Hiper M, poznejša selitev na samostojno gostovanje
 
 **Odločitev naročnika: 4. november 2026.** Hiper M omogoča neomejeno dodatnih domen, **ne pa dodatnih, neodvisnih cPanel računov v istem paketu**. Za razvoj in preverjanje FinAI uporabimo obstoječi račun, ki trenutno gosti Laškoteko. **Pred javno produkcijsko uporabo** bo naročnik uredil povsem samostojno Hiper M gostovanje za FinAI.
 
-**Status:** dogovorjen načrt, še brez nove domene, brez implementacije na Hiper M in brez posega v Laškoteko. Ta dokument nadomesti prejšnjo predpostavko, da je ločen račun pogoj že za razvoj; varnostna zahteva po samostojnem produkcijskem računu OSTANE.
+**Status:** naročnik je 4. 11. 2026 sporočil registracijo `e-integrator.si`; domena še ni dodana v cPanel, DNS/SSL nista potrjena, namestitve na Hiper M ni in Laškoteka ostaja nespremenjena.  Ta dokument nadomesti prejšnjo predpostavko, da je ločen račun pogoj že za razvoj; varnostna zahteva po samostojnem produkcijskem računu OSTANE.
 
 ## Faza A — razvoj v obstoječem računu (samo sintetični/testni podatki)
 
-- Razvojna domena FinAI bo dodatna domena znotraj obstoječega Hiper M računa; ime ni določeno. Tudi poznejša zamenjava domene mora biti izvedljiva prek konfiguracije, brez ponovne namestitve poslovne logike in brez migracije poslovnih tabel zgolj zaradi imena domene.
-- Najprej preveriti, da lahko *nova* domena varno kaže le v mapo `public` Laravel aplikacije. Koren projekta, `.env`, `vendor`, `storage`, zasebni dokumenti in logi morajo biti zunaj javnega document root. Če Hiper M ne omogoča varne korenske mape, **STOP** — ne ustvariti improvizirane javne Laravel namestitve.
+- Domena FinAI je **`e-integrator.si`**. Predlog hostov: `e-integrator.si` = predstavitvena stran (kasneje), `app.e-integrator.si` = frontend Next.js (na Vercelu), `api.e-integrator.si` = Laravel API (na Hiper M). Uporaba korenske domene na Hiper M še ni odločena; lahko ostane na Vercelu.  Tudi poznejša zamenjava domene mora biti izvedljiva prek konfiguracije, brez ponovne namestitve poslovne logike in brez migracije poslovnih tabel zgolj zaradi imena domene.
+- Najprej preveriti, da lahko **API domena** varno kaže le v mapo `public` Laravel aplikacije. Koren projekta, `.env`, `vendor`, `storage`, zasebni dokumenti in logi morajo biti zunaj javnega document root.
+- **Pozor: omejitev cPanel:** po dokumentaciji cPanel je Document Root dodatne domene privzeto pod `public_html`, zunaj njega pa le, če strežniška nastavitev WHM *Restrict document roots to public_html* to dopušča. Ne predpostavljaj, da bo `$HOME/apps/finai-ledger/current/public` neposredno dosegljiv kot Document Root v trenutni konfiguraciji. Referenci: https://docs.cpanel.net/cpanel/domains/domains/create-a-new-domain/ in https://support.cpanel.net/hc/en-us/articles/360050710393-Can-cPanel-users-create-subdomains-and-addon-outside-of-the-public_html-directory
+- Če zunanjega docroot ni mogoče izbrati, **ne premikati celotnega Laravela v `public_html`**. Pred nadaljevanjem posebej zasnovati/varnostno preveriti minimalno `public` vstopno točko, ki zaganja zasebni Laravel izven `public_html` (in preprečiti nenamerno dosegljivost prek `laskoteka.si/<pot>`), ali pridobiti ustrezno nastavitev ponudnika. Do potrjene rešitve je HTTP namestitev **STOP**, CLI razvoj pa lahko teče izolirano.
 - V razvojni fazi uporabiti zasebno mapo, npr. `$HOME/apps/finai-ledger`, in **samostojno novo MariaDB** bazo ter DB uporabnika z najmanjšimi potrebnimi pravicami; nikoli DB uporabnikov Laškoteke.
 - Obstoječi BACKEND-04 skript `backend/scripts/finai-backend04-scaffold.sh` je samo za prazno drevo in ima `--dry-run`. Zaradi skupnega cPanel računa `--apply` dovoliti šele po potrditvi varne poti in ciljne obnovitvene točke. Skript ne zagotavlja izolacije na ravni operacijskega sistema.
 - Laravel `APP_ENV=production` se lahko uporabi za preverjanje varnih HTTP nastavitev na javnem HTTPS strežniku, **a okolje ostaja neprodukcijsko**. `APP_DEBUG=false`, `FINAI_AUTH_RELEASE_ENABLED=false`; ne objavljati aktivne javne prijave, administracije ali dejanskih računovodskih podatkov.
@@ -33,8 +35,8 @@ Prehod pripraviti **pred** aktivacijo prvih pravih uporabnikov in resničnih fin
 
 ## Praktični vrstni red po potrditvi domene
 
-1. Registrirati/izbrati domeno po odločitvi naročnika — **ime ni arhitekturna odvisnost**.
-2. V obstoječem cPanelu ustvariti **novo dodatno domeno samo za FinAI**, če je mogoče nastaviti varen document root in DNS/SSL.
+1. **Zaključeno po sporočilu naročnika:** registracija domene `e-integrator.si`. Ob poskusu zunanjega RDAP po registraciji je register še vrnil 404 (verjetna zakasnitev ali še nedokončan vpis); pred konfiguracijo DNS je potreben prikaz aktivne domene pri registrarju, ne ponovno preverjanje Laškoteke.
+2. **Najprej samo odpreti** cPanel > Domains > Create a New Domain in preveriti, ali je na voljo ločen Document Root ter ali sme biti zunaj `public_html`. Po potrditvi konfiguracije ustvariti samo `api.e-integrator.si` oziroma ustrezno izolirano dodatno domeno; root in `app` povezati šele po dogovorjeni razporeditvi DNS/Vercel. Ne izbrati *Share document root* z Laškoteko.
 3. Potrditi ciljni `HOME`, `public_html` meje, stroškovno/varnostno primernost in zaščito za razvoj. **Ne spreminjati Laškotekinih nastavitev.**
 4. Izvesti BACKEND-04 skript najprej `--dry-run`; po varni odobritvi `--apply`, nato pripraviti razvojno izdajo brez podatkov.
 5. Odpreti namensko prazno MariaDB za FinAI po potrditvi ciljne obnove; najprej testirati read-only povezavo, nato pregledane migracije brez pravih podatkov.
@@ -44,4 +46,6 @@ Prehod pripraviti **pred** aktivacijo prvih pravih uporabnikov in resničnih fin
 
 Ta sprememba je samo projektna odločitev v dokumentaciji. **Ni** ustvarjena domena, API, DB, nova mapa, R1Soft kopija ali cron; nobena migracija ni bila pognana; Laškoteka ni spremenjena. BACKEND-04 PR #33 ostaja razvojni osnutek z varovanim pripravljalnim skriptom.
 
-**Opomba o prejšnjem povpraševanju:** predlog pošiljanja ponudniku za samostojni razvojni račun je s to odločitvijo **nepotreben**; morebitni prejšnji neposlani Gmail osnutek naj se ne pošlje, razen če naročnik želi preveriti pogoje bodoče produkcijske selitve.
+**Opomba o prejšnjem povpraševanju:** predlog pošiljanja ponudniku za samostojni razvojni račun je s to odločitvijo **nepotreben**. Prejšnji neposlani Gmail osnutek naj se ne pošlje, razen če naročnik želi preveriti pogoje bodoče produkcijske selitve.
+
+**Obvezna ločitev DNS:** če so NS/registrar že vezani na ponudnika, preveriti le DNS za novo domeno; nikoli ne spreminjati zone `laskoteka.si`. V izogib presenečenjem ne prestavljati NS za `e-integrator.si` brez načrta in predhodne ugotovitve, ali so tam druge storitve (npr. e-pošta).
