@@ -2,7 +2,7 @@
 
 **Odločitev naročnika: 4. november 2026.** Hiper M omogoča neomejeno dodatnih domen, **ne pa dodatnih, neodvisnih cPanel računov v istem paketu**. Za razvoj in preverjanje FinAI uporabimo obstoječi račun, ki trenutno gosti Laškoteko. **Pred javno produkcijsko uporabo** bo naročnik uredil povsem samostojno Hiper M gostovanje za FinAI.
 
-**Status:** naročnik je 4. 11. 2026 sporočil registracijo `e-integrator.si`; domena še ni dodana v cPanel, DNS/SSL nista potrjena, namestitve na Hiper M ni in Laškoteka ostaja nespremenjena.  Ta dokument nadomesti prejšnjo predpostavko, da je ločen račun pogoj že za razvoj; varnostna zahteva po samostojnem produkcijskem računu OSTANE.
+**Status (4. 11. 2026):** domena `e-integrator.si` je registrirana in **uspešno dodana** kot ločena dodatna domena v obstoječem cPanel računu. cPanel je izpisal `Success` in Document Root `/home/laskot48/e-integrator.si`, medtem ko ima Laškoteka `/home/laskot48/public_html`. Možnost **Share document root** je bila izključena. HTTPS/AutoSSL za e-integrator.si še ni potrjen (v seznamu domen je vprašaj pri Force HTTPS Redirect), DNS še ni preverjen; Laravel/API, MariaDB in cron niso vzpostavljeni, Laškoteke nismo spreminjali. Ta dokument nadomesti prejšnjo predpostavko, da je ločen račun pogoj že za razvoj; varnostna zahteva po samostojnem produkcijskem računu OSTANE.
 
 ## Faza A — razvoj v obstoječem računu (samo sintetični/testni podatki)
 
@@ -35,9 +35,9 @@ Prehod pripraviti **pred** aktivacijo prvih pravih uporabnikov in resničnih fin
 
 ## Praktični vrstni red po potrditvi domene
 
-1. **Zaključeno po sporočilu naročnika:** registracija domene `e-integrator.si`. Ob poskusu zunanjega RDAP po registraciji je register še vrnil 404 (verjetna zakasnitev ali še nedokončan vpis); pred konfiguracijo DNS je potreben prikaz aktivne domene pri registrarju, ne ponovno preverjanje Laškoteke.
-2. **Najprej samo odpreti** cPanel > Domains > Create a New Domain in preveriti, ali je na voljo ločen Document Root ter ali sme biti zunaj `public_html`. Po potrditvi konfiguracije ustvariti samo `api.e-integrator.si` oziroma ustrezno izolirano dodatno domeno; root in `app` povezati šele po dogovorjeni razporeditvi DNS/Vercel. Ne izbrati *Share document root* z Laškoteko.
-3. Potrditi ciljni `HOME`, `public_html` meje, stroškovno/varnostno primernost in zaščito za razvoj. **Ne spreminjati Laškotekinih nastavitev.**
+1. **ZAKLJUČENO:** domena `e-integrator.si` je registrirana, kar potrjuje e-pošta Domenca.com ob 13:07 dne 4. 11. 2026.
+2. **ZAKLJUČENO:** nova dodatna domena `e-integrator.si`, Document Root `/home/laskot48/e-integrator.si` (zunaj `/public_html`); nesouporaba korenske mape potrjena. To dokazuje, da cPanel **omogoča ločen root za dodatno domeno izven `/public_html`** v tem računu. Ali je mogoče neposredno kazati v `~/apps/finai-ledger/current/public` in ali so sinhronizacijske povezave dovoljene, je treba še preizkusiti brez posega v žive datoteke.
+3. **NASLEDNJI KORAK:** preveriti pri registrarju/cPanelu, da `e-integrator.si` dejansko uporablja pravilne DNS strežnike. V cPanel SSL/TLS Certificates > Status preveriti AutoSSL za `e-integrator.si` (ne vklapljati Force HTTPS Redirect, dokler certifikat ne velja). Potrditi še novo `api.e-integrator.si` poddomeno in njeno namensko `public` mapo, preden se karkoli namesti. **Ne spreminjati Laškotekinih nastavitev.**
 4. Izvesti BACKEND-04 skript najprej `--dry-run`; po varni odobritvi `--apply`, nato pripraviti razvojno izdajo brez podatkov.
 5. Odpreti namensko prazno MariaDB za FinAI po potrditvi ciljne obnove; najprej testirati read-only povezavo, nato pregledane migracije brez pravih podatkov.
 6. Vzporedno dokončati aplikacijo; **pred produkcijsko objavo** slediti Fazi B.
