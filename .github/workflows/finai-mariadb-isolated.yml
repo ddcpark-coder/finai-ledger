@@ -145,3 +145,33 @@ jobs:
           if ((int) $pdo->query("SELECT @@FOREIGN_KEY_CHECKS")->fetchColumn() !== 1) { throw new RuntimeException("Foreign key checks are disabled"); }
           echo "PASS: 18 migrations recorded, foreign keys enabled; not an application or tenant security review\n";
           '
+
+  resolve-symfony-security:
+    # Generate a reviewable lock artifact; never writes back to the repository.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, pdo_mysql, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Resolve compatible Symfony security updates
+        run: |
+          composer update 'symfony/*' --with-all-dependencies --no-interaction --no-scripts --no-install --no-progress
+          composer validate --strict --no-check-publish
+          composer audit --locked --no-interaction
+      - name: Upload proposed lock for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: proposed-composer-lock
+          path: backend/composer.lock
+          if-no-files-found: error
+          retention-days: 1
