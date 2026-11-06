@@ -11,7 +11,7 @@ final class ProductionLoginGateTest extends TestCase
 {
     private function assertBlockedLogin(bool $withTwoFactor): void
     {
-        app()->instance('env', 'production');
+        // Exercise the gate independently; CSRF requires separate browser tests.\n        $this->withoutMiddleware([\n            \\Illuminate\\Foundation\\Http\\Middleware\\ValidateCsrfToken::class,\n            \\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::class,\n        ]);\n        app()->instance('env', 'production');
         config(['finai.auth_release_enabled' => false]);
 
         $user = User::create([
