@@ -38,7 +38,11 @@ Po novi odobritvi: ustvariti novo namensko FinAI MariaDB bazo in uporabnika (cPa
 1. `2026_11_01_000001_create_identity_access_tables.php`
 2. `2026_11_03_000018_create_user_workspace_preferences.php`
 
-Obe sta bili testirani v CI na SQLite in izolirani MariaDB 10.11; s tem še nista potrjeni za Hiper M ali podatkovno migracijo obstoječega okolja. Za nadaljnjih 16 migracij `000002`–`000017` imenski vrstni red ni dokaz pravilnosti: na primer `000003` spreminja `open_items` iz `000002`, `000014` spreminja `delivery_notes` iz `000010`, `000017` pa več predhodnih tabel. Najprej dokumentirati celoten graf odvisnosti in preizkusiti prazen in ponovni tek, indeksne dolžine, tuje ključe, delno odpoved DDL in obnovo v izolirani MariaDB. Do takrat jih ne izvajati in ne uporabiti splošnega `artisan migrate` na gostovanju. Ne uporabljati `migrate:fresh` na strežniku.
+Obe sta bili testirani v CI na SQLite in izolirani MariaDB 10.11; s tem še nista potrjeni za Hiper M ali podatkovno migracijo obstoječega okolja. Dne 6. 11. 2026 je izolirani CI na prazni MariaDB 10.11 uspešno izvedel vseh 18 migracij po časovnem vrstnem redu in ponovil zagon, po popravku ciljne tabele v migraciji 011 in predolgih imen indeksov v 015 in 017. To preverjanje ne potrjuje celovitosti računovodskih pravil, tenant izolacije, obnove, delne odpovedi DDL ali nadgradnje obstoječe baze. Posebej velja: sprememba že obstoječe migracije ne popravi baze, kjer je bila migracija že izvedena; tako bazo je treba obravnavati ločeno z revizijo stanja in namensko korektivno migracijo. Na gostovanju so še naprej kandidata samo 001 in 018, po odobritvi in ciljnih vratih; ne izvajati splošnega `artisan migrate` za ERP. Ne uporabljati `migrate:fresh` na strežniku.
+
+## Posodobitev odvisnosti in prijavnega varovala — 6. 11. 2026
+
+V izoliranem CI je Composer opozoril na nova varnostna obvestila za zaklenjene Symfony pakete. Posodobljen `composer.lock` uporablja združljive varnostne različice; po posodobitvi je `composer audit --locked` uspel. Pregled je časovno občutljiv in ga pred izdajo ponovimo. Funkcionalni test preverja blokado nove prijave v okolju `production` z izključenim `FINAI_AUTH_RELEASE_ENABLED`, za uporabnika brez 2FA in s potrjeno 2FA. Zaradi izolacije tega testa je middleware CSRF izključen; test ne dokazuje CSRF zaščite ali razveljavitve obstoječih sej. Testi na dejanskih domenah in dodatna zaščita dostopa ostajajo obvezni.
 
 ## 4. Varnostna in testna vrata pred izdajo
 
