@@ -78,3 +78,70 @@ jobs:
           if ((int) $pdo->query("SELECT COUNT(*) FROM migrations")->fetchColumn() !== 2) { throw new RuntimeException("Unexpected migration count"); }
           echo "PASS: four initial tables exist and exactly two migrations recorded\n";
           '
+
+  all-migrations-experiment:
+    # Disposable GitHub Actions service only. Never copy these commands to hosting.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: finai_experiment
+          MARIADB_USER: finai_experiment
+          MARIADB_PASSWORD: ci-experiment-only
+          MARIADB_ROOT_PASSWORD: ci-root-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: finai_experiment
+      DB_USERNAME: finai_experiment
+      DB_PASSWORD: ci-experiment-only
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      FINAI_AUTH_RELEASE_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, pdo_mysql, openssl, fileinfo
+          tools: composer:v2
+      - name: Install locked dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Exercise migration sequence on disposable empty MariaDB only
+        run: |
+          test "$CI" = true
+          test "$DB_HOST" = 127.0.0.1
+          test "$DB_DATABASE" = finai_experiment
+          test "$DB_USERNAME" = finai_experiment
+          cp .env.example .env
+          php artisan migrate --force
+          php artisan migrate --force
+      - name: Verify all migrations recorded and foreign keys enabled
+        run: |
+          php -r '
+          $pdo = new PDO("mysql:host=127.0.0.1;dbname=finai_experiment;charset=utf8mb4", "finai_experiment", "ci-experiment-only", [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+          $count = (int) $pdo->query("SELECT COUNT(*) FROM migrations")->fetchColumn();
+          if ($count !== 18) { throw new RuntimeException("Expected 18 migrations, got ".$count); }
+          if ((int) $pdo->query("SELECT @@FOREIGN_KEY_CHECKS")->fetchColumn() !== 1) { throw new RuntimeException("Foreign key checks are disabled"); }
+          echo "PASS: 18 migrations recorded, foreign keys enabled; not an application or tenant security review\n";
+          '
