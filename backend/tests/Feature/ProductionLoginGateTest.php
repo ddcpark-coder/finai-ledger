@@ -11,7 +11,12 @@ final class ProductionLoginGateTest extends TestCase
 {
     private function assertBlockedLogin(bool $withTwoFactor): void
     {
-        // Exercise the gate independently; CSRF requires separate browser tests.\n        $this->withoutMiddleware([\n            \\Illuminate\\Foundation\\Http\\Middleware\\ValidateCsrfToken::class,\n            \\Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::class,\n        ]);\n        app()->instance('env', 'production');
+        // Exercise the gate independently; CSRF requires separate browser tests.
+        $this->withoutMiddleware([
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
+        ]);
+        app()->instance('env', 'production');
         config(['finai.auth_release_enabled' => false]);
 
         $user = User::create([
