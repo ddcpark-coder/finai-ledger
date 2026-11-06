@@ -13,7 +13,7 @@ final class ProductionLoginGateTest extends TestCase
     {
         // Exercise the gate independently; CSRF requires separate browser tests.
         $this->withoutMiddleware([
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
             \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         ]);
         app()->instance('env', 'production');
