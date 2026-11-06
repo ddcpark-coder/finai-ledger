@@ -35,7 +35,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_category_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('unit_of_measure_id')->constrained();
+            $table->foreignId('unit_of_measure_id')->constrained('units_of_measure');
             $table->foreignId('tax_code_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('revenue_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->foreignId('expense_account_id')->nullable()->constrained('accounts')->nullOnDelete();

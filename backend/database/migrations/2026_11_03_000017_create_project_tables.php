@@ -127,7 +127,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->unique(['project_id','entry_type','source_type','source_id'],'project_financial_source_unique');
-            $table->index(['project_id','entry_type','recognized_on']);
+            $table->index(['project_id','entry_type','recognized_on'], 'project_fin_entry_date_index');
             $table->index(['company_id','recognized_on']);
         });
 

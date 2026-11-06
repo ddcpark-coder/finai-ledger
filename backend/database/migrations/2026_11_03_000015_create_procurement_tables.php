@@ -33,7 +33,7 @@ return new class extends Migration {
             $table->decimal('target_price',18,4)->nullable();
             $table->timestamps();
 
-            $table->unique(['purchase_requisition_id','line_no']);
+            $table->unique(['purchase_requisition_id','line_no'], 'purchase_req_line_number_unique');
         });
 
         Schema::create('supplier_requests', function (Blueprint $table) {
@@ -180,7 +180,7 @@ return new class extends Migration {
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['purchase_order_id','incoming_invoice_id']);
+            $table->unique(['purchase_order_id','incoming_invoice_id'], 'purchase_invoice_match_unique');
             $table->index(['status','total_variance']);
         });
     }
