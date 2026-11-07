@@ -63,3 +63,9 @@ Windows PowerShell script `ops/finai-configure-github-access.ps1` is syntax-chec
 Requires GitHub CLI `gh.exe` authenticated locally with administrative permission to `ddcpark-coder/finai-ledger`. The script will fail closed if CLI login, host-key verification, SSH denial, or environment protections are missing. The original Windows user should review and run it locally; never share or upload the private key in chat.
 
 PR #37 remains **DRAFT** until the GitHub environment and existing production/Vercel deployment implications are checked. `workflow_dispatch` will work only after the workflow is reviewed and merged into the repository default branch.
+
+## Planned unattended checks (inactive while PR is draft)
+
+The reviewed GitHub Actions workflow now includes a **read-only weekday status check at 04:17 UTC** (05:17 in Slovenia during winter time, 06:17 during daylight saving time). It is not active until the workflow is merged into `main` and the `finai-remote-audit` environment has passed configuration. The scheduled job performs only `finai:status:v1`; manual dispatch can additionally request `finai:audit:v1`.
+
+Do not interpret this as permission for background data processing, file changes, application deployment, migrations or unrestricted SSH access.
