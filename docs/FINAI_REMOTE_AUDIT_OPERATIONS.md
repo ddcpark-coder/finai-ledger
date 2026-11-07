@@ -51,3 +51,15 @@ ssh -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "U
 ## Emergency revoke and scope
 
 On Hiper M revoke **only** the new `finai-github-audit` key, preserving all existing authorized keys. Revoke `FINAI_AUDIT_SSH_PRIVATE_KEY` from the dedicated GitHub environment. Do not restore the whole account. The SSH gate is a read-only entry filter, not process/filesystem separation: account `laskot48` still owns unrelated projects. Automated writes and production operations must wait for an isolated FinAI hosting account, backup + restore verification, and explicit authorization gates.
+
+## Local one-time setup without pasting secrets
+
+Windows PowerShell script `ops/finai-configure-github-access.ps1` is syntax-checked in CI and uses the user's already verified dedicated local SSH key. It checks the actual allow/deny behavior over SSH and confirms GitHub CLI account permissions. Without `-Apply`, it is read-only. With explicit `-Apply`, it:
+1. Creates environment `finai-remote-audit` only if absent, allowing **exactly** branch `main`; stops if an existing environment has broader branch rules.
+2. Saves host/user/port as environment variables.
+3. Sends the dedicated private key and Windows trusted known_hosts lines **directly through authenticated GitHub CLI standard input** into GitHub's encrypted environment secrets.
+4. Does not merge PRs, deploy application code or change the Hiper M server.
+
+Requires GitHub CLI `gh.exe` authenticated locally with administrative permission to `ddcpark-coder/finai-ledger`. The script will fail closed if CLI login, host-key verification, SSH denial, or environment protections are missing. The original Windows user should review and run it locally; never share or upload the private key in chat.
+
+PR #37 remains **DRAFT** until the GitHub environment and existing production/Vercel deployment implications are checked. `workflow_dispatch` will work only after the workflow is reviewed and merged into the repository default branch.
