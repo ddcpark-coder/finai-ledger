@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "backend-06-safe-preparation": false
+      "backend-06-safe-preparation": false,
+      "backend-07-guarded-automation": false
     }
   }
 }
