@@ -3,6 +3,14 @@ set -euo pipefail
 cd "$(dirname -- "$0")/.."
 bash -n ops/finai-ssh-gate.sh
 bash -n ops/test-finai-ssh-gate.sh
+bash -n ops/finai-install-audit-key.sh
+# Installer must reject unsupported modes without touching host SSH files.
+set +e
+installer_out=$(bash ops/finai-install-audit-key.sh --unexpected 2>&1)
+installer_status=$?
+set -e
+[[ "$installer_status" == 2 ]] || { echo "FAIL: installer accepted unexpected mode"; exit 1; }
+[[ "$installer_out" == Usage:* ]] || { echo "FAIL: installer usage check"; exit 1; }
 
 assert_denied() {
   local operation=$1
@@ -30,4 +38,4 @@ if [[ "$(id -un)" != 'laskot48' ]]; then
   [[ "$status" == 65 ]] || { echo "FAIL: wrong account returned $status"; exit 1; }
   [[ "$output" == 'DENIED: unexpected operating-system account' ]] || { echo 'FAIL: unexpected operating-account output'; exit 1; }
 fi
-printf 'PASS: syntax, five forbidden commands and account gate\n'
+printf 'PASS: syntax, installer mode check, five forbidden commands and account gate\n'
