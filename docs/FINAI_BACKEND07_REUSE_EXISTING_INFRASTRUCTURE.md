@@ -3,7 +3,7 @@
 Datum pregleda: 2026-11-07. **Samo dokumentiranje**, brez sprememb Laškoteke, cPanela ali poverilnic.
 
 ## Ugotovitve (potrjeno brez ponovnega uporabnikovega klikanja)
-- Hiper M strežnik: `hcp-30.controlpanel.si`, skupni cPanel/SSH uporabnik `laskot48`. Projekt FinAI je v `/home/laskot48/apps/finai-ledger`; Laškoteka ima svoj ločen aplikacijski koren.
+- Hiper M strežnik: terminal javlja kratko ime `hcp-30`; polno SSH ime in vrata še nista neodvisno potrjena. Skupni cPanel/SSH uporabnik je `laskot48`. Projekt FinAI je v `/home/laskot48/apps/finai-ledger`; Laškoteka ima svoj ločen aplikacijski koren.
 - Na cPanel zaslonskem posnetku sta že **authorized** javna ključa `digitalna-dediscina` in `laskoteka_prod_github`. Obstoječih ključev se **ne spreminja, ne odstranjuje in ne uporablja za FinAI**.
 - Zasebni GitHub repozitorij `ddcpark-coder/digitalna-dediscina-lasko` vsebuje obstoječe oddaljene postopke. Primeri: `.github/workflows/sec-dependencies-01-prod-preflight.yml`, `.github/workflows/production-independent-backup.yml`, `.github/workflows/auth-prod-01c-production-deploy.yml`. V njih se uporabljajo environment secret **imena** `HYPER_SSH_HOST`, `HYPER_SSH_USER`, `HYPER_SSH_PORT`, `HYPER_SSH_PRIVATE_KEY`, `HYPER_SSH_KNOWN_HOSTS`, `HYPER_PRODUCTION_APP_ROOT`. Vsebine skrivnosti niso bile pregledane.
 - Laškotekin `scripts/ops/github-ssh-setup.sh` uporablja `SSH_PORT:-22`, SSH znani gostiteljski ključ ter primerjavo SHA256 prstnega odtisa. `22` je privzeta vrednost skripte, ne na novo dokazano aktivno vrata Hiper M.
