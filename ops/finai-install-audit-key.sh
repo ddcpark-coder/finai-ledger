@@ -24,6 +24,14 @@ if [[ "$(stat -c '%a' -- "$ssh_dir")" != '700' || "$(stat -c '%a' -- "$authorize
 for cmd in ssh-keygen flock mktemp install cmp; do command -v "$cmd" >/dev/null 2>&1 || { echo "STOP: missing command $cmd"; exit 14; }; done
 if [[ ! -f "$source_gate" || -L "$source_gate" ]]; then echo 'STOP: reviewed gate source missing'; exit 15; fi
 bash -n "$source_gate"
+if [[ -L "$destination" || -L "$installed_gate" ]]; then
+  echo 'STOP: FinAI ops directory or gate is a symbolic link'
+  exit 16
+fi
+if [[ -e "$installed_gate" && ! -f "$installed_gate" ]]; then
+  echo 'STOP: existing FinAI gate is not a regular file'
+  exit 16
+fi
 if [[ -e "$installed_gate" ]] && ! cmp -s -- "$source_gate" "$installed_gate"; then
   echo 'STOP: installed gate differs from source; manual review required'
   exit 16
