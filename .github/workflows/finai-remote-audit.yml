@@ -5,6 +5,7 @@ on:
     paths:
       - 'ops/finai-ssh-gate.sh'
       - 'ops/test-finai-ssh-gate.sh'
+      - 'ops/finai-install-audit-key.sh'
       - '.github/workflows/finai-remote-audit.yml'
   workflow_dispatch:
     inputs:
