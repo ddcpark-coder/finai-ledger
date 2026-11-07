@@ -1,0 +1,75 @@
+name: FinAI guarded remote audit (no writes)
+
+on:
+  pull_request:
+    paths:
+      - 'ops/finai-ssh-gate.sh'
+      - 'ops/test-finai-ssh-gate.sh'
+      - 'ops/finai-install-audit-key.sh'
+      - '.github/workflows/finai-remote-audit.yml'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Allowed read-only operation'
+        required: true
+        type: choice
+        options:
+          - audit
+          - status
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finai-remote-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-gateway:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Static and denial tests
+        run: bash ops/test-finai-ssh-gate.sh
+
+  remote-read-only:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'ddcpark-coder/finai-ledger' && github.ref == 'refs/heads/main'
+    needs: [validate-gateway]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: finai-remote-audit
+    env:
+      SSH_HOST: ${{ vars.FINAI_SSH_HOST }}
+      SSH_USER: ${{ vars.FINAI_SSH_USER }}
+      SSH_PORT: ${{ vars.FINAI_SSH_PORT }}
+      SSH_PRIVATE_KEY: ${{ secrets.FINAI_AUDIT_SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.FINAI_AUDIT_SSH_KNOWN_HOSTS }}
+      FINAI_OPERATION: ${{ inputs.operation }}
+    steps:
+      - name: Validate setup, pin host and run forced read-only command
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${SSH_HOST:?Missing GitHub environment variable FINAI_SSH_HOST}"
+          : "${SSH_USER:?Missing GitHub environment variable FINAI_SSH_USER}"
+          : "${SSH_PORT:?Missing GitHub environment variable FINAI_SSH_PORT}"
+          : "${SSH_PRIVATE_KEY:?Missing GitHub environment secret FINAI_AUDIT_SSH_PRIVATE_KEY}"
+          : "${SSH_KNOWN_HOSTS:?Missing GitHub environment secret FINAI_AUDIT_SSH_KNOWN_HOSTS}"
+          [[ "$SSH_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$SSH_USER" == 'laskot48' ]]
+          [[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]]
+          case "$FINAI_OPERATION" in
+            audit) remote_command='finai:audit:v1' ;;
+            status) remote_command='finai:status:v1' ;;
+            *) echo 'DENIED: invalid operation'; exit 64 ;;
+          esac
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/finai_audit_key"
+          chmod 600 "$HOME/.ssh/finai_audit_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          ssh -F /dev/null -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=12 -o ConnectionAttempts=1 -i "$HOME/.ssh/finai_audit_key" -p "$SSH_PORT" -- "$SSH_USER@$SSH_HOST" "$remote_command"
