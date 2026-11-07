@@ -1,6 +1,9 @@
 name: FinAI guarded remote audit (no writes)
 
 on:
+  schedule:
+    # Automated read-only diagnostics on weekdays, UTC (no server writes).
+    - cron: '17 4 * * 1-5'
   pull_request:
     paths:
       - 'ops/finai-ssh-gate.sh'
@@ -51,7 +54,7 @@ jobs:
           }
 
   remote-read-only:
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'ddcpark-coder/finai-ledger' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.repository == 'ddcpark-coder/finai-ledger' && github.ref == 'refs/heads/main'
     needs: [validate-gateway]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -62,7 +65,7 @@ jobs:
       SSH_PORT: ${{ vars.FINAI_SSH_PORT }}
       SSH_PRIVATE_KEY: ${{ secrets.FINAI_AUDIT_SSH_PRIVATE_KEY }}
       SSH_KNOWN_HOSTS: ${{ secrets.FINAI_AUDIT_SSH_KNOWN_HOSTS }}
-      FINAI_OPERATION: ${{ inputs.operation }}
+      FINAI_OPERATION: ${{ inputs.operation || 'status' }}
     steps:
       - name: Validate setup, pin host and run forced read-only command
         shell: bash
