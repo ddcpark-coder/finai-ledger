@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Threading.Tasks;
+using System.Text.Json;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -10,119 +10,64 @@ using Microsoft.Web.WebView2.WinForms;
 namespace EIntegrator.Desktop;
 
 /// <summary>
-/// Dedicated Windows shell for the Hiper M-hosted FinAI web application.
-/// This is not a separate accounting engine: all business state and auth
-/// remain on the user's Hiper M Laravel application.
+/// Offline Windows host. The bundled Next.js static assets are mapped to an
+/// internal virtual origin; there is no network dependency for startup.
+/// Finance postings and tenant sync are explicitly NOT implemented here.
 /// </summary>
 internal sealed class MainWindow : Form
 {
-    private const string AppUrl = "https://app.e-integrator.si/";
-    private const string TrustedHost = "app.e-integrator.si";
+    private const string LocalHost = "finai-desktop.invalid";
+    private const string LocalStart = "https://finai-desktop.invalid/offline/";
+    private const string Protocol = "finai.offline.v1";
 
     private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
-    private readonly Label connectionStatus = new()
+    private readonly LocalDraftStore drafts = new();
+    private readonly Label status = new()
     {
         Dock = DockStyle.Fill,
         AutoEllipsis = true,
+        ForeColor = Color.FromArgb(169, 194, 208),
         TextAlign = ContentAlignment.MiddleLeft,
-        ForeColor = Color.FromArgb(179, 199, 216),
-        Text = "Priprava varne povezave s Hiper M …"
-    };
-    private readonly Button reloadButton = new()
-    {
-        Dock = DockStyle.Fill,
-        Text = "Osveži",
-        FlatStyle = FlatStyle.Flat,
-        ForeColor = Color.FromArgb(220, 242, 246),
-        BackColor = Color.FromArgb(27, 55, 75)
+        Text = "Priprava lokalne aplikacije …"
     };
 
     public MainWindow()
     {
-        Text = "e-integrator — FinAI";
+        Text = "e-integrator — lokalna izdaja";
         Width = 1360;
-        Height = 870;
-        MinimumSize = new Size(980, 640);
+        Height = 860;
+        MinimumSize = new Size(960, 640);
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.FromArgb(9, 21, 35);
+        BackColor = Color.FromArgb(7, 17, 29);
         ForeColor = Color.White;
 
-        var title = new Label
-        {
-            Dock = DockStyle.Fill,
-            Text = "e-integrator  /  FinAI",
-            TextAlign = ContentAlignment.MiddleLeft,
-            ForeColor = Color.FromArgb(118, 231, 212),
-            Font = new Font("Segoe UI", 12f, FontStyle.Bold)
-        };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 3, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95f));
+        var brand = new Label { Dock = DockStyle.Fill, Text = "e-integrator  /  FinAI", TextAlign = ContentAlignment.MiddleLeft,
+            Font = new Font("Segoe UI", 12f, FontStyle.Bold), ForeColor = Color.FromArgb(122, 236, 216) };
+        var refresh = new Button { Text = "Osveži", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White };
+        refresh.Click += (_, _) => browser.CoreWebView2?.Navigate(LocalStart);
+        top.Controls.Add(brand, 0, 0);
+        top.Controls.Add(status, 1, 0);
+        top.Controls.Add(refresh, 2, 0);
 
-        var header = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(12, 29, 46),
-            ColumnCount = 3,
-            RowCount = 1,
-            Padding = new Padding(18, 8, 14, 8)
-        };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 255f));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100f));
-        header.Controls.Add(title, 0, 0);
-        header.Controls.Add(connectionStatus, 1, 0);
-        header.Controls.Add(reloadButton, 2, 0);
-
-        var layout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2
-        };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 61f));
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-        layout.Controls.Add(header, 0, 0);
+        layout.Controls.Add(top, 0, 0);
         layout.Controls.Add(browser, 0, 1);
         Controls.Add(layout);
-
-        reloadButton.Click += (_, _) => Retry();
         Shown += async (_, _) => await InitializeAsync();
     }
 
-    private async Task InitializeAsync()
-    {
-        try
-        {
-            // Normal per-user browser profile; credentials are never hardcoded.
-            var dataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "e-integrator", "Desktop", "WebView2");
-            Directory.CreateDirectory(dataFolder);
-            var environment = await CoreWebView2Environment.CreateAsync(
-                userDataFolder: dataFolder);
-            await browser.EnsureCoreWebView2Async(environment);
-
-            // No privileged native bridge is exposed to website JavaScript.
-            browser.CoreWebView2.Settings.AreHostObjectsAllowed = false;
-            browser.CoreWebView2.Settings.IsWebMessageEnabled = false;
-
-            browser.NavigationStarting += OnNavigationStarting;
-            browser.NavigationCompleted += OnNavigationCompleted;
-            browser.CoreWebView2.NewWindowRequested += OnNewWindowRequested;
-
-            connectionStatus.Text = "Vzpostavljanje zaščitene povezave …";
-            browser.CoreWebView2.Navigate(AppUrl);
-        }
-        catch (Exception)
-        {
-            // Avoid exposing local paths or environment details in the interface.
-            connectionStatus.Text = "WebView2 ni na voljo. Preverite namestitev Microsoft Edge WebView2 Runtime.";
-        }
-    }
-
-    private static bool IsTrustedAppUrl(string? value)
+    private static bool IsLocalOrigin(string? value)
     {
         return Uri.TryCreate(value, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps
-            && uri.Host.Equals(TrustedHost, StringComparison.OrdinalIgnoreCase)
+            && uri.Host.Equals(LocalHost, StringComparison.OrdinalIgnoreCase)
             && uri.Port == 443
             && uri.UserInfo.Length == 0;
     }
@@ -131,7 +76,6 @@ internal sealed class MainWindow : Form
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
             return;
-        // Never invoke local files or arbitrary custom protocols from web content.
         if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeMailto)
             return;
         try
@@ -140,47 +84,119 @@ internal sealed class MainWindow : Form
         }
         catch (Exception)
         {
-            // Browser navigation remains blocked if the external app is unavailable.
+            // Never fall back to unsafe in-WebView navigation.
         }
     }
 
-    private void OnNavigationStarting(
-        object? sender, CoreWebView2NavigationStartingEventArgs args)
+    private async System.Threading.Tasks.Task InitializeAsync()
     {
-        if (IsTrustedAppUrl(args.Uri))
+        var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        if (!File.Exists(Path.Combine(wwwroot, "offline", "index.html")))
         {
-            connectionStatus.Text = "Nalagam e-integrator s strežnika Hiper M …";
+            status.Text = "Manjkajo lokalne datoteke aplikacije (wwwroot/offline/index.html).";
             return;
         }
-        args.Cancel = true;
-        OpenExternal(args.Uri);
+        try
+        {
+            var userData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "e-integrator", "Desktop", "WebView2");
+            Directory.CreateDirectory(userData);
+            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userData);
+            await browser.EnsureCoreWebView2Async(environment);
+
+            var core = browser.CoreWebView2;
+            core.SetVirtualHostNameToFolderMapping(LocalHost, wwwroot,
+                CoreWebView2HostResourceAccessKind.DenyCors);
+            core.Settings.AreHostObjectsAllowed = false;
+            core.Settings.IsWebMessageEnabled = true;
+            core.Settings.AreDevToolsEnabled = false;
+            browser.NavigationStarting += (_, args) =>
+            {
+                if (IsLocalOrigin(args.Uri))
+                    return;
+                args.Cancel = true;
+                OpenExternal(args.Uri);
+            };
+            core.NewWindowRequested += (_, args) =>
+            {
+                args.Handled = true;
+                if (IsLocalOrigin(args.Uri))
+                    core.Navigate(args.Uri);
+                else
+                    OpenExternal(args.Uri);
+            };
+            core.WebMessageReceived += OnWebMessage;
+            browser.NavigationCompleted += (_, args) =>
+            {
+                status.Text = args.IsSuccess
+                    ? "Lokalni način · deluje brez interneta · demo osnutki"
+                    : "Lokalni vmesnik se ni uspel prikazati.";
+            };
+            core.Navigate(LocalStart);
+        }
+        catch (Exception)
+        {
+            status.Text = "Lokalni WebView2 ni dosegljiv. Preverite Microsoft Edge WebView2 Runtime.";
+        }
     }
 
-    private void OnNewWindowRequested(
-        object? sender, CoreWebView2NewWindowRequestedEventArgs args)
-    {
-        args.Handled = true; // No unguarded popup webviews.
-        if (IsTrustedAppUrl(args.Uri))
-            browser.CoreWebView2.Navigate(args.Uri);
-        else
-            OpenExternal(args.Uri);
-    }
-
-    private void OnNavigationCompleted(
-        object? sender, CoreWebView2NavigationCompletedEventArgs args)
-    {
-        connectionStatus.Text = args.IsSuccess
-            ? "Povezano s Hiper M · varna povezava HTTPS"
-            : "Aplikacija trenutno ni dosegljiva · preverite povezavo ali DNS in poskusite znova.";
-    }
-
-    private void Retry()
+    private void Respond(string id, object payload)
     {
         if (browser.CoreWebView2 is null)
-        {
-            _ = InitializeAsync();
             return;
+        browser.CoreWebView2.PostWebMessageAsJson(
+            JsonSerializer.Serialize(new { protocol = Protocol, requestId = id, payload }));
+    }
+
+    private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        // Only our bundled code, under the internal virtual host, may talk to SQLite.
+        if (!IsLocalOrigin(args.Source))
+            return;
+        if (args.WebMessageAsJson.Length > 12_000)
+            return;
+        try
+        {
+            using var document = JsonDocument.Parse(args.WebMessageAsJson);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("protocol", out var p) || p.GetString() != Protocol)
+                return;
+            if (!root.TryGetProperty("requestId", out var idElement))
+                return;
+            var id = idElement.GetString();
+            if (id is null || id.Length is < 1 or > 64 || !System.Text.RegularExpressions.Regex.IsMatch(id, @"^[A-Za-z0-9_-]+$"))
+                return;
+            if (!root.TryGetProperty("type", out var typeElement))
+                return;
+            var type = typeElement.GetString();
+            switch (type)
+            {
+                case "draft.list":
+                    Respond(id, new { ok = true, drafts = drafts.List() });
+                    break;
+                case "draft.create":
+                    var title = root.GetProperty("title").GetString() ?? "";
+                    var note = root.GetProperty("note").GetString() ?? "";
+                    var saved = drafts.Save(title, note);
+                    Respond(id, new { ok = true, draft = saved });
+                    break;
+                case "draft.delete":
+                    var key = root.GetProperty("id").GetString() ?? "";
+                    Respond(id, new { ok = true, deleted = drafts.Delete(key) });
+                    break;
+                case "offline.status":
+                    Respond(id, new { ok = true, local = true, database = "sqlite-dpapi", sync = "disabled" });
+                    break;
+                default:
+                    Respond(id, new { ok = false, error = "Nepodprta operacija." });
+                    break;
+            }
         }
-        browser.CoreWebView2.Navigate(AppUrl);
+        catch (Exception)
+        {
+            // Never echo the incoming payload or private draft contents on failure.
+            status.Text = "Operacija nad lokalnim osnutkom ni uspela.";
+        }
     }
 }
