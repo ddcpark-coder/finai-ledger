@@ -44,6 +44,7 @@ internal sealed class OfflineJournalSandbox
               memo TEXT NOT NULL,
               reversal_of TEXT,
               created_at TEXT NOT NULL,
+              sealed INTEGER NOT NULL DEFAULT 0 CHECK(sealed IN (0,1)),
               UNIQUE(company_id,id),
               UNIQUE(company_id,idempotency_key),
               FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT,
@@ -69,7 +70,17 @@ internal sealed class OfflineJournalSandbox
               )
             );
             CREATE TRIGGER IF NOT EXISTS journal_no_update
-              BEFORE UPDATE ON journals BEGIN SELECT RAISE(ABORT,'posted journals are immutable'); END;
+              BEFORE UPDATE ON journals
+              WHEN NOT (OLD.sealed=0 AND NEW.sealed=1
+                AND OLD.id=NEW.id AND OLD.company_id=NEW.company_id
+                AND OLD.idempotency_key=NEW.idempotency_key AND OLD.memo=NEW.memo
+                AND OLD.created_at=NEW.created_at
+                AND OLD.reversal_of IS NEW.reversal_of)
+              BEGIN SELECT RAISE(ABORT,'posted journals are immutable'); END;
+            CREATE TRIGGER IF NOT EXISTS lines_no_insert_after_seal
+              BEFORE INSERT ON journal_lines
+              WHEN (SELECT sealed FROM journals WHERE id=NEW.journal_id) != 0
+              BEGIN SELECT RAISE(ABORT,'posted journal cannot receive new lines'); END;
             CREATE TRIGGER IF NOT EXISTS journal_no_delete
               BEFORE DELETE ON journals BEGIN SELECT RAISE(ABORT,'posted journals are immutable'); END;
             CREATE TRIGGER IF NOT EXISTS lines_no_update
@@ -201,7 +212,16 @@ internal sealed class OfflineJournalSandbox
             cmd.Parameters.AddWithValue("$credit", line.CreditCents);
             cmd.ExecuteNonQuery();
         }
-        tx.Commit(); // No partial or unbalanced posted journal may persist.
+        using (var seal = db.CreateCommand())
+        {
+            seal.Transaction = tx;
+            seal.CommandText = "UPDATE journals SET sealed=1 WHERE id=$id AND company_id=$company AND sealed=0;";
+            seal.Parameters.AddWithValue("$id", entryId);
+            seal.Parameters.AddWithValue("$company", companyId);
+            if (seal.ExecuteNonQuery() != 1)
+                throw new IOException("Journal could not be sealed");
+        }
+        tx.Commit(); // No partial, unbalanced, or unsealed posted journal may persist.
         return entryId;
     }
 
@@ -305,6 +325,12 @@ internal sealed class OfflineJournalSandbox
             modify.Parameters.AddWithValue("$id", entry);
             try { modify.ExecuteNonQuery(); return false; }
             catch (SqliteException) { /* Immutable trigger must reject. */ }
+            using var append = db.CreateCommand();
+            append.CommandText = "INSERT INTO journal_lines (journal_id,company_id,line_number,account_code,debit_cents,credit_cents) VALUES ($id,$company,99,'1200',1,0);";
+            append.Parameters.AddWithValue("$id", entry);
+            append.Parameters.AddWithValue("$company", a);
+            try { append.ExecuteNonQuery(); return false; }
+            catch (SqliteException) { /* Sealed journal must reject late lines. */ }
             return true;
         }
         finally
