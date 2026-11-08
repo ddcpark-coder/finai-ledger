@@ -20,6 +20,18 @@ internal static class Program
             }
         }
 
+        if (args.Length == 1 && args[0] == "--ledger-self-test")
+        {
+            try
+            {
+                return OfflineJournalSandbox.SelfTest() ? 0 : 3;
+            }
+            catch (Exception)
+            {
+                return 4; // No account/transaction details in diagnostic output.
+            }
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
