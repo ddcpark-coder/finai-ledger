@@ -46,6 +46,7 @@ jobs:
           if-no-files-found: error
 
   windows-desktop:
+    needs: [static-web]
     runs-on: windows-2025
     timeout-minutes: 18
     steps:
@@ -55,9 +56,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Restore pinned Microsoft WebView2 dependency
+      - name: Restore complete win-x64 self-contained runtime
         shell: pwsh
-        run: dotnet restore desktop/windows/EIntegrator.Desktop.csproj
+        run: dotnet restore desktop/windows/EIntegrator.Desktop.csproj --runtime win-x64
+      - name: Include bundled local UI (no runtime HTTP server)
+        uses: actions/download-artifact@v4
+        with:
+          name: finai-hiperm-web-static-review
+          path: dist/windows/wwwroot
       - name: Compile unsigned portable Windows desktop candidate
         shell: pwsh
         run: |
@@ -66,6 +72,10 @@ jobs:
           $exe = Get-Item dist/windows/EIntegrator.Desktop.exe
           if ($exe.Length -lt 100000) { throw 'Unexpectedly small executable' }
           if (-not (Test-Path dist/windows/Microsoft.Web.WebView2.Core.dll)) { throw 'Missing WebView2 dependency' }
+          if (-not (Test-Path dist/windows/wwwroot/offline/index.html)) { throw 'Missing offline UI asset' }
+          & dist/windows/EIntegrator.Desktop.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Save unsigned desktop candidate for local inspection only
