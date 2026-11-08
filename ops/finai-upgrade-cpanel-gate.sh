@@ -14,6 +14,7 @@ readonly reader="$dest/finai-domain-readonly.py"
 readonly auth='/home/laskot48/.ssh/authorized_keys'
 readonly old_blob='9111306eed52565c6781beeb4e5c5148bcef53ed'
 readonly new_blob='6b565e35673c234f16ff4590c16807340d7b5c57'
+readonly new_reader_blob='f1dd963fcc9efac902ef63b54e44ba8f01dd7044'
 readonly source_root="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 readonly new_gate="$source_root/ops/finai-ssh-gate.sh"
 readonly new_reader="$source_root/ops/finai-domain-readonly.py"
@@ -32,6 +33,7 @@ done
 bash -n "$new_gate"
 /usr/bin/python3 -I -S -B -c 'import ast,pathlib,sys; ast.parse(pathlib.Path(sys.argv[1]).read_bytes())' "$new_reader"
 [[ "$(/usr/bin/git hash-object --no-filters "$new_gate")" == "$new_blob" ]] || stop 'reviewed gate source hash mismatch'
+[[ "$(/usr/bin/git hash-object --no-filters "$new_reader")" == "$new_reader_blob" ]] || stop 'reviewed reader source hash mismatch'
 installed_blob="$(/usr/bin/git hash-object --no-filters "$gate")"
 case "$installed_blob" in
   "$old_blob") gate_state=v1 ;;
