@@ -49,3 +49,13 @@ Po objavi je obvezna zunanja HTTPS-verifikacija obeh `e-integrator.si` in `www.e
 - Laravel `shared/.env` in `current` še nista nastavljena; API naj ostane brez javno aktiviranega dostopa. Laškoteka v tem opravilu ni bila spreminjana.
 
 **Status:** SITE-EI-01 = PASS (osnovna predstavitvena stran v javnem delovanju). Poddomeni app/api = odprti nalogi, brez varnega preklopa. Prihodnja objava UI/API zahteva ločeno preverjanje in dovoljenje.
+
+## Diagnostika javnih DNS in HTTPS povezav — 8. 11. 2026
+
+GitHub Actions read-only diagnostika: [zagon #42491151512](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42491151512), **PASS**, brez zahtev po dostopu do cPanel. Javni DNS in preverjanje certifikata za HTTPS:
+- `e-integrator.si` → `212.44.112.125`, HTTP **200**, `curl` exit 0, `SSL_VERIFY=0` (uspešen pregled certifikata).
+- `www.e-integrator.si` → `212.44.112.125`, HTTP **200**, `curl` exit 0, `SSL_VERIFY=0`.
+- `app.e-integrator.si` → iz okolja GitHub Actions se ime ne razreši, `curl` exit 6. Ne nastavljati povezave Vercel na javno nedokončano aplikacijo pred preverjanjem nadzora dostopa.
+- `api.e-integrator.si` → iz okolja GitHub Actions se ime ne razreši, `curl` exit 6. Ne izpostavljati Laravela, dokler ni `shared/.env`, `current/public`, zasebne DB in preflighta.
+
+Rezultat je omejen na zunanje razreševanje v času pregleda; ne izkazuje, ali v cPanel DNS cono obstajajo neobjavljeni, napačni ali nedokončani zapisi. Naslednji ukrep: pred DNS spremembami je potreben **read-only** pregled dejanske cone in dokumentnih korenov, da ne ustvarimo kolizij z obstoječimi zapisi. Ker je FinAI SSH ključ samo bralen in dopušča zgolj preverjene statusne ukaze, sama diagnostika ne daje pooblastila za DNS/cPanel spremembe.
