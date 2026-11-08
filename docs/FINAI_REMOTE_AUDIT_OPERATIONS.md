@@ -69,3 +69,11 @@ PR #37 remains **DRAFT** until the GitHub environment and existing production/Ve
 The reviewed GitHub Actions workflow now includes a **read-only weekday status check at 04:17 UTC** (05:17 in Slovenia during winter time, 06:17 during daylight saving time). It is not active until the workflow is merged into `main` and the `finai-remote-audit` environment has passed configuration. The scheduled job performs only `finai:status:v1`; manual dispatch can additionally request `finai:audit:v1`.
 
 Do not interpret this as permission for background data processing, file changes, application deployment, migrations or unrestricted SSH access.
+
+## Potrjeno 8. 11. 2026 in varovalo za Vercel
+
+- Uporabnik je na Windows s stricim `StrictHostKeyChecking=yes` in ločenim `finai_github_audit` ključem dejansko izvedel `finai:status:v1` na `hcp-30.controlpanel.si:22`. Server je vrnil `finai_gateway=v1`, `operation=status`, `laravel=present`, `dependencies=present`, `shared_env=missing` in `current_symlink=missing`. To dokazuje ujemanje strežniškega ključa z Windows known_hosts, ne neodvisne potrditve lastništva strežniškega ključa pri ponudniku.
+- Lokalni `ops/finai-configure-github-access.ps1 -Apply` je uspešno preveril tudi zavrnitev poljubnega SSH ukaza; ustvaril GitHub environment `finai-remote-audit`, strogo politiko `main`, spremenljivke gostitelja ter oba šifrirana SSH environment secret-a. Vsebini skrivnosti nista v repozitoriju.
+- `vercel.json` v tem PR-ju namerno izklopi Git-triggered deployment za `main` in samo infrastrukturo vejo. Cilj: preprečiti samodejno produkcijsko objavo Next.js ob združitvi tega SSH-only PR. Pred prihodnjo namerno objavo uporabniškega vmesnika FinAI je treba varovalo izrecno pregledati in odstraniti ali zamenjati z namensko politiko objav. To ne vpliva na Laškoteko.
+- Oddaljeni korak GitHub Actions še ni dokazano uspešen; do njegovega dejanskega PASS se avtomatiziran dostop šteje kot pripravljen, ne aktiviran.
+
