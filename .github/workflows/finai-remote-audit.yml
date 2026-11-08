@@ -10,6 +10,9 @@ on:
       - 'ops/finai-ssh-gate.sh'
       - 'ops/test-finai-ssh-gate.sh'
       - 'ops/finai-install-audit-key.sh'
+      - 'ops/finai-upgrade-cpanel-gate.sh'
+      - 'ops/finai-domain-readonly.py'
+      - 'tests/test_finai_domain_readonly.py'
       - 'ops/finai-configure-github-access.ps1'
       - '.github/workflows/finai-remote-audit.yml'
   pull_request:
@@ -17,6 +20,9 @@ on:
       - 'ops/finai-ssh-gate.sh'
       - 'ops/test-finai-ssh-gate.sh'
       - 'ops/finai-install-audit-key.sh'
+      - 'ops/finai-upgrade-cpanel-gate.sh'
+      - 'ops/finai-domain-readonly.py'
+      - 'tests/test_finai_domain_readonly.py'
       - 'ops/finai-configure-github-access.ps1'
       - '.github/workflows/finai-remote-audit.yml'
   workflow_dispatch:
@@ -28,6 +34,7 @@ on:
         options:
           - audit
           - status
+          - domains
 
 permissions:
   contents: read
@@ -91,6 +98,7 @@ jobs:
           case "$FINAI_OPERATION" in
             audit) remote_command='finai:audit:v1' ;;
             status) remote_command='finai:status:v1' ;;
+            domains) remote_command='finai:domains:v1' ;;
             *) echo 'DENIED: invalid operation'; exit 64 ;;
           esac
           install -d -m 700 "$HOME/.ssh"
@@ -101,13 +109,19 @@ jobs:
           ssh_options=(-F /dev/null -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=12 -o ConnectionAttempts=1 -i "$HOME/.ssh/finai_audit_key" -p "$SSH_PORT")
           response="$(ssh "${ssh_options[@]}" -- "$SSH_USER@$SSH_HOST" "$remote_command")"
           printf '%s\n' "$response"
-          grep -Fxq 'finai_gateway=v1' <<< "$response"
+          if [[ "$FINAI_OPERATION" != 'domains' ]]; then
+            grep -Fxq 'finai_gateway=v1' <<< "$response"
+          fi
           grep -Fxq "operation=$FINAI_OPERATION" <<< "$response"
           if [[ "$FINAI_OPERATION" == 'status' ]]; then
             grep -Fxq 'laravel=present' <<< "$response"
             grep -Fxq 'dependencies=present' <<< "$response"
-          else
+          elif [[ "$FINAI_OPERATION" == 'audit' ]]; then
             grep -Fxq 'result=read_only_audit_complete' <<< "$response"
+          else
+            grep -Fxq 'finai_domains_audit=v1' <<< "$response"
+            grep -Fxq 'scope=e-integrator.si_only' <<< "$response"
+            grep -Fxq 'result=read_only_domain_audit_complete' <<< "$response"
           fi
           # Confirm this key is still restricted on the actual SSH server.
           set +e
