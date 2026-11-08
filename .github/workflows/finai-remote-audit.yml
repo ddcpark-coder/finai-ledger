@@ -98,4 +98,22 @@ jobs:
           chmod 600 "$HOME/.ssh/finai_audit_key"
           printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
-          ssh -F /dev/null -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=12 -o ConnectionAttempts=1 -i "$HOME/.ssh/finai_audit_key" -p "$SSH_PORT" -- "$SSH_USER@$SSH_HOST" "$remote_command"
+          ssh_options=(-F /dev/null -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=12 -o ConnectionAttempts=1 -i "$HOME/.ssh/finai_audit_key" -p "$SSH_PORT")
+          response="$(ssh "${ssh_options[@]}" -- "$SSH_USER@$SSH_HOST" "$remote_command")"
+          printf '%s\n' "$response"
+          grep -Fxq 'finai_gateway=v1' <<< "$response"
+          grep -Fxq "operation=$FINAI_OPERATION" <<< "$response"
+          if [[ "$FINAI_OPERATION" == 'status' ]]; then
+            grep -Fxq 'laravel=present' <<< "$response"
+            grep -Fxq 'dependencies=present' <<< "$response"
+          else
+            grep -Fxq 'result=read_only_audit_complete' <<< "$response"
+          fi
+          # Confirm this key is still restricted on the actual SSH server.
+          set +e
+          ssh "${ssh_options[@]}" -- "$SSH_USER@$SSH_HOST" 'id' >/dev/null 2>&1
+          denied_code=$?
+          set -e
+          [[ "$denied_code" == 64 ]] || { echo "FAIL: SSH restriction drift (exit $denied_code)"; exit 1; }
+          echo 'FINAI_SSH_DENIAL_CHECK=PASS'
+          echo 'FINAI_REMOTE_READONLY=PASS'
