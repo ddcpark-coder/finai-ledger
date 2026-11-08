@@ -78,6 +78,40 @@ jobs:
           Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
+      - name: Acquire Microsoft offline WebView2 runtime and verify its signature
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force buildtools | Out-Null
+          Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2124701' -OutFile 'buildtools/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+          $installer = Get-Item 'buildtools/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+          if ($installer.Length -lt 15000000) { throw 'WebView2 offline runtime file unexpectedly small' }
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') {
+            throw 'Microsoft WebView2 offline runtime signature verification failed'
+          }
+          Write-Output 'FINAI_MICROSOFT_OFFLINE_RUNTIME_SIGNATURE=PASS'
+      - name: Compile standalone Inno Setup installer (unsigned QA only)
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = Get-ChildItem -Path "${env:ProgramFiles(x86)}" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $iscc) { throw 'Inno Setup compiler not available on Windows runner' }
+          & $iscc 'desktop/windows/FinAI.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup build failed: $LASTEXITCODE" }
+          $setup = Get-Item 'dist/installer/e-integrator-desktop-offline-setup-win-x64-unsigned.exe'
+          if ($setup.Length -lt 20000000) { throw 'Standalone installer unexpectedly small' }
+          Write-Output 'FINAI_WINDOWS_OFFLINE_INSTALLER_BUILD=PASS'
+          Write-Output "installer_sha256=$((Get-FileHash $setup.FullName -Algorithm SHA256).Hash)"
+      - name: Save unsigned installer for internal review (no release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eintegrator-win-x64-offline-installer-unsigned-review
+          path: dist/installer/*.exe
+          retention-days: 7
+          if-no-files-found: error
       - name: Save unsigned desktop candidate for local inspection only
         uses: actions/upload-artifact@v4
         with:
