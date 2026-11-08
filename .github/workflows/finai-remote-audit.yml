@@ -80,7 +80,7 @@ jobs:
       SSH_PORT: ${{ vars.FINAI_SSH_PORT }}
       SSH_PRIVATE_KEY: ${{ secrets.FINAI_AUDIT_SSH_PRIVATE_KEY }}
       SSH_KNOWN_HOSTS: ${{ secrets.FINAI_AUDIT_SSH_KNOWN_HOSTS }}
-      FINAI_OPERATION: ${{ inputs.operation || (github.event_name == 'push' && 'domains') || 'status' }}
+      FINAI_OPERATION: ${{ inputs.operation || 'status' }}
     steps:
       - name: Validate setup, pin host and run forced read-only command
         shell: bash
