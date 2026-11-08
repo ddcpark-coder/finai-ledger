@@ -1,0 +1,35 @@
+name: FinAI public domain diagnostics (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finai-domains-readonly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-domains:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Check DNS and strict HTTPS, never follow redirects to unknown hosts
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          import socket
+          for host in ('e-integrator.si','www.e-integrator.si','app.e-integrator.si','api.e-integrator.si'):
+              try:
+                  addr = sorted(set(row[4][0] for row in socket.getaddrinfo(host,443,proto=socket.IPPROTO_TCP)))
+                  print(f'DNS {host}: {",".join(addr)}',flush=True)
+              except OSError as exc:
+                  print(f'DNS {host}: ERROR {type(exc).__name__}',flush=True)
+          PY
+          for host in e-integrator.si www.e-integrator.si app.e-integrator.si api.e-integrator.si; do
+            echo "CHECK $host"
+            output="$(curl --silent --show-error --output /dev/null --max-time 18 --connect-timeout 8 --proto '=https' --write-out 'HTTP=%{http_code} SSL_VERIFY=%{ssl_verify_result} REMOTE_IP=%{remote_ip} REDIRECT=%{redirect_url}\n' "https://$host/" 2>&1)"
+            status=$?
+            printf 'CURL_EXIT=%s %s\n' "$status" "$output"
+            echo '---'
+          done
+          echo 'FINAI_PUBLIC_DIAGNOSTICS_DONE'
