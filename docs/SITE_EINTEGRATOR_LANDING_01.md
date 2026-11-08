@@ -59,3 +59,14 @@ GitHub Actions read-only diagnostika: [zagon #42491151512](https://github.com/dd
 - `api.e-integrator.si` → iz okolja GitHub Actions se ime ne razreši, `curl` exit 6. Ne izpostavljati Laravela, dokler ni `shared/.env`, `current/public`, zasebne DB in preflighta.
 
 Rezultat je omejen na zunanje razreševanje v času pregleda; ne izkazuje, ali v cPanel DNS cono obstajajo neobjavljeni, napačni ali nedokončani zapisi. Naslednji ukrep: pred DNS spremembami je potreben **read-only** pregled dejanske cone in dokumentnih korenov, da ne ustvarimo kolizij z obstoječimi zapisi. Ker je FinAI SSH ključ samo bralen in dopušča zgolj preverjene statusne ukaze, sama diagnostika ne daje pooblastila za DNS/cPanel spremembe.
+
+## SITE-EI-02: povezava zaščitene aplikacijske poddomene — delni napredek (8. 11. 2026)
+
+- Vercel projekt `finai-ledger` je bil preverjen. Pred posegom je imel `ssoProtection.deploymentType=all_except_custom_domains`; nastavljeno je bilo **`all`** in rezultat ponovno preverjen. Posledično Vercel Authentication zahteva prijavo tudi za lastne domene. Prijave uporabnikov in nedokončane aplikacije niso javno odprte.
+- Poddomena `app.e-integrator.si` je bila dodana kot **custom domain** v obstoječi Vercel projekt; Vercel je vrnil `verified=true`. Ne zamenjuj lastništvene oznake `verified` s pravilno DNS konfiguracijo ali delujočo aplikacijo.
+- Vercelov `get_domain_config`: `serviceType=external`, `misconfigured=true`, `configuredBy=null`, `cnames=[]` in `aValues=[]`. DNS upravlja Hiper M: `cdns1.controlpanel.si`, `cdns2.controlpanel.si`.
+- Priporočilo Vercela za CNAME `app` je (v času preverjanja) `7570bdbcf48391b1.vercel-dns-016.com.`. Pred katerokoli spremembo moramo ponovno preveriti zahtevan cilj ter dejanske cPanel zapise, da ne izbrišemo obstoječih storitev ali občutljive konfiguracije.
+- Glavna predstavitvena stran `e-integrator.si` ostane na Hiper M. Poddomena `api.e-integrator.si` se **ne** usmeri na nedokončani Laravel API brez `shared/.env`, `current/public`, ločenega DB uporabnika, preverjene varnostne kopije in nadzora dostopa.
+- Trenutno imamo pregled javnega DNS (oba poddomenska hosta se iz GitHub Actions še ne razrešita), ne pa polnega internega cPanel DNS / document-root stanja. Namenski GitHub SSH ključ je namerno prisilno omejen na status in pregled aplikacije, zato z njim ni mogoče pregledati oziroma spreminjati cPanel DNS. Za preverjanje je potrebna ena nadzorovana interaktivna prijava v cPanel.
+
+**STATUS:** SSO `all` = PASS, Vercel povezava domene `app` = dodana in prepoznana, DNS = ČAKA, javna aplikacija = NAMERNO ZAPRTA. SITE-EI-02 ni dokončana. Laškoteka brez sprememb.
