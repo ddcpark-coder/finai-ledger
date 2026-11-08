@@ -32,3 +32,13 @@ This procedure is intentionally staged and fail-closed, not an unrestricted cPan
 - GitHub Actions `42499264894` je ponovno potrdil `validate-gateway=PASS`, `remote-read-only=PASS` za stari ukaz `status`; zaščita SSH ostaja aktivna. Privzeti `push` se je vrnil na `status` (namesto nedelujočega `domains`), razširitev `domains` pa ostaja pripravljena na odpravo.
 - Da bi ugotovili razlog brez izpisovanja skrivnosti, je pripravljen `ops/finai-uapi-probe.py` (koda s preverjanim Git SHA), ki **samo bere** fiksne tri vnose DomainInfo in `DNS parse_zone`, primerja delovanje API CLI v običajnem in omejenem okolju ter izpiše samo vrste/izhodne kode, documentroot znotraj uporabnikove domače mape in število filtriranih DNS zapisov. Ne izpisuje surovih odgovorov cPanel API, e-poštnih naslovov ali TXT.
 - Nova namestitev ali poseg v cPanel DNS ni dovoljen brez ugotovljenega vzroka. Ostaneta javna HTTP 200 glavne strani in varovani Vercel `app` brez aktivnega DNS.
+
+## UAPI diagnostika EXIT=2 — 8. 11. 2026
+
+Uporabnik je izvedel `ops/finai-uapi-probe.py` neposredno v cPanel Terminalu. `binary_present=yes` in `binary_executable=yes`, toda pri vseh štirih dejanskih API klicih v obeh okoljih (`inherited` in `minimal`) je bil rezultat `nonzero_exit_2`. To pomeni, da CLI ne vrača podatkov za nobeno funkcijo, **ne** da DNS zapisi ali domena ne obstajajo.
+
+Uradna cPanel dokumentacija potrjuje, da je CLI oblika `uapi --user=username --output=json Module function parameter=value` običajno veljavna. Zato konkretnega vzroka iz izhodne kode 2 ni mogoče zanesljivo določiti brez preverjanja kategorije sporočila o napaki. Pri nepodprtem lokalnem API lahko vplivajo pravice uporabnika, izvedba `--user` v tem okolju, omejitve ponudnika, ali napaka samega UAPI pred zagonom funkcije. **Ne uvajaj API tokenov, ne obidi prijave in ne odstranjuj SSH omejitev.**
+
+Pripravljen je `ops/finai-uapi-exit2-probe.py` za točno določeno dodatno, samo bralno diagnostiko. Preskusi `DomainInfo list_domains`, `DomainInfo single_domain_data` ter `DNS parse_zone` z/ brez `--user=laskot48` in z obema veljavnima oblikama JSON. Izpisuje le izhodno kodo, kategorijo napake in oznako, ali je strukturiran API odgovor uspel; v dnevniku **ni** surovega stdout/stderr, DNS cone, gesel ali email podatkov. Ne spreminja cPanel, DNS, SSH, Vercel ali Laškoteke.
+
+Po rezultatu preveri, katera od preizkušenih oblik deluje, nato v ločenem PR pripravi popravek fiksnega `finai-domain-readonly.py` in atomični upgrade obstoječega SSH forced-command varovala. Če nobena oblika ne deluje, za razlago izhodne kode 2 uporabi podporo Hiper M in ne vzpostavljaj alternativnega privilegiranega kanala brez odobritve.
