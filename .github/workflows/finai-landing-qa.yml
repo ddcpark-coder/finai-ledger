@@ -1,0 +1,60 @@
+name: FinAI e-integrator landing – isolated QA
+on:
+  pull_request:
+    paths:
+      - 'website/landing/**'
+      - 'ops/finai-landing-deploy.sh'
+      - '.github/workflows/finai-landing-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax and deployment scope checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ops/finai-landing-deploy.sh
+          grep -Fq "readonly site='/home/laskot48/e-integrator.si'" ops/finai-landing-deploy.sh
+          grep -Fq "readonly finai_shared='/home/laskot48/apps/finai-ledger/shared'" ops/finai-landing-deploy.sh
+          ! grep -Eq '(migrate:fresh|artisan migrate|sudo|chmod -R|rm -rf|public_html)' ops/finai-landing-deploy.sh
+          echo 'PASS: exact landing target and no broad deploy operations'
+      - name: Validate standalone HTML and prelaunch safety
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          p = Path('website/landing/index.html')
+          content = p.read_text(encoding='utf-8')
+          class Audit(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.tags=[]
+                  self.external=[]
+              def handle_starttag(self, tag, attrs):
+                  self.tags.append(tag)
+                  d=dict(attrs)
+                  for key in ('src','href'):
+                      if key in d and d[key].startswith(('http:','https:','//')):
+                          self.external.append(d[key])
+          a=Audit(); a.feed(content); a.close()
+          assert '<html lang="sl">' in content
+          assert '<title>e-integrator | Poslovanje povezano v celoto</title>' in content
+          assert '<meta name="robots" content="noindex,nofollow,noarchive">' in content
+          assert 'Prijava in uporaba še nista omogočeni' in content
+          assert all(tag in a.tags for tag in ['main','header','nav','section','footer'])
+          assert not a.external, f'External resources unexpectedly used: {a.external}'
+          assert not any(tag in a.tags for tag in ['script','iframe','form']), 'No logins or tracking in prelaunch page'
+          assert len(content) > 2500
+          print('PASS: standalone Slovenian responsive landing, no external dependencies, no tracking, no premature indexing')
+          PY
