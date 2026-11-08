@@ -35,7 +35,7 @@ def clean(s, limit=255):
 
 def call(module, function, *fixed):
     """Return UAPI's data or None; never forward stderr or raw JSON."""
-    if os.path.realpath(UAPI) != UAPI or not os.path.isfile(UAPI):
+    if not os.path.isfile(UAPI) or not os.access(UAPI, os.X_OK):
         return None
     args = [UAPI, "--user=" + USER, "--output=json", module, function, *fixed]
     try:
