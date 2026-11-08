@@ -53,7 +53,8 @@ SSH_ORIGINAL_COMMAND='id' bash "$gate" >/dev/null 2>&1
 deny_code=$?
 set -e
 [[ "$deny_code" -eq 64 ]] || stop 'existing forced-command deny failed'
-SSH_ORIGINAL_COMMAND='finai:status:v1' bash "$gate" | grep -Fxq 'finai_gateway=v1' || stop 'existing FinAI status failed'
+status_out="$(SSH_ORIGINAL_COMMAND='finai:status:v1' bash "$gate")" || stop 'existing FinAI status failed'
+grep -Fxq 'finai_gateway=v1' <<< "$status_out" || stop 'existing FinAI gateway identity mismatch'
 
 printf 'FINAI_CPANEL_GATE_PREFLIGHT=PASS\nmode=%s\ninstalled_gate=%s\nreader=%s\n' "$mode" "$gate_state" "$reader_state"
 echo 'other_projects=untouched'
@@ -104,7 +105,8 @@ SSH_ORIGINAL_COMMAND='id' bash "$gate" >/dev/null 2>&1
 new_deny_code=$?
 set -e
 [[ "$new_deny_code" -eq 64 ]] || stop 'updated SSH gate denied-command check failed'
-SSH_ORIGINAL_COMMAND='finai:status:v1' bash "$gate" | grep -Fxq 'finai_gateway=v1' || stop 'updated status check failed'
+status_out="$(SSH_ORIGINAL_COMMAND='finai:status:v1' bash "$gate")" || stop 'updated status check failed'
+grep -Fxq 'finai_gateway=v1' <<< "$status_out" || stop 'updated gateway identity mismatch'
 rollback_needed=0
 printf 'FINAI_CPANEL_GATE_UPGRADE=PASS\nbackup_created=yes\nauthorized_keys_modified=no\nnew_gate_blob=%s\n' "$new_blob"
 echo 'Only FinAI read-only command finai:domains:v1 was added.'
