@@ -12,6 +12,8 @@ on:
       - 'ops/finai-install-audit-key.sh'
       - 'ops/finai-upgrade-cpanel-gate.sh'
       - 'ops/finai-domain-readonly.py'
+      - 'ops/finai-uapi-exit2-probe.py'
+      - 'tests/test_finai_uapi_exit2_probe.py'
       - 'tests/test_finai_domain_readonly.py'
       - 'ops/finai-configure-github-access.ps1'
       - '.github/workflows/finai-remote-audit.yml'
@@ -22,6 +24,8 @@ on:
       - 'ops/finai-install-audit-key.sh'
       - 'ops/finai-upgrade-cpanel-gate.sh'
       - 'ops/finai-domain-readonly.py'
+      - 'ops/finai-uapi-exit2-probe.py'
+      - 'tests/test_finai_uapi_exit2_probe.py'
       - 'tests/test_finai_domain_readonly.py'
       - 'ops/finai-configure-github-access.ps1'
       - '.github/workflows/finai-remote-audit.yml'
@@ -53,6 +57,10 @@ jobs:
           persist-credentials: false
       - name: Static and denial tests
         run: bash ops/test-finai-ssh-gate.sh
+      - name: Check UAPI diagnostic redaction and CLI syntax (no server access)
+        shell: bash
+        run: |
+          python3 -B -m unittest discover -s tests -p 'test_finai_uapi_exit2_probe.py' -v
       - name: Validate PowerShell automation syntax (no execution)
         shell: pwsh
         run: |
