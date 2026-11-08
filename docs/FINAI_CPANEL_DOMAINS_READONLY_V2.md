@@ -24,3 +24,11 @@
 The public domain `e-integrator.si` and `www.e-integrator.si` are already HTTPS 200 with the landing page. Vercel `app.e-integrator.si` was added and SSO set to `all`, but external DNS is missing; `api.e-integrator.si` has no verified working DNS. **Do not** publish an unconfigured Laravel API or expose the incomplete Next.js UI until DNS, access controls and isolated hosting checks are reviewed.
 
 This procedure is intentionally staged and fail-closed, not an unrestricted cPanel maintenance channel.
+
+## 8. 11. 2026 – instalacija in resnični rezultati
+
+- Uporabnik je izvedel pregled in `--apply` iz točno določenega SHA `33b93a7b84c2e025dd23ffc787fea9a7cc21b4ab`, `FINAI_CPANEL_GATE_UPGRADE=PASS`, `new_gate_blob=6b565e35673c234f16ff4590c16807340d7b5c57`. `authorized_keys` ni bil spremenjen; stara različica je arhivirana v FinAI shared/ops.
+- GitHub Actions `42499096779` je dejansko zagnal `finai:domains:v1` in vrnil `domain=... document_root=unavailable` za glavne in obe poddomeni ter `dns_zone_status=unavailable`, `result=partial_read_only_audit`, exit 69. To **ni dokaz odsotnosti DNS zapisov** in ne šteje kot uspešen pregled cPanel cone.
+- GitHub Actions `42499264894` je ponovno potrdil `validate-gateway=PASS`, `remote-read-only=PASS` za stari ukaz `status`; zaščita SSH ostaja aktivna. Privzeti `push` se je vrnil na `status` (namesto nedelujočega `domains`), razširitev `domains` pa ostaja pripravljena na odpravo.
+- Da bi ugotovili razlog brez izpisovanja skrivnosti, je pripravljen `ops/finai-uapi-probe.py` (koda s preverjanim Git SHA), ki **samo bere** fiksne tri vnose DomainInfo in `DNS parse_zone`, primerja delovanje API CLI v običajnem in omejenem okolju ter izpiše samo vrste/izhodne kode, documentroot znotraj uporabnikove domače mape in število filtriranih DNS zapisov. Ne izpisuje surovih odgovorov cPanel API, e-poštnih naslovov ali TXT.
+- Nova namestitev ali poseg v cPanel DNS ni dovoljen brez ugotovljenega vzroka. Ostaneta javna HTTP 200 glavne strani in varovani Vercel `app` brez aktivnega DNS.
