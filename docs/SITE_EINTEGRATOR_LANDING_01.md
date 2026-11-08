@@ -38,3 +38,14 @@ Po objavi je obvezna zunanja HTTPS-verifikacija obeh `e-integrator.si` in `www.e
 2. Za `api`: zasebni `shared/.env`, ločen FinAI DB uporabnik in samo kandidatni migraciji 001+018, po ciljni varnostni kopiji in testu obnove. `FINAI_AUTH_RELEASE_ENABLED=false`.
 3. Za `app`: usmerjanje preko Vercela šele po pregledu DNS, certifikata, avtorizacije in prvih integracijskih testov. Pri custom domain je treba preveriti Vercel zaščito, da ne postane razvojni UI javno dostopen.
 4. Javna uporaba z realnimi podatki šele na ločenem gostovalnem računu FinAI.
+
+## Zaključek SITE-EI-01 — 8. november 2026
+
+- Uporabnik je na Hiper M uspešno izvedel `ops/finai-landing-deploy.sh --inspect` in `--apply` iz potrjene izdaje Git SHA `5ebc05496fdd853a19857341a6c4fba0e8042616`.
+- Namestitveni dnevnik: `FINAI_LANDING_PREFLIGHT=PASS` za oba načina, `FINAI_LANDING_DEPLOY=PASS`, cilj `/home/laskot48/e-integrator.si/index.html`, SHA-256 `1474eceff785ce743e43504a9e94d3afec81bb19459d3eb9b0d2e912f63083d3`.
+- Z neodvisnim read-only obiskom brskalnika sta bili na `https://e-integrator.si/` in `https://www.e-integrator.si/` uspešno prikazani strani z naslovom `e-integrator | Poslovanje povezano v celoto`, vodilnim naslovom `Vse poslovanje. Ena povezana platforma.` in sporočilom, da prijava še ni mogoča. Nobene opažene TLS/HTTPS napake; prejšnja 404 je odpravljena na obeh domenah.
+- V istem preverjanju sta `https://app.e-integrator.si/` in `https://api.e-integrator.si/` še vedno vrnili brskalniško napako `ERR_EMPTY_RESPONSE`. Vzrok ni dokazan. Ni dovoljeno domnevati, da gre izključno za DNS ali certifikat; potreben je usmerjen read-only pregled cPanel domen/DNS/document root in Vercel povezave.
+- Vercel `finai-ledger` še nima povezane custom domene `app.e-integrator.si` v pregledani konfiguraciji. Javne objave nedokončanega Next.js UI ne omogočati brez pregleda zaščite za custom domene.
+- Laravel `shared/.env` in `current` še nista nastavljena; API naj ostane brez javno aktiviranega dostopa. Laškoteka v tem opravilu ni bila spreminjana.
+
+**Status:** SITE-EI-01 = PASS (osnovna predstavitvena stran v javnem delovanju). Poddomeni app/api = odprti nalogi, brez varnega preklopa. Prihodnja objava UI/API zahteva ločeno preverjanje in dovoljenje.
