@@ -48,3 +48,11 @@ Stari draft PR #36 je zaradi nadomeščene SSH infrastrukture **zaprt kot zastar
 ## Stroge varovalke
 
 Nobene produkcijske spremembe na Laškoteki, `public_html`, MariaDB ali DNS drugih aplikacij. Vercel `app.e-integrator.si` custom-domain binding je še treba varno odstraniti; **ne ustvarjati CNAME na Vercel**. Login in FURS integracije brez testov ostanejo izključene. Vsi primeri in trenutni QA so testni in ne pomenijo računovodske pravilnosti.
+
+
+## OFFLINE-02A – osnovni testni ledger (dodatno potrjeno)
+
+- PR [#48](https://github.com/ddcpark-coder/finai-ledger/pull/48) združen na `main`, merge SHA `6957c98e90266f3d330e07dcc40d2cc8cc65475d`.
+- GitHub Actions [run 42532940971](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42532940971) – **static-web PASS + windows-desktop PASS**.
+- `OfflineJournalSandbox` vsebuje interno **nešifrirano testno** SQLite shemo v začasni mapi, z natančnimi centnimi debet/kredit invarianti, podjetjem ločenimi konti in vrsticami, idempotency omejitvami, atomarnostjo, storno ter zaščito pred neposrednim UPDATE/DELETE in pred naknadnim dodajanjem vrstic v zapečateno knjižbo. Vse je namenjeno sintetičnim testom; v UI ni gumba za dejansko knjiženje.
+- OFFLINE-02 (#43) ostaja **odprta**, ker produkcijsko varno šifriranje, prijava, večuporabniški režim, backup/restore, DDV pravila in popolna revizijska sled niso izvedeni. OFFLINE-03 (#44), DESKTOP-02 (#45) in HOSTING-02 (#46) prav tako ostajajo odprte.
