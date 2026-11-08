@@ -76,6 +76,9 @@ jobs:
           & dist/windows/EIntegrator.Desktop.exe --self-test
           if ($LASTEXITCODE -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $LASTEXITCODE" }
           Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
+          & dist/windows/EIntegrator.Desktop.exe --ledger-self-test
+          if ($LASTEXITCODE -ne 0) { throw "Offline ledger sandbox invariants failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_LEDGER_INVARIANTS=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Acquire Microsoft offline WebView2 runtime and verify its signature
