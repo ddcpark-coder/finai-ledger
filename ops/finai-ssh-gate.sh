@@ -10,6 +10,7 @@ unset BASH_ENV ENV CDPATH GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM
 case "${SSH_ORIGINAL_COMMAND-}" in
   'finai:audit:v1') operation=audit ;;
   'finai:status:v1') operation=status ;;
+  'finai:domains:v1') operation=domains ;;
   *) printf '%s\n' 'DENIED: unsupported FinAI operation' >&2; exit 64 ;;
 esac
 
@@ -31,6 +32,16 @@ fi
 if [[ "$(readlink -f -- "$release")" != "$release" || "$(readlink -f -- "$backend")" != "$backend" ]]; then
   printf '%s\n' 'STOP: FinAI path resolved unexpectedly' >&2
   exit 67
+fi
+
+if [[ "$operation" == 'domains' ]]; then
+  readonly reader="$root/shared/ops/finai-domain-readonly.py"
+  if [[ ! -f "$reader" || -L "$reader" || ! -r "$reader" || ! -x /usr/bin/python3 ]]; then
+    echo 'STOP: reviewed FinAI domain reader unavailable' >&2
+    exit 69
+  fi
+  # Isolated CPython: ignore user site packages and PYTHONPATH.
+  exec /usr/bin/python3 -I -S "$reader"
 fi
 
 printf 'finai_gateway=v1\noperation=%s\n' "$operation"
