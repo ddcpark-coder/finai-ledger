@@ -1,30 +1,31 @@
-# Deployment targets
+# FinAI — ciljni načini izdaje (potrjeno 8. 11. 2026)
 
-## Hiper M — Production
-- PHP 8.4
-- MariaDB 10.11
-- Composer/Git
-- Node.js samo za asset build
-- cron za periodična opravila
-- brez predpostavke o Dockerju ali trajnem queue workerju
-- release direktoriji + `current` symlink/ekvivalent za rollback
-- konfiguracija prek strežniških environment spremenljivk
+**Hiper M je edina načrtovana spletna produkcija. Windows namizna različica mora biti samostojna in delovati tudi brez internetne povezave. Vercel ni produkcijsko gostovanje.**
 
-## Vercel — Preview only
-- samo UI/preview in hitra vizualna preverjanja
-- brez produkcijskih računovodskih podatkov
-- brez FURS certifikatov
-- brez produkcijskih skrivnosti
-- ni produkcijski hosting
+## Hiper M — spletna produkcija
 
-## Self-hosted
-- ista poslovna koda kot Hiper M
-- konfiguracija prek `.env`
-- MariaDB kot privzeta baza
-- filesystem/object storage adapter
-- možnost Docker paketa v ločeni distribucijski fazi
+- `e-integrator.si`: obstoječa statična predstavitvena stran, HTTPS 200.
+- `app.e-integrator.si`: predvidena spletna uporabniška aplikacija z Next.js **statičnim izvozom** `out/` in brez potrebe po stalnem Node.js procesu na Hiper M.
+- `api.e-integrator.si`: predvideni Laravel 13 / PHP 8.4 API in MariaDB 10.11, z javnim docroot samo `backend/public`.
+- Pred pravo uporabo je potreben **ločeni Hiper M račun**, ločena baza, TLS, zaščiten Laravel identitetni sistem, verified backup/restore, migracije in varnostni QA. Trenutni `laskot48` račun gosti tudi Laškoteko; avtomatizirane pisalne objave niso dovoljene.
+- Lokalni cPanel UAPI zaradi izhodne kode 2 ostaja blokiran (issue #41). DNS `app/api` **ne usmerjaj na Vercel**; najprej preveri obstoječe DNS in docroot v Hiper M.
 
-## Deployment tok
-`feature/* -> develop -> Preview QA -> main -> Hiper M Production`
+## Namizna izdaja — Windows brez interneta
 
-Vercel deployment na `main` je lahko začasno vključen med razvojem, vendar ni kanonični production deployment.
+- Isti statični Next.js UI se zgradi v GitHub CI, vendar je **priložen in naložen lokalno** iz namestitvenega paketa.
+- Windows .NET 10/WebView2 je nativni odjemalec z lokalnim SQLite storage slojem; za OFFLINE-01 omogoča zgolj preizkusne lokalno šifrirane osnutke.
+- Namestitveni program vsebuje self-contained .NET in polni Microsoftov WebView2 offline runtime; ni obvezne povezave na Hiper M za zagon.
+- Vse resnične poslovne operacije, offline davčne evidence, revizijska sled, podjetja, varnostne kopije in sinhronizacija so nadaljnji **OFFLINE-02/03** (issues #43/#44), ne del končanega OFFLINE-01.
+- Namizni namestitveni program je za zdaj nepodpisan **interni QA artefakt**, ne komercialna izdaja (issue #45).
+
+## Vercel — zgolj zaščiten development preview
+
+- Ni produkcijski hosting, nima pravice do resničnih finančnih/osebnih podatkov; SSO = `all`.
+- Prejšnja povezava domene `app.e-integrator.si` v Vercelu je ostanek napačne predpostavke; DNS zanjo ni bil spremenjen. Povezavo je treba odstraniti v namenskem prihodnjem administrativnem koraku, ne usmerjati DNS k Vercelu.
+- `vercel.json` za zdaj onemogoča samodejno objavo na `main`; ne odstrani blokade zaradi samodejnega builda.
+
+## Tok razvoja
+
+`feature/* → ciljna CI preverjanja → pregled → main → varovana izdelava Hiper M / samostojna Windows izdaja`.
+
+Ločene produktne poti delijo pogodbe in domenska pravila, ne produkcijskih skrivnosti. Za realne podatke ostajajo vse izdaje blokirane do izpolnitve testov in zahtev v `docs/OFFLINE_FIRST_ARCHITECTURE.md`.

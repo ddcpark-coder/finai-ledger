@@ -1,16 +1,17 @@
 # FinAI Ledger — tehnična arhitektura v1
 
 ## 1. Cilj
-Komercialna računovodska SaaS aplikacija za slovenski trg, primarno gostovana na Hiper M, z možnostjo self-hosted distribucije.
+Komercialna računovodska in poslovna aplikacija za slovenski trg z **dvema enakovrednima načinoma delovanja**: spletno produkcijo na Hiper M in samostojno Windows namestitev za polno uporabo brez interneta. Obdobje offline dela ne sme povzročiti izgube podatkov; sinhronizacija je dodatna funkcija, ne predpogoj za delo.
 
 ## 2. Potrjeni produkcijski stack
 - Backend: Laravel 13, PHP 8.4
 - Baza: MariaDB 10.11
-- Frontend: ločen UI sloj; trenutni Next.js MVP ostane referenčni UI prototip/preview
+- Frontend: en skupni Next.js/React UI v statičnem izvozu za Hiper M in lokalno vgrajenem paketu Windows; uporabniški vmesnik sam ne vsebuje zalednih računovodskih pravil
 - Asset build: Node.js samo za build frontend sredstev
 - Git: GitHub
 - Primarna produkcija: Hiper M
-- Preview: Vercel
+- Preview: zaščiten Vercel, ne produkcija
+- Windows offline: self-contained .NET 10/WebView2 + lokalni šifrirani SQLite; OFFLINE-01 je samo testni modul, produkcijska finančna shema OFFLINE-02 še manjka
 - Self-hosted: ista aplikacijska koda, druga okoljska konfiguracija
 
 ## 3. Sloji
@@ -68,3 +69,7 @@ Interni API je verzioniran. Integracijski endpointi so ločeni od UI endpointov.
 
 ## 10. Faza 1 rezultat
 Arhitektura, deployment model, konfiguracijski kontrakt in projektna pravila so potrjeni. Implementacija poslovnih modulov sledi v naslednjih fazah.
+
+## 11. Offline-first meje
+
+Namizna različica mora znati obdelovati dokumente in pravilne knjižbe na lokalni bazi tudi ob popolnem izpadu interneta, ko bodo zgrajena preverjena domen­ska pravila. Plačilnih/davčno potrjenih operacij, ki zahtevajo internet in FURS, ne predstavljaj kot dokončanih brez spletnega preverjanja. Sinhronizacija zahteva dogodkovni outbox, idempotentnost, nespremenljivo revizijsko sled, reševanje konfliktov in strogo izolacijo podjetij. Skupna pravila morajo biti preverjena z istimi testnimi primeri v Laravlu in offline desktop engine. Glej `docs/OFFLINE_FIRST_ARCHITECTURE.md`.

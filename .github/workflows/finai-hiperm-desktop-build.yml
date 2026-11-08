@@ -1,0 +1,121 @@
+name: FinAI Hiper M web + Windows desktop build (no deploy)
+
+on:
+  pull_request:
+    paths:
+      - 'next.config.mjs'
+      - 'app/**'
+      - 'desktop/windows/**'
+      - '.github/workflows/finai-hiperm-desktop-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+      - name: Build serverless frontend for Hiper M
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Confirm portable artifacts, not demo runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s out/index.html
+          test -d out/_next
+          grep -q '<html' out/index.html
+          echo 'FINAI_HIPERM_STATIC_EXPORT=PASS'
+      - name: Save static build for isolated deployment review only
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-hiperm-web-static-review
+          path: out/
+          retention-days: 7
+          if-no-files-found: error
+
+  windows-desktop:
+    needs: [static-web]
+    runs-on: windows-2025
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore complete win-x64 self-contained runtime
+        shell: pwsh
+        run: dotnet restore desktop/windows/EIntegrator.Desktop.csproj --runtime win-x64
+      - name: Include bundled local UI (no runtime HTTP server)
+        uses: actions/download-artifact@v4
+        with:
+          name: finai-hiperm-web-static-review
+          path: dist/windows/wwwroot
+      - name: Compile unsigned portable Windows desktop candidate
+        shell: pwsh
+        run: |
+          dotnet publish desktop/windows/EIntegrator.Desktop.csproj --no-restore -c Release -r win-x64 --self-contained true -p:PublishTrimmed=false -o dist/windows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe = Get-Item dist/windows/EIntegrator.Desktop.exe
+          if ($exe.Length -lt 100000) { throw 'Unexpectedly small executable' }
+          if (-not (Test-Path dist/windows/Microsoft.Web.WebView2.Core.dll)) { throw 'Missing WebView2 dependency' }
+          if (-not (Test-Path dist/windows/wwwroot/offline/index.html)) { throw 'Missing offline UI asset' }
+          & dist/windows/EIntegrator.Desktop.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
+          Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
+          Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
+      - name: Acquire Microsoft offline WebView2 runtime and verify its signature
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force buildtools | Out-Null
+          Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/?linkid=2124701' -OutFile 'buildtools/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+          $installer = Get-Item 'buildtools/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+          if ($installer.Length -lt 15000000) { throw 'WebView2 offline runtime file unexpectedly small' }
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') {
+            throw 'Microsoft WebView2 offline runtime signature verification failed'
+          }
+          Write-Output 'FINAI_MICROSOFT_OFFLINE_RUNTIME_SIGNATURE=PASS'
+      - name: Compile standalone Inno Setup installer (unsigned QA only)
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = Get-ChildItem -Path "${env:ProgramFiles(x86)}" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $iscc) { throw 'Inno Setup compiler not available on Windows runner' }
+          & $iscc 'desktop/windows/FinAI.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup build failed: $LASTEXITCODE" }
+          $setup = Get-Item 'dist/installer/e-integrator-desktop-offline-setup-win-x64-unsigned.exe'
+          if ($setup.Length -lt 20000000) { throw 'Standalone installer unexpectedly small' }
+          Write-Output 'FINAI_WINDOWS_OFFLINE_INSTALLER_BUILD=PASS'
+          Write-Output "installer_sha256=$((Get-FileHash $setup.FullName -Algorithm SHA256).Hash)"
+      - name: Save unsigned installer for internal review (no release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eintegrator-win-x64-offline-installer-unsigned-review
+          path: dist/installer/*.exe
+          retention-days: 7
+          if-no-files-found: error
+      - name: Save unsigned desktop candidate for local inspection only
+        uses: actions/upload-artifact@v4
+        with:
+          name: eintegrator-desktop-win-x64-unsigned-review
+          path: dist/windows/
+          retention-days: 7
+          if-no-files-found: error
