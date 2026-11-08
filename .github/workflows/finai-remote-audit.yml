@@ -4,6 +4,14 @@ on:
   schedule:
     # Automated read-only diagnostics on weekdays, UTC (no server writes).
     - cron: '17 4 * * 1-5'
+  push:
+    branches: [main]
+    paths:
+      - 'ops/finai-ssh-gate.sh'
+      - 'ops/test-finai-ssh-gate.sh'
+      - 'ops/finai-install-audit-key.sh'
+      - 'ops/finai-configure-github-access.ps1'
+      - '.github/workflows/finai-remote-audit.yml'
   pull_request:
     paths:
       - 'ops/finai-ssh-gate.sh'
@@ -54,7 +62,7 @@ jobs:
           }
 
   remote-read-only:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.repository == 'ddcpark-coder/finai-ledger' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push') && github.repository == 'ddcpark-coder/finai-ledger' && github.ref == 'refs/heads/main'
     needs: [validate-gateway]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
