@@ -28,7 +28,7 @@ To še **ni** prenos slovenskega kontnega načrta, komercialni ERP, knjigovodska
 - zavrnitev neposrednega UPDATE knjižbe;
 - brez produkcijskih omrežnih povezav, brez dostopa do Hiper M/Laškoteke.
 
-Test se samodejno izvede znotraj Windows GitHub Actions, `finai-hiperm-desktop-build.yml`, poleg prejšnjega SQLite/DPAPI testa.
+Test se samodejno izvede znotraj Windows GitHub Actions, `finai-hiperm-desktop-build.yml`, poleg prejšnjega SQLite/DPAPI testa. Zaradi hitrosti in manj nepotrebnih prenosov se težki offline namestitveni paket odslej gradi **samo ob namernem `workflow_dispatch`**; PR preveri kodo, lokalno SQLite in vse pripadajoče statične datoteke, ne prenaša pa vedno znova celotnega 200+ MB Microsoftovega runtime paketa.
 
 ## Pogoji pred OFFLINE-02B produkcijsko razširitvijo
 
