@@ -8,6 +8,12 @@ on:
       - 'desktop/windows/**'
       - '.github/workflows/finai-hiperm-desktop-build.yml'
   workflow_dispatch:
+    inputs:
+      package_installer:
+        description: 'Build signed-runtime unsigned offline QA installer (manual only)'
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -76,9 +82,13 @@ jobs:
           & dist/windows/EIntegrator.Desktop.exe --self-test
           if ($LASTEXITCODE -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $LASTEXITCODE" }
           Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
+          & dist/windows/EIntegrator.Desktop.exe --ledger-self-test
+          if ($LASTEXITCODE -ne 0) { throw "Offline ledger sandbox invariants failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_LEDGER_INVARIANTS=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Acquire Microsoft offline WebView2 runtime and verify its signature
+        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force buildtools | Out-Null
@@ -91,6 +101,7 @@ jobs:
           }
           Write-Output 'FINAI_MICROSOFT_OFFLINE_RUNTIME_SIGNATURE=PASS'
       - name: Compile standalone Inno Setup installer (unsigned QA only)
+        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
         shell: pwsh
         run: |
           $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
@@ -106,12 +117,17 @@ jobs:
           Write-Output 'FINAI_WINDOWS_OFFLINE_INSTALLER_BUILD=PASS'
           Write-Output "installer_sha256=$((Get-FileHash $setup.FullName -Algorithm SHA256).Hash)"
       - name: Save unsigned installer for internal review (no release)
+        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
         uses: actions/upload-artifact@v4
         with:
           name: eintegrator-win-x64-offline-installer-unsigned-review
           path: dist/installer/*.exe
           retention-days: 7
           if-no-files-found: error
+      - name: Confirm installer packaging is separately gated on PR checks
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: Write-Output 'FINAI_INSTALLER=SKIPPED_ON_PR; use manual workflow_dispatch for release candidate'
       - name: Save unsigned desktop candidate for local inspection only
         uses: actions/upload-artifact@v4
         with:
