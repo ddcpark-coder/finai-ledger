@@ -77,3 +77,12 @@ Do not interpret this as permission for background data processing, file changes
 - `vercel.json` v tem PR-ju namerno izklopi Git-triggered deployment za `main` in samo infrastrukturo vejo. Cilj: preprečiti samodejno produkcijsko objavo Next.js ob združitvi tega SSH-only PR. Pred prihodnjo namerno objavo uporabniškega vmesnika FinAI je treba varovalo izrecno pregledati in odstraniti ali zamenjati z namensko politiko objav. To ne vpliva na Laškoteko.
 - Oddaljeni korak GitHub Actions še ni dokazano uspešen; do njegovega dejanskega PASS se avtomatiziran dostop šteje kot pripravljen, ne aktiviran.
 
+
+## Aktivacija 8. 11. 2026 — potrjeno
+
+- PR #37 je združen v `main` (squash SHA `4031079eabc9aa56c70e48f1f69255b02e596f94`).
+- GitHub Actions **push** zagon `42485375485` je dejansko izvedel `validate-gateway=success` in `remote-read-only=success`; iz logov: `finai_gateway=v1`, `operation=status`, `laravel=present`, `dependencies=present`, `shared_env=missing`, `current_symlink=missing`.
+- Nadaljnji avtomatiziran zagon `42485536442` na SHA `7acec61c6e81887d84eb59b72d593fb872fa606f` je **PASS**, vključno s preverjanjem točne vsebine odziva ter zavrnitve `id` z izhodno kodo 64. Iz loga: `FINAI_SSH_DENIAL_CHECK=PASS`, `FINAI_REMOTE_READONLY=PASS`.
+- Omogočeni dogodki: ob spremembah relevantnega varnostnega workflowa na `main`, ročni `workflow_dispatch` in bralni pregled po urniku ob delavnikih 04:17 UTC. Urnik ni preizkušen do prvega prihodnjega termina; potrjena sta *push* zagona.
+- Vercel Git auto-deploy za `main` je izključen z `vercel.json`; pred naslednjo načrtno objavo frontend aplikacije ga je treba ločeno pregledati.
+- To ni dovoljenje za deploy, DB migracije, javno prijavo, branje zasebnih podatkov ali pisanje na skupnem gostovanju.
