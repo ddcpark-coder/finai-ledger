@@ -27,8 +27,11 @@ jobs:
           PY
           for host in e-integrator.si www.e-integrator.si app.e-integrator.si api.e-integrator.si; do
             echo "CHECK $host"
-            output="$(curl --silent --show-error --output /dev/null --max-time 18 --connect-timeout 8 --proto '=https' --write-out 'HTTP=%{http_code} SSL_VERIFY=%{ssl_verify_result} REMOTE_IP=%{remote_ip} REDIRECT=%{redirect_url}\n' "https://$host/" 2>&1)"
-            status=$?
+            if output="$(curl --silent --show-error --output /dev/null --max-time 18 --connect-timeout 8 --proto '=https' --write-out 'HTTP=%{http_code} SSL_VERIFY=%{ssl_verify_result} REMOTE_IP=%{remote_ip} REDIRECT=%{redirect_url}\n' "https://$host/" 2>&1)"; then
+              status=0
+            else
+              status=$?
+            fi
             printf 'CURL_EXIT=%s %s\n' "$status" "$output"
             echo '---'
           done
