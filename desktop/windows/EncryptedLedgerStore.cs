@@ -663,7 +663,7 @@ internal sealed class EncryptedLedgerStore : IDisposable
                 throw new InvalidDataException("Encrypted database backup exceeds allowed size");
             var file = File.ReadAllBytes(databasePath);
             if (file.Length != size ||
-                file.AsSpan(0, 16).SequenceEqual("SQLite format 3\\0"u8))
+                file.AsSpan(0, 16).SequenceEqual("SQLite format 3\0"u8))
                 throw new InvalidDataException("Database snapshot is invalid or plaintext");
             return (file, (byte[])databaseKey.Clone());
         }
@@ -738,7 +738,7 @@ internal sealed class EncryptedLedgerStore : IDisposable
         if (!Directory.Exists(emptyStagingDirectory) ||
             Directory.EnumerateFileSystemEntries(emptyStagingDirectory).Any() ||
             cipherKey.Length != 32 || encryptedDatabase.Length < 4096 ||
-            encryptedDatabase.AsSpan(0, 16).SequenceEqual("SQLite format 3\\0"u8))
+            encryptedDatabase.AsSpan(0, 16).SequenceEqual("SQLite format 3\0"u8))
             throw new InvalidDataException("Unsafe encrypted recovery staging directory");
         var wrapped = ProtectedData.Protect(cipherKey, Entropy,
             DataProtectionScope.CurrentUser);
