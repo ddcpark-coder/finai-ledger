@@ -94,15 +94,16 @@ class GateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
             root.mkdir()
-            data = archive(("a.txt", b"only nonapp file", "regular"))
-            digest = hashlib.sha256(data).hexdigest()
+            invalid = archive(("a.txt", b"only nonapp file", "regular"))
             with self.assertRaises(gate.Denied):
-                gate.stage(data, digest, root)
+                gate.stage(invalid, hashlib.sha256(invalid).hexdigest(), root)
             outside = Path(parent) / "outside"
             outside.mkdir()
+            good = valid_archive()
+            digest = hashlib.sha256(good).hexdigest()
             (root / "releases" / digest).symlink_to(outside, target_is_directory=True)
             with self.assertRaises(gate.Denied):
-                gate.stage(valid_archive(), hashlib.sha256(valid_archive()).hexdigest(), root)
+                gate.stage(good, digest, root)
 
 
 if __name__ == "__main__":
