@@ -52,3 +52,11 @@
 ## Odločitev o izdaji
 
 Spletna predstavitev `e-integrator.si` ostane javno aktivna. Računovodsko spletno aplikacijo in namizno testno izdajo lahko testiramo samo s sintetičnimi podatki. **Prava uporaba računovodskih/osebnih podatkov je blokirana**, dokler niso potrjeni lokalna varnost, pravilnost, izolacija podjetij, sinhronizacija in obnova.
+
+
+### Izvedena omejena faza OFFLINE-02C (9. 11. 2026)
+
+- V GitHub `main` je dodan **ločen testni šifriran lokalni računovodski ledger** na `SQLite3MC.PCLRaw.bundle 2.6.1`, skupaj z obveznim DPAPI zaščitenim naključnim ključem. Surova SQLite datoteka nima jasne standardne glave; testi za napačen ključ in ponovno odprtje so PASS.
+- Lokalni sintetični uporabniki imajo salted PBKDF2 verifikatorje, vloge po podjetjih (admin/accountant/viewer), dovoljenja pri branju/knjiženju in HMAC integritetno verigo revizijskih dogodkov. Nobena funkcija ni izpostavljena WebView2 ali produkciji.
+- To **še ni uporabna računovodska aplikacija za resnične podatke**: manjkajo prenosni backup celotnega ledgerja, revokacija sej, zaklepanje, varen recovery po izgubi Windows profila, dokazana fizična namestitev, neodvisen varnostni pregled in slovenska poslovna pravila.
+- Glej `docs/OFFLINE_02C_ENCRYPTED_LOCAL_LEDGER.md`, [PR #50](https://github.com/ddcpark-coder/finai-ledger/pull/50), [OFFLINE-02D #51](https://github.com/ddcpark-coder/finai-ledger/issues/51) in [CI 42583450455](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42583450455).
