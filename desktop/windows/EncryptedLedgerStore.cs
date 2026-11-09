@@ -102,7 +102,7 @@ internal sealed class EncryptedLedgerStore : IDisposable
 
             // Initialize before reopening through the strict version gate.
             SQLitePCL.Batteries_V2.Init();
-            using (var db = OpenDbAt(dbPath, key))
+            using (var db = OpenDbAt(dbPath, key, create: true))
             using (var cmd = db.CreateCommand())
             {
                 cmd.CommandText = """
@@ -235,14 +235,14 @@ internal sealed class EncryptedLedgerStore : IDisposable
         return OpenDbAt(databasePath, databaseKey);
     }
 
-    private static SqliteConnection OpenDbAt(string path, byte[] key)
+    private static SqliteConnection OpenDbAt(string path, byte[] key, bool create = false)
     {
         SQLitePCL.Batteries_V2.Init();
         var options = new SqliteConnectionStringBuilder
         {
             DataSource = path,
             Password = Convert.ToHexString(key),
-            Mode = SqliteOpenMode.ReadWriteCreate,
+            Mode = create ? SqliteOpenMode.ReadWriteCreate : SqliteOpenMode.ReadWrite,
             Pooling = false
         };
         var db = new SqliteConnection(options.ToString());
