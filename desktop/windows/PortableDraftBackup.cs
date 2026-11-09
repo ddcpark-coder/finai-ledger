@@ -208,20 +208,23 @@ internal static class PortableDraftBackup
             var source = new LocalDraftStore(Path.Combine(root, "source"));
             var original = source.Save("Samo test", marker);
             source.Save("Še en osnutek", "Brez internetne povezave");
+            for (int i = 0; i < 101; i++)
+                source.Save("Sintetični osnutek " + i, "Brez osebnih ali finančnih podatkov");
             var backup = Path.Combine(root, "backup.finai");
             Export(source, backup, testPassphrase);
 
             var disk = File.ReadAllBytes(backup);
             if (Encoding.UTF8.GetString(disk).Contains(marker, StringComparison.Ordinal))
                 return false;
-            if (disk.AsSpan(0, 8).SequenceEqual("SQLite format 3"u8))
+            if (disk.AsSpan().StartsWith("SQLite format 3"u8))
                 return false;
 
             var restored = new LocalDraftStore(Path.Combine(root, "restored"));
             ImportIntoEmpty(restored, backup, testPassphrase);
             var afterRestart = new LocalDraftStore(Path.Combine(root, "restored"));
-            if (afterRestart.List().Count != 2 ||
-                !afterRestart.List().Any(d => d.Id == original.Id && d.Note == marker))
+            if (afterRestart.List().Count != 100 ||
+                afterRestart.SnapshotForPortableBackup().Count != 103 ||
+                !afterRestart.SnapshotForPortableBackup().Any(d => d.Id == original.Id && d.Note == marker))
                 return false;
 
             // Do not overwrite a populated destination or an earlier backup.
