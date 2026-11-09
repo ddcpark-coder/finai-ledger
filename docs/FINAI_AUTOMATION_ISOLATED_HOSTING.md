@@ -10,7 +10,7 @@ Dokler račun `laskot48` gosti Laškoteko, **ne sme dobiti novega FinAI ključa 
 
 Uporabnik je izrecno potrdil, da **ves čas razvoja in testiranja ostane na voljo samo skupni račun `laskot48`**. Ločen Hiper M račun za FinAI se vzpostavi **pred javno produkcijo**, ne kot predpogoj za nadaljnji razvoj. Ne zahtevaj njegovega odpiranja pri vsaki naslednji razvojni nalogi.
 
-**Dovoljena razvojna pot do takrat:** ločene GitHub veje, avtomatski testi na GitHub-hosted runnerjih z lastno začasno testno podatkovno bazo, pregled in združevanje, statični build artefakti, interno preizkušanje Windows offline namestitve, lokalni Laravel razvoj in sintetični podatki. Na skupnem računu FinAI izvaja samo dovoljeni read-only status/preflight, brez nameščanja novih ključev, DNS sprememb ali FinAI staging/produkcyjskih zapisov.
+**Dovoljena razvojna pot do takrat:** ločene GitHub veje, avtomatski testi na GitHub-hosted runnerjih z lastno začasno testno podatkovno bazo, pregled in združevanje, statični build artefakti, interno preizkušanje Windows offline namestitve, lokalni Laravel razvoj in sintetični podatki. Na skupnem računu FinAI izvaja samo dovoljeni read-only status/preflight, brez nameščanja novih ključev, DNS sprememb ali FinAI staging/produkcijskih zapisov.
 
 **Blokirano samo do predprodukcijske ločitve:** oddaljeni SSH stage/deploy, Laravel migracije na Hiper M, aktiviranje javnih `app`/`api` poddomen ter produkcijski preklop. Razvoj in CI se ne ustavita. Ločen račun se varnostno preveri in namenska SSH povezava enkratno vzpostavi v prehodu v javno produkcijo.
 
