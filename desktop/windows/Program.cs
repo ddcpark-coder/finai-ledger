@@ -32,6 +32,18 @@ internal static class Program
             }
         }
 
+        if (args.Length == 1 && args[0] == "--backup-self-test")
+        {
+            try
+            {
+                return PortableDraftBackup.SelfTest() ? 0 : 5;
+            }
+            catch (Exception)
+            {
+                return 6; // Avoid disclosing private local-path or backup contents.
+            }
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
