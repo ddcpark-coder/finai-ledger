@@ -50,6 +50,14 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
         run: npx playwright test
+      - name: Publish screenshot previews for visual feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-visual-qa-desktop-mobile
+          path: test-results/visual-qa/*.png
+          retention-days: 7
+          if-no-files-found: warn
       - name: Publish failure artifacts (screenshots and traces)
         if: failure()
         uses: actions/upload-artifact@v4
