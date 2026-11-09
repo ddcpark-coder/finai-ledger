@@ -10,7 +10,7 @@ The shared Hiper M operating-system account `laskot48` also hosts Laškoteka and
 
 ## Temporary B: common physical hosting, no shared-account write authority
 
-**Proposed clarification for development only; NOT an SSH authorization:** FinAI may
+**Approved temporary development policy, NOT an SSH authorization:** FinAI may
 be developed and visually tested while other sites operate on the same physical
 Hiper M server and under the same hosting subscription. This does not make
 the shared `laskot48` OS/cPanel identity safe for FinAI write automation.
@@ -27,9 +27,10 @@ the shared `laskot48` OS/cPanel identity safe for FinAI write automation.
 - Production-grade migration and handling of real data remain separately
   gated. Never touch Laškoteka or STNG in any case.
 
-The complete proposed Project instructions are in
-`docs/FINAI_PROJECT_RULES_TEMP_B_PROPOSAL.md`. This draft does not change
-the existing ChatGPT Project settings or authorize a deployment.
+The approved Project instructions are mirrored in
+`docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md`. The user confirmed they updated
+ChatGPT Project settings; this repository file does not authorize shared-host
+writes or deploys.
 
 ## FinAI isolation and architecture
 
