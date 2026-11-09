@@ -12,6 +12,8 @@ on:
       - "tests/test_finai_isolated_ssh_gate.py"
       - "tests/test_finai_static_release_verify.py"
       - "ops/finai-static-release-verify.py"
+      - "ops/finai-ftps-offline-release-plan.py"
+      - "tests/test_finai_ftps_offline_release_plan.py"
       - ".github/workflows/finai-isolated-deploy.yml"
   push:
     branches: [main]
@@ -23,6 +25,8 @@ on:
       - "ops/finai-ci-isolated-ssh.sh"
       - "ops/finai-static-release-verify.py"
       - "tests/test_finai_static_release_verify.py"
+      - "ops/finai-ftps-offline-release-plan.py"
+      - "tests/test_finai_ftps_offline_release_plan.py"
       - ".github/workflows/finai-isolated-deploy.yml"
   workflow_dispatch:
     inputs:
@@ -56,6 +60,7 @@ jobs:
           bash -n ops/finai-ci-isolated-ssh.sh
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_ssh_gate.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_ftps_offline_release_plan.py' -v
           echo "FINAI_RESTRICTED_SSH_GATE_TESTS=PASS"
           echo "FINAI_STATIC_INTEGRITY_TESTS=PASS"
 
@@ -89,6 +94,10 @@ jobs:
           python3 -B ops/finai-static-release-verify.py --root out --write-manifest "$RUNNER_TEMP/finai-static-manifest.json"
           python3 -B ops/finai-static-release-verify.py --root out --verify-manifest "$RUNNER_TEMP/finai-static-manifest.json"
           tar -czf "$RUNNER_TEMP/finai-web-release.tar.gz" -C out .
+          python3 -B ops/finai-ftps-offline-release-plan.py \
+            --archive "$RUNNER_TEMP/finai-web-release.tar.gz" \
+            --manifest "$RUNNER_TEMP/finai-static-manifest.json" \
+            --output "$RUNNER_TEMP/finai-offline-ftps-staging-plan.json"
           digest="$(sha256sum "$RUNNER_TEMP/finai-web-release.tar.gz" | cut -d ' ' -f 1)"
           echo "sha256=$digest" >> "$GITHUB_OUTPUT"
           echo "FINAI_HIPERM_STATIC_RELEASE=PASS"
@@ -98,6 +107,7 @@ jobs:
           path: |
             ${{ runner.temp }}/finai-web-release.tar.gz
             ${{ runner.temp }}/finai-static-manifest.json
+            ${{ runner.temp }}/finai-offline-ftps-staging-plan.json
           retention-days: 7
           if-no-files-found: error
 
