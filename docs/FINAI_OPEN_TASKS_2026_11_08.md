@@ -87,3 +87,13 @@ Nobene produkcijske spremembe na Laškoteki, `public_html`, MariaDB ali DNS drug
 - Naslednja ključna infrastrukturna blokada [FINAI-ISOLATION-01 #53](https://github.com/ddcpark-coder/finai-ledger/issues/53): dejanski ločen Hiper M račun + enkratna namestitev namenskega ključnega para v ta račun + varne GitHub Secrets/Environments; šele potem staging in aktivacija.
 - OFFLINE-02D [#51](https://github.com/ddcpark-coder/finai-ledger/issues/51) ostaja odprta za varen GUI, drugi Windows profil/računalnik, zaščito prijave/limit poskusov, prevzete kopije, preverjene poslovne podatke in signed release.
 - Enkratna nastavitev ChatGPT Project Instructions se ne more opraviti s spreminjanjem datotek GitHub. Uporabnik mora besedilo `docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md` dodati v nastavitve tega ChatGPT projekta, da bo veljalo v vseh njegovih novih klepetih in Work opravilih.
+
+
+## 9. 11. 2026 – odločitev o skupnem računu med razvojem
+
+Uporabnik je potrdil: **skupni Hiper M račun `laskot48` ostane v uporabi ves čas razvoja in testiranja FinAI**. Ločeni račun se vzpostavi **pred javno produkcijo**. To **ni blokada OFFLINE-02/03, UX/UI, Laravel CI, sintetičnih integracijskih testov ali sestavljanja Windows offline namestitve**.
+
+- GitHub → ločena veja → nujni CI testi v izoliranem runnerju/zasebnem začasnem DB → pregled → združitev; Windows aplikacija se testira lokalno brez omrežja.
+- `laskot48` → **izključno FinAI read-only** pregledi prek že omejenega varovala, brez novih pisalnih SSH ključev, sprememb cPanela, DNS, PHP, MariaDB, varnostnih kopij ali javnih datotek.
+- Hiper M avtomatski staging/produkcija (`FINAI_STAGE_ENABLED`, `FINAI_PRODUCTION_ENABLED`) ostaja **izključena** do ločenega in preverjenega FinAI računa. Njegova vzpostavitev je **predprodukcijski mejnik**, ne ponavljajoča se zahteva pred nadaljnjim razvojem.
+- Laškoteka in STNG ostaneta popolnoma nespremenjeni; projektna pravila so po navedbi uporabnika že shranjena v ChatGPT Project.

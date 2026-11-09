@@ -2,6 +2,12 @@
 
 **Hiper M je edina načrtovana spletna produkcija. Windows namizna različica mora biti samostojna in delovati tudi brez internetne povezave. Vercel ni produkcijsko gostovanje.**
 
+## Časovnica gostovanja — potrjeno 9. 11. 2026
+
+Ves **razvoj in testiranje** FinAI poteka ob obstoječem skupnem Hiper M računu `laskot48`, vendar **brez pisalnih posegov na ta račun**. GitHub Actions uporablja izolirane testne runnerje in začasne baze, Windows offline aplikacija pa lokalno šifrirano bazo in sintetične podatke. Ni treba urejati novega Hiper M računa, SSH ključev ali DNS med običajnimi razvojnimi nalogami.
+
+**Ločen Hiper M cPanel/OS račun je obvezen neposredno pred javno produkcijo**, pred aktivacijo `app.e-integrator.si`, `api.e-integrator.si`, dejanskih baz, migracij ali CI-objav. Do takrat ostaja FinAI SSH dostop na `laskot48` strogo read-only. Prepoved spreminjanja Laškoteke in STNG velja brez izjem.
+
 ## Hiper M — spletna produkcija
 
 - `e-integrator.si`: obstoječa statična predstavitvena stran, HTTPS 200.
