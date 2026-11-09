@@ -56,3 +56,13 @@ Nobene produkcijske spremembe na Laškoteki, `public_html`, MariaDB ali DNS drug
 - GitHub Actions [run 42532940971](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42532940971) – **static-web PASS + windows-desktop PASS**.
 - `OfflineJournalSandbox` vsebuje interno **nešifrirano testno** SQLite shemo v začasni mapi, z natančnimi centnimi debet/kredit invarianti, podjetjem ločenimi konti in vrsticami, idempotency omejitvami, atomarnostjo, storno ter zaščito pred neposrednim UPDATE/DELETE in pred naknadnim dodajanjem vrstic v zapečateno knjižbo. Vse je namenjeno sintetičnim testom; v UI ni gumba za dejansko knjiženje.
 - OFFLINE-02 (#43) ostaja **odprta**, ker produkcijsko varno šifriranje, prijava, večuporabniški režim, backup/restore, DDV pravila in popolna revizijska sled niso izvedeni. OFFLINE-03 (#44), DESKTOP-02 (#45) in HOSTING-02 (#46) prav tako ostajajo odprte.
+
+## 9. 11. 2026 – OFFLINE-02B: varne kopije testnih osnutkov
+
+- Implementacija združena v `main` prek [PR #49](https://github.com/ddcpark-coder/finai-ledger/pull/49), SHA `7b74610c78a561b393c7cbe13935667e4f0373f8`.
+- [Windows CI run 42582135200](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42582135200): **static-web=PASS**, **windows-desktop=PASS**; `FINAI_OFFLINE_DRAFT_BACKUP_RECOVERY=PASS`, `FINAI_OFFLINE_LEDGER_INVARIANTS=PASS` in `FINAI_WINDOWS_DESKTOP_COMPILE=PASS`.
+- Izvedeno: lokalni Windows gumba `Shrani kopijo` in `Obnovi kopijo`; prenosna šifrirana testna kopija z PBKDF2-HMAC-SHA256 (600.000 ponovitev) in AES-256-GCM; autentikacija pred obnovitvijo; uvoz samo v prazno SQLite zbirko, v eni transakciji, brez prepisovanja obstoječih datotek.
+- Preizkušeno: 103 sintetični osnutki (presežejo 100 prikazanih), ponovni zagon, napačna fraza, poškodovana glava/šifrirani podatki, prekinjena datoteka, obstoječa ciljna datoteka in zavrnitev uvoza v neprazno zbirko.
+- Izvorni demo SQLite še vedno šifrira **posamezne vsebine prek Windows DPAPI**, ne cele baze. `OfflineJournalSandbox` je še vedno nešifriran testni engine v začasni mapi; ni povezan z varnostnimi kopijami ali UI. **Ne uporabljaj realnih podatkov.**
+- `OFFLINE-02 #43` ostaja odprta za vzdrževano celostno šifriranje SQLite, pravilno avtentikacijo, podjetja/uporabnike, obnovitev resničnih podatkov in konformančne računovodske teste. `OFFLINE-03 #44` sinhronizacija še ni izvedena.
+- Podroben protokol: `docs/OFFLINE_02B_PORTABLE_DRAFT_RECOVERY.md`. Fizični GUI QA na Windows 11 in ločena obnova na drugem Windows uporabniku/računalniku **še nista potrjena**.
