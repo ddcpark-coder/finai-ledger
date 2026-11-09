@@ -100,9 +100,9 @@ internal sealed class LocalDraftStore
             var json = Unprotect((byte[])reader.GetValue(1));
             var stored = JsonSerializer.Deserialize<Draft>(json)
                          ?? throw new InvalidDataException("Corrupt local draft");
-            if (stored.Id != id)
-                throw new InvalidDataException("Local draft identifier mismatch");
-            var draft = stored with { UpdatedAt = reader.GetString(2) };
+            if (stored.Id != id || stored.UpdatedAt != reader.GetString(2))
+                throw new InvalidDataException("Local draft row integrity mismatch");
+            var draft = stored;
             PortableDraftBackup.ValidateDraft(draft);
             result.Add(draft);
         }
