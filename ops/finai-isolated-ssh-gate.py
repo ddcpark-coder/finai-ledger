@@ -65,6 +65,10 @@ def validate_name(raw):
         raise Denied("tar path traversal")
     if any(len(part) > 180 for part in parts):
         raise Denied("oversized tar path component")
+    if any(part.startswith(".") for part in parts):
+        raise Denied("hidden files or server configuration are forbidden")
+    if any(part.lower().endswith((".php", ".phtml", ".cgi", ".pl", ".py", ".sh", ".env", ".htaccess", ".htpasswd")) for part in parts):
+        raise Denied("executable or secret-bearing archive member forbidden")
     return Path(*parts)
 
 
@@ -182,6 +186,7 @@ def promote(digest, root):
 def main():
     user = pwd.getpwuid(os.getuid())
     home = Path(user.pw_dir)
+    os.umask(0o022)
     if os.getuid() == 0 or user.pw_name == "laskot48" or home.is_symlink():
         raise Denied("dedicated nonroot account is required")
     if Path(os.environ.get("HOME", "")).resolve() != home.resolve():
