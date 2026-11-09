@@ -23,11 +23,16 @@ internal sealed class EncryptedLedgerStore : IDisposable
     {
         internal EncryptedLedgerStore Owner { get; }
         internal string UserId { get; }
+        internal DateTimeOffset ExpiresAtUtc { get; }
+        internal bool Revoked { get; private set; }
         internal Session(EncryptedLedgerStore owner, string userId)
         {
             Owner = owner;
             UserId = userId;
+            ExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(15);
         }
+        public void Revoke() => Revoked = true;
+        internal bool IsActive => !Revoked && DateTimeOffset.UtcNow < ExpiresAtUtc;
     }
 
     private static readonly byte[] Entropy =
@@ -343,8 +348,9 @@ internal sealed class EncryptedLedgerStore : IDisposable
                                bool write)
     {
         companyId = ValidateUuid(companyId);
-        if (disposed || !ReferenceEquals(session.Owner, this))
-            throw new UnauthorizedAccessException("Invalid local session");
+        if (session is null || !session.IsActive || disposed ||
+            !ReferenceEquals(session.Owner, this))
+            throw new UnauthorizedAccessException("Expired, revoked or invalid local session");
         using var cmd = db.CreateCommand();
         cmd.CommandText = """
             SELECT role FROM memberships
@@ -362,8 +368,9 @@ internal sealed class EncryptedLedgerStore : IDisposable
     {
         if (string.IsNullOrWhiteSpace(label) || label.Length > 100)
             throw new ArgumentException("Invalid synthetic company");
-        if (disposed || !ReferenceEquals(admin.Owner, this))
-            throw new UnauthorizedAccessException("Invalid local session");
+        if (admin is null || !admin.IsActive || disposed ||
+            !ReferenceEquals(admin.Owner, this))
+            throw new UnauthorizedAccessException("Expired, revoked or invalid local session");
         var companyId = Guid.NewGuid().ToString("D");
         using var db = OpenDb();
         using var tx = db.BeginTransaction();
@@ -631,6 +638,129 @@ internal sealed class EncryptedLedgerStore : IDisposable
         while (reader.Read())
             result.Add(new Line(reader.GetString(0), reader.GetInt64(1), reader.GetInt64(2)));
         return result;
+    }
+
+    /// <summary>
+    /// Capture a consistent, ENCRYPTED SQLite database snapshot while the local
+    /// journal is exclusively locked. No raw SQL plaintext or key leaves memory
+    /// except to the password-protected portable backup builder.
+    /// </summary>
+    internal (byte[] CipherDatabase, byte[] Key) CaptureCipherSnapshot(int maxBytes)
+    {
+        if (maxBytes < 4096 || maxBytes > 64 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        using var db = OpenDb();
+        using (var acquire = db.CreateCommand())
+        {
+            acquire.CommandText = "BEGIN EXCLUSIVE;";
+            acquire.ExecuteNonQuery();
+        }
+        try
+        {
+            CheckHealth(db);
+            var size = new FileInfo(databasePath).Length;
+            if (size < 4096 || size > maxBytes)
+                throw new InvalidDataException("Encrypted database backup exceeds allowed size");
+            var file = File.ReadAllBytes(databasePath);
+            if (file.Length != size ||
+                file.AsSpan(0, 16).SequenceEqual("SQLite format 3\\0"u8))
+                throw new InvalidDataException("Database snapshot is invalid or plaintext");
+            return (file, (byte[])databaseKey.Clone());
+        }
+        finally
+        {
+            using var release = db.CreateCommand();
+            release.CommandText = "ROLLBACK;";
+            release.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>Validates cipher, referential integrity and all local audit chains.</summary>
+    public bool VerifyRecoveryIntegrity()
+    {
+        using var db = OpenDb();
+        return CheckHealth(db);
+    }
+
+    private bool CheckHealth(SqliteConnection db)
+    {
+        using (var integrity = db.CreateCommand())
+        {
+            integrity.CommandText = "PRAGMA quick_check;";
+            if ((string?)integrity.ExecuteScalar() != "ok")
+                throw new InvalidDataException("SQLite encrypted database integrity failure");
+        }
+        using (var keys = db.CreateCommand())
+        {
+            keys.CommandText = "PRAGMA foreign_key_check;";
+            using var reader = keys.ExecuteReader();
+            if (reader.Read()) throw new InvalidDataException("Foreign key integrity failure");
+        }
+
+        using var companies = db.CreateCommand();
+        companies.CommandText = "SELECT company_id FROM companies ORDER BY company_id;";
+        var ids = new List<string>();
+        using (var reader = companies.ExecuteReader())
+            while (reader.Read()) ids.Add(reader.GetString(0));
+        foreach (var company in ids)
+        {
+            using var audit = db.CreateCommand();
+            audit.CommandText = """
+                SELECT actor_user_id,action,subject_id,created_utc,prev_mac,chain_mac
+                FROM audit_events WHERE company_id=$company ORDER BY event_id;
+                """;
+            audit.Parameters.AddWithValue("$company", company);
+            using var reader = audit.ExecuteReader();
+            var previous = new string('0', 64);
+            while (reader.Read())
+            {
+                var got = reader.GetString(5);
+                var expected = ComputeMac(company, reader.GetString(0), reader.GetString(1),
+                    reader.GetString(2), reader.GetString(3), previous);
+                if (reader.GetString(4) != previous ||
+                    !CryptographicOperations.FixedTimeEquals(
+                        Convert.FromHexString(got), Convert.FromHexString(expected)))
+                    throw new InvalidDataException("Local audit integrity failure");
+                previous = got;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Internal restore path: no existing target data. The only caller is the
+    /// fully authenticated portable recovery; the recovered key is wrapped with
+    /// Windows DPAPI for the NEW local user profile.
+    /// </summary>
+    internal static void StageRecoveredCipher(string emptyStagingDirectory,
+                                               byte[] encryptedDatabase, byte[] cipherKey)
+    {
+        if (!Directory.Exists(emptyStagingDirectory) ||
+            Directory.EnumerateFileSystemEntries(emptyStagingDirectory).Any() ||
+            cipherKey.Length != 32 || encryptedDatabase.Length < 4096 ||
+            encryptedDatabase.AsSpan(0, 16).SequenceEqual("SQLite format 3\\0"u8))
+            throw new InvalidDataException("Unsafe encrypted recovery staging directory");
+        var wrapped = ProtectedData.Protect(cipherKey, Entropy,
+            DataProtectionScope.CurrentUser);
+        try
+        {
+            using (var db = new FileStream(Path.Combine(emptyStagingDirectory, "secure-ledger.db"),
+                FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            {
+                db.Write(encryptedDatabase);
+                db.Flush(flushToDisk: true);
+            }
+            using (var key = new FileStream(Path.Combine(emptyStagingDirectory, "secure-ledger.key"),
+                FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            {
+                key.Write(wrapped);
+                key.Flush(flushToDisk: true);
+            }
+        }
+        finally { CryptographicOperations.ZeroMemory(wrapped); }
+        using var verified = OpenExisting(emptyStagingDirectory);
+        if (!verified.VerifyRecoveryIntegrity())
+            throw new InvalidDataException("Recovered database failed integrity checks");
     }
 
     public void Dispose()
