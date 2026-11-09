@@ -44,6 +44,18 @@ internal static class Program
             }
         }
 
+        if (args.Length == 1 && args[0] == "--encrypted-ledger-self-test")
+        {
+            try
+            {
+                return EncryptedLedgerStore.SelfTest() ? 0 : 7;
+            }
+            catch (Exception)
+            {
+                return 8; // No private key material or local paths in output.
+            }
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
