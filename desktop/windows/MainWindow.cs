@@ -41,18 +41,34 @@ internal sealed class MainWindow : Form
         BackColor = Color.FromArgb(7, 17, 29);
         ForeColor = Color.White;
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 3, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 5, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95f));
         var brand = new Label { Dock = DockStyle.Fill, Text = "e-integrator  /  FinAI", TextAlign = ContentAlignment.MiddleLeft,
             Font = new Font("Segoe UI", 12f, FontStyle.Bold), ForeColor = Color.FromArgb(122, 236, 216) };
         var refresh = new Button { Text = "Osveži", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
             BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White };
         refresh.Click += (_, _) => browser.CoreWebView2?.Navigate(LocalStart);
+        var export = new Button
+        {
+            Text = "Shrani kopijo", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White
+        };
+        var restore = new Button
+        {
+            Text = "Obnovi kopijo", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White
+        };
+        export.Click += (_, _) => ExportDrafts();
+        restore.Click += (_, _) => RestoreDrafts();
         top.Controls.Add(brand, 0, 0);
         top.Controls.Add(status, 1, 0);
-        top.Controls.Add(refresh, 2, 0);
+        top.Controls.Add(export, 2, 0);
+        top.Controls.Add(restore, 3, 0);
+        top.Controls.Add(refresh, 4, 0);
 
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
@@ -61,6 +77,88 @@ internal sealed class MainWindow : Form
         layout.Controls.Add(browser, 0, 1);
         Controls.Add(layout);
         Shown += async (_, _) => await InitializeAsync();
+    }
+
+    // Native-only operations: the passphrase and filesystem picker are never
+    // available to WebView2 scripts or through the narrow draft message bridge.
+    // This remains a synthetic-draft QA feature, NOT a general database backup.
+    private void ExportDrafts()
+    {
+        using var picker = new SaveFileDialog
+        {
+            Title = "Shrani šifrirano kopijo testnih osnutkov",
+            Filter = "FinAI šifrirana kopija (*.finai)|*.finai",
+            DefaultExt = "finai",
+            AddExtension = true,
+            OverwritePrompt = false,
+            CheckPathExists = true,
+            FileName = "FinAI-osnutki-" + DateTime.Now.ToString("yyyyMMdd-HHmm") + ".finai"
+        };
+        if (picker.ShowDialog(this) != DialogResult.OK) return;
+        using var phrase = new RecoveryPhraseDialog(confirm: true);
+        if (phrase.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            PortableDraftBackup.Export(drafts, picker.FileName, phrase.Passphrase);
+            status.Text = "Šifrirana testna kopija je shranjena lokalno.";
+            MessageBox.Show(this,
+                "Kopija testnih osnutkov je ustvarjena. Frazo shrani ločeno, brez nje kopije ni mogoče obnoviti. " +
+                "Pravih računovodskih podatkov v tej različici še ne uporabljaj.",
+                "Kopija ustvarjena", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(this,
+                "Kopije ni bilo mogoče varno ustvariti. Obstoječa datoteka ni bila prepisana.",
+                "Izvoz ni uspel", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void RestoreDrafts()
+    {
+        try
+        {
+            if (drafts.List().Count != 0)
+            {
+                MessageBox.Show(this,
+                    "Obnova je dovoljena samo v popolnoma prazno lokalno zbirko. " +
+                    "Obstoječih osnutkov ne bomo prepisali ali združevali.",
+                    "Zaščita obstoječih osnutkov", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(this, "Stanja lokalne zbirke ni bilo mogoče preveriti.",
+                "Obnova ni na voljo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        using var picker = new OpenFileDialog
+        {
+            Title = "Izberi šifrirano kopijo testnih osnutkov",
+            Filter = "FinAI šifrirana kopija (*.finai)|*.finai",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        if (picker.ShowDialog(this) != DialogResult.OK) return;
+        using var phrase = new RecoveryPhraseDialog(confirm: false);
+        if (phrase.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            PortableDraftBackup.ImportIntoEmpty(drafts, picker.FileName, phrase.Passphrase);
+            status.Text = "Testni osnutki so bili obnovljeni iz lokalne kopije.";
+            browser.CoreWebView2?.Navigate(LocalStart);
+            MessageBox.Show(this,
+                "Lokalna obnovitev je uspela. Šifriranje je prilagojeno trenutnemu uporabniku Windows.",
+                "Obnova zaključena", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(this,
+                "Obnova ni uspela. Kopija je morda poškodovana, geslo napačno ali zbirka ni prazna. " +
+                "Obstoječi zapisi niso bili prepisani.",
+                "Obnova zavrnjena", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private static bool IsLocalOrigin(string? value)
