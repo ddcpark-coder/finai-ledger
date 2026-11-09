@@ -91,6 +91,9 @@ jobs:
           & dist/windows/EIntegrator.Desktop.exe --encrypted-ledger-self-test
           if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02C encrypted SQLite, local auth and tenant gate failed, code $LASTEXITCODE" }
           Write-Output 'FINAI_OFFLINE_ENCRYPTED_SQLITE3MC_LEDGER=PASS'
+          & dist/windows/EIntegrator.Desktop.exe --ledger-recovery-self-test
+          if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02D full encrypted ledger backup/recovery rejected, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_LEDGER_RECOVERY=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Acquire Microsoft offline WebView2 runtime and verify its signature
