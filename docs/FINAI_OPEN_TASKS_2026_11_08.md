@@ -97,3 +97,14 @@ Uporabnik je potrdil: **skupni Hiper M račun `laskot48` ostane v uporabi ves č
 - `laskot48` → **izključno FinAI read-only** pregledi prek že omejenega varovala, brez novih pisalnih SSH ključev, sprememb cPanela, DNS, PHP, MariaDB, varnostnih kopij ali javnih datotek.
 - Hiper M avtomatski staging/produkcija (`FINAI_STAGE_ENABLED`, `FINAI_PRODUCTION_ENABLED`) ostaja **izključena** do ločenega in preverjenega FinAI računa. Njegova vzpostavitev je **predprodukcijski mejnik**, ne ponavljajoča se zahteva pred nadaljnjim razvojem.
 - Laškoteka in STNG ostaneta popolnoma nespremenjeni; projektna pravila so po navedbi uporabnika že shranjena v ChatGPT Project.
+
+
+## 9. 11. 2026 – VISUAL-QA-01: prvi neposredni pregled uporabniškega vmesnika
+
+- [PR #55](https://github.com/ddcpark-coder/finai-ledger/pull/55) združen v `main`, commit `9840e867280aa0ef9ccffe7bf7cfeecd91865983`.
+- [Browser QA run 42597456158](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42597456158): **PASS** na desktopu in mobilnem prikazu. Artefakt `finai-visual-qa-desktop-mobile` vsebuje posnetke osnovnega zaslona ter obrazca za pripombe; 7 dni hrambe.
+- [Frontend/Windows QA run 42597456218](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42597456218): statični spletni build PASS, Windows offline build PASS. Artefakt `eintegrator-desktop-win-x64-unsigned-review` je namenjen izključno notranjemu preizkusu, ne realnim podatkom.
+- Dodani sta jasna oznaka `DEMONSTRACIJSKA IZDAJA` in možnost **»Pripomba o zaslonu«**, ki lokalno pripravi kopirljivo besedilo s kontekstom modula, podpogleda, teme in gostote. Ni pošiljanja pripomb na strežnik.
+- V FinAI zaščitenem razvojnem predogledu na Vercelu je READY izdaja veje `ux-visual-qa-review-01`, SHA `293b815588418518271c5a667ec034e51d47aa9b`, URL `https://finai-ledger-camud3n09-c-park117.vercel.app/`. **To ni produkcija in ni povezano z app.e-integrator.si.**
+- Bralni javni pregled Hiper M: `https://e-integrator.si/` prikazuje **predstavitveno stran z izmišljenimi podatki** in `noindex,nofollow,noarchive`. `app.e-integrator.si` ni potrjeno dosegljiva. Objave na skupni račun `laskot48` zaradi absolutne prepovedi pisalnih posegov v shared/Laškoteka okolje **ni bilo**.
+- Navodila za UX testiranje: `docs/FINAI_VISUAL_QA_01.md`. Pošljite pripombe iz vmesnika ali posnetke konkretnega modula. Nič ni bilo spremenjeno na Hiper M, Laškoteki, STNG, DNS ali SSH.
