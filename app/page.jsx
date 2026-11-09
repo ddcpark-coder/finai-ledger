@@ -117,6 +117,21 @@ rows:[
 };
 
 const css=`
+.demoBanner{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:13px 16px;margin:0 0 19px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:13px;background:linear-gradient(100deg,color-mix(in srgb,var(--accent) 10%,var(--panel)),var(--panel2))}
+.demoBanner strong{display:block;color:var(--accent);font-size:11px;letter-spacing:.045em;margin-bottom:3px}.demoBanner p{margin:0;color:var(--muted);font-size:11px;line-height:1.55}
+.demoBanner button{white-space:nowrap;border:1px solid var(--accent);color:var(--accent);background:transparent;padding:10px 13px;border-radius:10px;font-size:11px;font-weight:800}
+.demoBanner button:hover,.qaActions button:hover{filter:brightness(1.12)}
+.qaBackdrop{position:fixed;inset:0;z-index:110;background:#030914c7;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+.qaDialog{width:min(560px,100%);max-height:93vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 20px 80px #0007}
+.qaDialog h2{font-size:21px;letter-spacing:-.03em;margin:0 0 6px}.qaDialog p{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 17px}
+.qaDialog label{font-size:12px;font-weight:800;display:block;margin-bottom:8px}.qaDialog textarea{width:100%;min-height:126px;resize:vertical;padding:13px;font:inherit;font-size:13px;line-height:1.5;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--text)}
+.qaDialog textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.qaReport{font-size:11px!important;min-height:114px!important;color:var(--muted)!important;white-space:pre-wrap}
+.qaActions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.qaActions button{border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);padding:11px 15px;font-size:12px;font-weight:800}
+.qaActions .qaPrimary{color:var(--bg);background:var(--accent);border-color:var(--accent)}
+.qaStatus{font-size:12px;color:var(--accent);min-height:24px;padding-top:9px}
+@media(max-width:700px){.demoBanner{flex-direction:column;align-items:stretch}.demoBanner button{width:100%}.qaDialog{padding:18px}.qaActions{flex-direction:column}.qaActions button{width:100%}}
+
 .contextQuickAccess{display:flex;gap:7px;align-items:center;min-width:0;flex-wrap:wrap;margin:-3px 0 12px}
 .contextQuickAction,.contextFavorite{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:9px;min-height:32px;padding:6px 10px;font-size:9px;font-weight:700}
 .contextQuickAction:hover,.contextFavorite:hover{color:var(--text);border-color:var(--accent)}
@@ -343,6 +358,25 @@ export default function Page(){
  const [dragId,setDragId]=useState(null);
  const [twoFactor,setTwoFactor]=useState(true);
  const [userPanel,setUserPanel]=useState(false);
+ const [qaOpen,setQaOpen]=useState(false);
+ const [qaNote,setQaNote]=useState("");
+ const [qaStatus,setQaStatus]=useState("");
+ const qaContext=[
+   "FinAI – vizualni pregled (izključno demonstracija)",
+   "Modul: "+section,
+   "Podpogled: "+(contextLevel2??"Pregled")+" / "+(contextLevel3??"—"),
+   "Tema: "+(light?"svetla":"temna"),
+   "Gostota: "+(compact?"kompaktna":"udobna"),
+   "Pripomba: "+(qaNote.trim()||"(ni vnesena)")
+ ].join("\n");
+ const copyQaReport=async()=>{
+   try{
+     await navigator.clipboard.writeText(qaContext);
+     setQaStatus("Pripomba je kopirana. Prilepi jo v klepet FinAI.");
+   }catch{
+     setQaStatus("Samodejno kopiranje ni uspelo. Označi in kopiraj besedilo spodaj.");
+   }
+ };
  const moduleDescriptions={
    "Artikli in ceniki":"Artikli, storitve, ceniki in povezave z dobavitelji.",
    "CRM":"Prodajni odnosi, priložnosti in aktivnosti.",
@@ -407,13 +441,17 @@ export default function Page(){
            <select className="companySwitch" value={company} onChange={e=>setCompany(Number(e.target.value))}>{companies.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
            <button className="themeBtn" onClick={()=>setLight(v=>!v)}>{light?"☾":"☀"}</button>
            <button className="iconBtn">♢</button>
-           <button className="userBtn" onClick={()=>setUserPanel(v=>!v)}>DD</button>
+           <button className="userBtn" title="Testni uporabnik" onClick={()=>setUserPanel(v=>!v)}>TU</button>
          </div>
        </div>
        <ContextNavigation moduleLabel={section} level2={contextLevel2} onLevel2={navigateSubmodule} level3={contextLevel3} onLevel3={navigateSubview}/>
      </header>
 
      <main className="content">
+       <div className="demoBanner" role="note" aria-label="Status demonstracijske izdaje">
+         <div><strong>● FINAI · DEMONSTRACIJSKA IZDAJA</strong><p>Vsi prikazani zneski in poslovni zapisi so sintetični. Gumbi so namenjeni vizualnemu in funkcionalnemu preizkusu; resnično knjiženje, FURS in pošiljanje računov niso aktivirani.</p></div>
+         <button type="button" onClick={()=>{setQaOpen(true);setQaStatus("");}}>✎ Pripomba o zaslonu</button>
+       </div>
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
          <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button>{current.rows.length>0&&<button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button>}</div>
@@ -499,7 +537,19 @@ export default function Page(){
      </main>
    </section>
 
-   {userPanel&&<div className="userPopover"><b>Dalibor Draškovič</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{navigateSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
+   {qaOpen&&<div className="qaBackdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setQaOpen(false)}}>
+      <section className="qaDialog" role="dialog" aria-modal="true" aria-labelledby="qa-title">
+        <h2 id="qa-title">Pripomba k izbranemu zaslonu</h2>
+        <p>Opiši spremembo, ki jo želiš. Modul, podpogled, tema in gostota prikaza se dodajo samodejno. Podatkov ne pošiljamo na strežnik — poročilo kopiraš in prilepiš v klepet.</p>
+        <label htmlFor="qa-note">Kaj želiš spremeniti?</label>
+        <textarea id="qa-note" autoFocus value={qaNote} onChange={e=>{setQaNote(e.target.value);setQaStatus("");}} maxLength={1500} placeholder="Npr. povečaj razmik med karticami, poudari glavni gumb, zamenjaj vrstni red zavihkov ..." />
+        <label htmlFor="qa-report" style={{marginTop:16}}>Predogled poročila</label>
+        <textarea id="qa-report" className="qaReport" readOnly value={qaContext} onFocus={e=>e.target.select()}/>
+        <div className="qaStatus" role="status">{qaStatus}</div>
+        <div className="qaActions"><button type="button" onClick={()=>setQaOpen(false)}>Zapri</button><button type="button" className="qaPrimary" onClick={copyQaReport}>⧉ Kopiraj za ChatGPT</button></div>
+      </section>
+    </div>}
+   {userPanel&&<div className="userPopover"><b>Testni uporabnik</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{navigateSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
 
    <div className={"drawer "+(drawer?"open":"")}>
      <div className="drawerHead"><div><small style={{color:"var(--accent)",fontWeight:800}}>KONTEKSTNI PREDAL</small><h3>{drawer?.[0]||"Podrobnosti"}</h3></div><button className="drawerClose" onClick={()=>setDrawer(null)}>×</button></div>
