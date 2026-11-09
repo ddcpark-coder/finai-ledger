@@ -66,3 +66,13 @@ Nobene produkcijske spremembe na Laškoteki, `public_html`, MariaDB ali DNS drug
 - Izvorni demo SQLite še vedno šifrira **posamezne vsebine prek Windows DPAPI**, ne cele baze. `OfflineJournalSandbox` je še vedno nešifriran testni engine v začasni mapi; ni povezan z varnostnimi kopijami ali UI. **Ne uporabljaj realnih podatkov.**
 - `OFFLINE-02 #43` ostaja odprta za vzdrževano celostno šifriranje SQLite, pravilno avtentikacijo, podjetja/uporabnike, obnovitev resničnih podatkov in konformančne računovodske teste. `OFFLINE-03 #44` sinhronizacija še ni izvedena.
 - Podroben protokol: `docs/OFFLINE_02B_PORTABLE_DRAFT_RECOVERY.md`. Fizični GUI QA na Windows 11 in ločena obnova na drugem Windows uporabniku/računalniku **še nista potrjena**.
+
+
+## 9. 11. 2026 – OFFLINE-02C: šifrirana lokalna testna računovodska baza
+
+- [PR #50](https://github.com/ddcpark-coder/finai-ledger/pull/50) **združen v main**, commit `92a907869e6f6ce85f328e7a6f7775a1625d375a`.
+- [Windows CI run 42583450455](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42583450455): **static-web PASS in windows-desktop PASS**, vključno z `FINAI_OFFLINE_ENCRYPTED_SQLITE3MC_LEDGER=PASS`.
+- Nova `EncryptedLedgerStore.cs` je **ločena od stare testne journal-sandbox.db**. Uporablja vzdrževano `SQLite3MC.PCLRaw.bundle 2.6.1` in `Microsoft.Data.Sqlite.Core`, ne zastarelega paketa SQLCipher. Shranjevanje celotne datoteke SQLite je šifrirano; naključen 256-bitni ključ je zaščiten z DPAPI `CurrentUser`.
+- Lokalna prijava (salt+PBKDF2), tri vloge po podjetjih, strogo zavračanje dostopa do tujih podjetij, testno dvostavno knjiženje in veriga integritete revizijskih dogodkov so pokriti z avtomatiziranimi sintetičnimi testi.
+- **Ne dovoljuje še pravih osebnih/finančnih podatkov**, ni povezano z UI. Opozorilo: lokalna DPAPI zaščita ne omogoča prenosa ključa v drug profil, ni še celovite varne obnovitve, upravljanja sej, revokacije ali podatkovne/kripto revizije.
+- Naslednja prednostna naloga [OFFLINE-02D #51](https://github.com/ddcpark-coder/finai-ledger/issues/51): prenosni backup/restore celotne šifrirane baze, obnovitev po izgubi Windows profila in utrditev lokalne prijave. `OFFLINE-02 #43` ostane odprta.
