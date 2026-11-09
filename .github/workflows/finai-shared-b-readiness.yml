@@ -1,0 +1,41 @@
+name: FinAI shared-account B readiness (read-only, no host deploy)
+
+on:
+  pull_request:
+    paths:
+      - "ops/finai-shared-account-readonly-preflight.py"
+      - "tests/test_finai_shared_account_readiness.py"
+      - "docs/FINAI_SHARED_B_TESTING_PLAN.md"
+      - ".github/workflows/finai-shared-b-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Shared UID risk and path denial – synthetic only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate non-mutating path inspector and synthetic permission boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m py_compile ops/finai-shared-account-readonly-preflight.py
+          python3 -B -m unittest discover -s tests -p 'test_finai_shared_account_readiness.py' -v
+          echo 'FINAI_SHARED_B_SYNTHETIC_TESTS=PASS'
+      - name: Verify GitHub runner cannot approve writes on shared Hiper M
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B ops/finai-shared-account-readonly-preflight.py > "$RUNNER_TEMP/finai-shared-preflight.txt"
+          grep -Fxq 'mode=READ_ONLY' "$RUNNER_TEMP/finai-shared-preflight.txt"
+          grep -Fxq 'account=not_shared_account' "$RUNNER_TEMP/finai-shared-preflight.txt"
+          grep -Fxq 'finai_ssh_write=BLOCKED' "$RUNNER_TEMP/finai-shared-preflight.txt"
+          grep -Fxq 'result=NO_GO_SHARED_ACCOUNT_WRITE' "$RUNNER_TEMP/finai-shared-preflight.txt"
+          echo 'FINAI_SHARED_HOST_WRITES=NOT_PERMITTED'
+          echo 'FINAI_TESTING_WITHOUT_REMOTE_WRITES=PASS'
