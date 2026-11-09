@@ -14,7 +14,7 @@ import re
 import ssl
 import sys
 
-HOST = "hcp-30.controlpanel.si"
+HOST = "ftp.laskoteka.si"
 USER_RE = re.compile(r"^finai[-a-z0-9_.]{1,50}@e-integrator\.si$")
 MAX_PATH = 300
 
