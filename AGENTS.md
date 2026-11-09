@@ -8,6 +8,29 @@ These rules apply to EVERY FinAI chat, ChatGPT Work run, Codex agent, GitHub Act
 
 The shared Hiper M operating-system account `laskot48` also hosts Laškoteka and STNG. **There must be NO FinAI production write automation, arbitrary shell key or widened SSH access on that account.** Existing `finai:status:v1`/`finai:audit:v1` restricted SSH read-only operations are grandfathered for inspection only; do not replace or widen those keys.
 
+## Temporary B: common physical hosting, no shared-account write authority
+
+**Proposed clarification for development only; NOT an SSH authorization:** FinAI may
+be developed and visually tested while other sites operate on the same physical
+Hiper M server and under the same hosting subscription. This does not make
+the shared `laskot48` OS/cPanel identity safe for FinAI write automation.
+
+- The shared `laskot48` account remains **FinAI read-only**. Do not install,
+  replace or widen any SSH keys or `authorized_keys` there.
+- Different domain names, SQL database users, document roots, `chmod 700`,
+  and forced-command scripts do **not** form an independent Unix permission
+  boundary for processes that all run with the same UID.
+- Before any FinAI host writes, require a provider-verified separate effective
+  OS account and independent permissions, even when hosted on the same
+  physical Hiper M server. Otherwise perform development, compilation,
+  isolated synthetic tests and GitHub PRs only.
+- Production-grade migration and handling of real data remain separately
+  gated. Never touch Laškoteka or STNG in any case.
+
+The complete proposed Project instructions are in
+`docs/FINAI_PROJECT_RULES_TEMP_B_PROPOSAL.md`. This draft does not change
+the existing ChatGPT Project settings or authorize a deployment.
+
 ## FinAI isolation and architecture
 
 - FinAI production target is **Hiper M**, on its own **separate cPanel/OS account** with isolated database, files, domain roots, users, SSH identities, logs, backups and rollback. Vercel is never production.
