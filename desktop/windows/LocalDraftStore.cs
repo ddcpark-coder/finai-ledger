@@ -79,6 +79,79 @@ internal sealed class LocalDraftStore
         return result;
     }
 
+    // OFFLINE-02B: backup and restore are deliberately not exposed to web content.
+    // A single SQLite SELECT provides a consistent committed snapshot of ALL rows,
+    // not the first 100 visible in the demo UI. Exceeding the cap fails closed.
+    internal List<Draft> SnapshotForPortableBackup()
+    {
+        using var db = Open();
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = """
+            SELECT id, encrypted_payload, updated_at
+            FROM offline_drafts ORDER BY id LIMIT 1001;
+            """;
+        using var reader = cmd.ExecuteReader();
+        var result = new List<Draft>();
+        while (reader.Read())
+        {
+            if (result.Count >= 1000)
+                throw new InvalidDataException("Draft backup limit exceeded");
+            var id = reader.GetString(0);
+            var json = Unprotect((byte[])reader.GetValue(1));
+            var stored = JsonSerializer.Deserialize<Draft>(json)
+                         ?? throw new InvalidDataException("Corrupt local draft");
+            if (stored.Id != id)
+                throw new InvalidDataException("Local draft identifier mismatch");
+            var draft = stored with { UpdatedAt = reader.GetString(2) };
+            PortableDraftBackup.ValidateDraft(draft);
+            result.Add(draft);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Atomic fail-closed restore: no replacement or merging into an existing
+    /// nonempty database. The caller MUST authenticate and validate the full
+    /// portable backup before invoking this method.
+    /// </summary>
+    internal void RestoreIntoEmptyStore(IReadOnlyList<Draft> drafts)
+    {
+        if (drafts.Count > 1000)
+            throw new InvalidDataException("Draft restore limit exceeded");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var draft in drafts)
+        {
+            PortableDraftBackup.ValidateDraft(draft);
+            if (!seen.Add(draft.Id))
+                throw new InvalidDataException("Duplicate draft identifier");
+        }
+
+        using var db = Open();
+        using var tx = db.BeginTransaction();
+        using (var existing = db.CreateCommand())
+        {
+            existing.Transaction = tx;
+            existing.CommandText = "SELECT EXISTS(SELECT 1 FROM offline_drafts LIMIT 1);";
+            if (Convert.ToInt64(existing.ExecuteScalar()) != 0)
+                throw new InvalidOperationException("Restore requires an empty destination");
+        }
+        foreach (var draft in drafts)
+        {
+            using var cmd = db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                INSERT INTO offline_drafts(id,encrypted_payload,updated_at)
+                VALUES($id,$payload,$updated);
+                """;
+            cmd.Parameters.AddWithValue("$id", draft.Id);
+            cmd.Parameters.AddWithValue("$payload", Protect(JsonSerializer.Serialize(draft)));
+            cmd.Parameters.AddWithValue("$updated", draft.UpdatedAt);
+            if (cmd.ExecuteNonQuery() != 1)
+                throw new IOException("Local draft restore failed");
+        }
+        tx.Commit();
+    }
+
     public Draft Save(string title, string note)
     {
         title = title.Trim();
