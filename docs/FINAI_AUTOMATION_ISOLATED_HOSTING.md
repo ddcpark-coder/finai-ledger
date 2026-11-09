@@ -6,6 +6,14 @@
 
 Dokler račun `laskot48` gosti Laškoteko, **ne sme dobiti novega FinAI ključa s pisalnimi pooblastili**, splošnega SSH ukaza ali pisalnega samodejnega deploya. Obstoječa varovana FinAI SSH povezava na tem računu ostane samo za read-only preglede.
 
+## Potrjena časovnica računa Hiper M (9. 11. 2026)
+
+Uporabnik je izrecno potrdil, da **ves čas razvoja in testiranja ostane na voljo samo skupni račun `laskot48`**. Ločen Hiper M račun za FinAI se vzpostavi **pred javno produkcijo**, ne kot predpogoj za nadaljnji razvoj. Ne zahtevaj njegovega odpiranja pri vsaki naslednji razvojni nalogi.
+
+**Dovoljena razvojna pot do takrat:** ločene GitHub veje, avtomatski testi na GitHub-hosted runnerjih z lastno začasno testno podatkovno bazo, pregled in združevanje, statični build artefakti, interno preizkušanje Windows offline namestitve, lokalni Laravel razvoj in sintetični podatki. Na skupnem računu FinAI izvaja samo dovoljeni read-only status/preflight, brez nameščanja novih ključev, DNS sprememb ali FinAI staging/produkcyjskih zapisov.
+
+**Blokirano samo do predprodukcijske ločitve:** oddaljeni SSH stage/deploy, Laravel migracije na Hiper M, aktiviranje javnih `app`/`api` poddomen ter produkcijski preklop. Razvoj in CI se ne ustavita. Ločen račun se varnostno preveri in namenska SSH povezava enkratno vzpostavi v prehodu v javno produkcijo.
+
 ## Ločitev FinAI – načrt in implementacija
 
 | Sloj | Namen | Meja |
@@ -39,7 +47,7 @@ Načelo je enako uporabljenemu pri STNG (izdaje / current / obnovitev / GitHub A
 
 ## Enkratni predpogoji
 
-**1. Izoliran račun Hiper M.** Uporabnik mora pri Hiper M pridobiti neodvisen cPanel/OS račun za FinAI. Pred vklopom je treba z read-only preflightom potrditi, da se ne deli z Laškoteko ali STNG, in da sta e-integrator.si / app / api pravilno vezana. Dokler tega ni, sta dovoljena samo razvoj in GitHub CI.
+**1. Izoliran račun Hiper M — šele pred javno produkcijo.** Do takrat ostane skupni račun `laskot48` nespremenjen in read-only za FinAI. Pred javno produkcijo uporabnik pri Hiper M pridobi neodvisen cPanel/OS račun za FinAI. Pred vklopom je treba z read-only preflightom potrditi, da se ne deli z Laškoteko ali STNG, in da sta e-integrator.si / app / api pravilno vezana. Dokler tega ni, sta dovoljena samo razvoj in GitHub CI.
 
 **2. Nov SSH ključ.** Ustvari lasten FinAI Ed25519 par. Zasebni ključ shrani samo v GitHub environment secret `FINAI_DEPLOY_SSH_PRIVATE_KEY`, javni ključ namesti samo v ločenem računu z `ops/finai-isolated-install-key.sh`. Ne uporabljaj obstoječih ključev iz drugih projektov. Navodilo ne od uporabnika ne od agenta nikoli ne zahteva objave zasebnega ključa v klepetu.
 
