@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -B -m py_compile ops/finai-shared-account-readonly-preflight.py
+          python3 -B -c "import ast,pathlib; ast.parse(pathlib.Path('ops/finai-shared-account-readonly-preflight.py').read_text())"
           python3 -B -m unittest discover -s tests -p 'test_finai_shared_account_readiness.py' -v
           echo 'FINAI_SHARED_B_SYNTHETIC_TESTS=PASS'
       - name: Verify GitHub runner cannot approve writes on shared Hiper M
