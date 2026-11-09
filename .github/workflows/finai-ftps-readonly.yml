@@ -1,0 +1,63 @@
+name: FinAI Hiper M FTPS jailed-account capability (read-only)
+
+on:
+  pull_request:
+    paths:
+      - "ops/finai-ftps-readonly-capability.py"
+      - "tests/test_finai_ftps_readonly_capability.py"
+      - "docs/FINAI_FTPS_AUTODEPLOY_PATH.md"
+      - ".github/workflows/finai-ftps-readonly.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ops/finai-ftps-readonly-capability.py"
+      - "tests/test_finai_ftps_readonly_capability.py"
+      - ".github/workflows/finai-ftps-readonly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-boundary:
+    name: Validate FTPS restricted-client behavior with no network
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Synthetic tests only
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s tests -p 'test_finai_ftps_readonly_capability.py' -v
+          python3 -B ops/finai-ftps-readonly-capability.py | grep -Fx 'FINAI_REMOTE_UPLOAD=DISABLED'
+          echo FINAI_FTPS_CLIENT_SYNTHETIC_PASS
+
+  protected-readonly-probe:
+    name: Optional provider-configured FTPS root isolation check (read-only)
+    needs: synthetic-boundary
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'ddcpark-coder/finai-ledger' &&
+      github.ref == 'refs/heads/main' &&
+      vars.FINAI_FTPS_READONLY_PROBE_ENABLED == 'YES'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    environment: finai-ftps-readonly
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify TLS and preliminary virtual-root restrictions; NEVER upload
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          FINAI_FTPS_HOST: ${{ vars.FINAI_FTPS_HOST }}
+          FINAI_FTPS_USERNAME: ${{ vars.FINAI_FTPS_USERNAME }}
+          FINAI_FTPS_PORT: "21"
+          FINAI_FTPS_PASSWORD: ${{ secrets.FINAI_FTPS_PASSWORD }}
+          FINAI_FTPS_READONLY_PROBE_ENABLED: YES
+        run: |
+          python3 -B ops/finai-ftps-readonly-capability.py --remote-readonly
