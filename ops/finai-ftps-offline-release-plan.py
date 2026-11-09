@@ -42,6 +42,8 @@ def sha_file(path: Path) -> str:
 
 
 def validate_relative(raw: str, *, directory: bool = False) -> str:
+    if directory and raw in (".", "./"):
+        return ""
     if not isinstance(raw, str) or not raw or raw.startswith("/") or "\\" in raw or any(ord(ch) < 32 or ord(ch) == 127 for ch in raw):
         raise InvalidPlan("invalid archive path")
     # GNU tar uses './' at the start. Do not allow internal dot segments.
