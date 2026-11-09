@@ -8,6 +8,20 @@ These rules apply to EVERY FinAI chat, ChatGPT Work run, Codex agent, GitHub Act
 
 The shared Hiper M operating-system account `laskot48` also hosts Laškoteka and STNG. **There must be NO FinAI production write automation, arbitrary shell key or widened SSH access on that account.** Existing `finai:status:v1`/`finai:audit:v1` restricted SSH read-only operations are grandfathered for inspection only; do not replace or widen those keys.
 
+## Fast-track autonomous FinAI development
+
+Routine development of `ddcpark-coder/finai-ledger` is pre-authorized to reduce
+repetitive approvals: feature branches, code changes, CI workflows, targeted
+synthetic tests, PR reviews and merge to `main` after checks pass.
+Do not ask for permission again for ordinary FinAI-only repository changes.
+If a hosting operation is blocked, continue all independent permitted work.
+The protected UI preview can use synthetic data without production deployment.
+Never claim that passing GitHub CI equals a completed Hiper M deployment.
+
+This fast-track explicitly DOES NOT authorize any new keys, shared cPanel
+changes, or FinAI write operations on the shared `laskot48` account.
+The original absolute Laškoteka/STNG and OS isolation boundaries below remain.
+
 ## Temporary B: common physical hosting, no shared-account write authority
 
 **Approved temporary development policy, NOT an SSH authorization:** FinAI may

@@ -32,7 +32,7 @@ Uradna dokumentacija:
 | `tests/test_finai_ftps_readonly_capability.py` | Negativni testi z lažnim FTP strežnikom: neustrezen host, cPanel admin, traversal, manjkajoča skrivnost | Sintetično |
 | `.github/workflows/finai-ftps-readonly.yml` | Samodejno lokalni testi; dodatni `workflow_dispatch` remote read-only probe samo s posebnim GitHub environment | Brez deploya |
 
-Preverjevalnik sme uporabljati samo namensko prijavo `finai-…@e-integrator.si` do prej potrjenega FTP strežnika `hcp-30.controlpanel.si:21`. Golo SSH ime `laskot48` in drugi hosti se zavrnejo. GitHub secrets za FTP trenutno niso nameščeni, `FINAI_FTPS_READONLY_PROBE_ENABLED` ni aktiviran.
+Preverjevalnik sme uporabljati samo namensko prijavo `finai-…@e-integrator.si` do prej potrjenega FTP strežnika `ftp.laskoteka.si:21` (podatki iz cPanel *Configure FTP Client*, 10. 11. 2026). Golo SSH ime `laskot48` in drugi hosti se zavrnejo. Uporabnik je ustvaril `finai-deploy@e-integrator.si`; cPanel prikazuje oddaljeni FTP strežnik `ftp.laskoteka.si`, vrata 21 za FTP/explicit FTPS in imenik s končnico `incoming/ftps`. Celotna pot direktorija na posnetku ni vidna. **Sam obstoj računa in ponudnikova potrditev mapnega FTP dostopa še ne dokazujeta zahtevane sistemske izolacije.** GitHub secrets za FTP še niso potrjeni, `FINAI_FTPS_READONLY_PROBE_ENABLED` ni aktiviran.
 
 Tudi če je osnovni test `PWD/CWD` uspešen, izpiše **`FINAI_PROVIDER_ISOLATION_VERIFICATION=REQUIRED`**. Tak test ne dovoljuje pisalnih operacij.
 
