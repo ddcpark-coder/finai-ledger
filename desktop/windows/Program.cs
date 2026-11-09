@@ -56,6 +56,18 @@ internal static class Program
             }
         }
 
+        if (args.Length == 1 && args[0] == "--ledger-recovery-self-test")
+        {
+            try
+            {
+                return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 9;
+            }
+            catch (Exception)
+            {
+                return 10; // No plaintext, key material or paths in test output.
+            }
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
