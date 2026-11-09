@@ -76,3 +76,14 @@ Nobene produkcijske spremembe na Laškoteki, `public_html`, MariaDB ali DNS drug
 - Lokalna prijava (salt+PBKDF2), tri vloge po podjetjih, strogo zavračanje dostopa do tujih podjetij, testno dvostavno knjiženje in veriga integritete revizijskih dogodkov so pokriti z avtomatiziranimi sintetičnimi testi.
 - **Ne dovoljuje še pravih osebnih/finančnih podatkov**, ni povezano z UI. Opozorilo: lokalna DPAPI zaščita ne omogoča prenosa ključa v drug profil, ni še celovite varne obnovitve, upravljanja sej, revokacije ali podatkovne/kripto revizije.
 - Naslednja prednostna naloga [OFFLINE-02D #51](https://github.com/ddcpark-coder/finai-ledger/issues/51): prenosni backup/restore celotne šifrirane baze, obnovitev po izgubi Windows profila in utrditev lokalne prijave. `OFFLINE-02 #43` ostane odprta.
+
+
+## 9. 11. 2026 – OFFLINE-02D in ločena avtomatizacija FinAI
+
+- [PR #52](https://github.com/ddcpark-coder/finai-ledger/pull/52) je združen v glavno vejo: commit `8c799bb0743b7a7dfdeb5c0fb6a40bff6f6e7886`.
+- Windows Actions [42589859502](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42589859502): **static-web PASS**, **windows-desktop PASS**, `FINAI_OFFLINE_LEDGER_RECOVERY=PASS`. Poskusni encrypted SQLCipher3MC ledger je mogoče zaščiteno arhivirati z AES-GCM/PBKDF2, varno obnoviti v NOVO mapo, ponovno odpreti, preveriti knjižbo in revizijsko sled; testi napačne fraze, poškodbe, prepisovanja in preklica seje so uspešni. **Ni odobreno za realne podatke**; ostajajo fizični Windows QA, kriptografski pregled, cross-user restore, lastne finance/Slovenija.
+- Isolated SSH Actions [42589859595](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42589859595): **4 negativni/funkcionalni testi PASS + statični build PASS**, `stage` in `promote` namenoma `SKIPPED`. `AGENTS.md`, `docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md` in `docs/FINAI_AUTOMATION_ISOLATED_HOSTING.md` določajo **absolutno prepoved spreminjanja Laškoteke v vseh FinAI pogovorih, Work, Codex in CI postopkih**.
+- **SSH ključi, cPanel, DNS, Laškoteka in STNG niso bili spremenjeni.** Nova avtomatizacija izrecno zavrne račun `laskot48`, ker ni ločen; ni bila nameščena na strežnik.
+- Naslednja ključna infrastrukturna blokada [FINAI-ISOLATION-01 #53](https://github.com/ddcpark-coder/finai-ledger/issues/53): dejanski ločen Hiper M račun + enkratna namestitev namenskega ključnega para v ta račun + varne GitHub Secrets/Environments; šele potem staging in aktivacija.
+- OFFLINE-02D [#51](https://github.com/ddcpark-coder/finai-ledger/issues/51) ostaja odprta za varen GUI, drugi Windows profil/računalnik, zaščito prijave/limit poskusov, prevzete kopije, preverjene poslovne podatke in signed release.
+- Enkratna nastavitev ChatGPT Project Instructions se ne more opraviti s spreminjanjem datotek GitHub. Uporabnik mora besedilo `docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md` dodati v nastavitve tega ChatGPT projekta, da bo veljalo v vseh njegovih novih klepetih in Work opravilih.
