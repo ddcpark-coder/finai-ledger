@@ -1,0 +1,150 @@
+name: FinAI isolated-account CI and controlled Hiper M releases
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "next.config.mjs"
+      - "AGENTS.md"
+      - "ops/finai-isolated-*.py"
+      - "ops/finai-isolated-*.sh"
+      - "ops/finai-ci-isolated-ssh.sh"
+      - "tests/test_finai_isolated_ssh_gate.py"
+      - ".github/workflows/finai-isolated-deploy.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "next.config.mjs"
+      - "ops/finai-isolated-*.py"
+      - "ops/finai-isolated-*.sh"
+      - "ops/finai-ci-isolated-ssh.sh"
+      - ".github/workflows/finai-isolated-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      promote_to_production:
+        description: "Promote tested staged build only after explicit readiness approval"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finai-isolated-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gate-tests:
+    name: Validate SSH gate with synthetic data (no host access)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax, forced-command restrictions and archive attack tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ops/finai-isolated-install-key.sh
+          bash -n ops/finai-ci-isolated-ssh.sh
+          python3 -B -m unittest discover -s tests -p 'test_finai_isolated_ssh_gate.py' -v
+          echo "FINAI_RESTRICTED_SSH_GATE_TESTS=PASS"
+
+  static-release:
+    name: Build static web release for Hiper M
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    needs: gate-tests
+    outputs:
+      sha256: ${{ steps.digest.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install and build without Vercel
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm run build
+      - name: Validate and package static assets
+        id: digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s out/index.html
+          test -d out/_next
+          tar -czf "$RUNNER_TEMP/finai-web-release.tar.gz" -C out .
+          digest="$(sha256sum "$RUNNER_TEMP/finai-web-release.tar.gz" | cut -d ' ' -f 1)"
+          echo "sha256=$digest" >> "$GITHUB_OUTPUT"
+          echo "FINAI_HIPERM_STATIC_RELEASE=PASS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: finai-isolated-static-release
+          path: ${{ runner.temp }}/finai-web-release.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+
+  stage:
+    name: Stage SHA256-pinned web release only on isolated FinAI account
+    needs: [gate-tests, static-release]
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&
+      vars.FINAI_STAGE_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: finai-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: finai-isolated-static-release
+          path: ${{ runner.temp }}/finai-release
+      - name: Upload verified files exclusively to FinAI staging
+        shell: bash
+        env:
+          FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
+          FINAI_DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.FINAI_DEPLOY_SSH_KNOWN_HOSTS }}
+          FINAI_DEPLOY_SSH_HOST: ${{ vars.FINAI_DEPLOY_SSH_HOST }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+          FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
+          RELEASE_SHA256: ${{ needs.static-release.outputs.sha256 }}
+        run: |
+          bash ops/finai-ci-isolated-ssh.sh stage "$RELEASE_SHA256" \
+            "$RUNNER_TEMP/finai-release/finai-web-release.tar.gz"
+
+  promote:
+    name: Explicitly approved production switch (never automatic)
+    needs: [gate-tests, static-release, stage]
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.promote_to_production == true &&
+      github.ref == 'refs/heads/main' &&
+      vars.FINAI_PRODUCTION_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: finai-production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Switch only the isolated FinAI current release symlink
+        shell: bash
+        env:
+          FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
+          FINAI_DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.FINAI_DEPLOY_SSH_KNOWN_HOSTS }}
+          FINAI_DEPLOY_SSH_HOST: ${{ vars.FINAI_DEPLOY_SSH_HOST }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+          FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
+          RELEASE_SHA256: ${{ needs.static-release.outputs.sha256 }}
+        run: |
+          bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
