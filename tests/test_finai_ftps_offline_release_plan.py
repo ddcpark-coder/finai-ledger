@@ -26,6 +26,10 @@ def generate(root: Path, *, files=None, tar_members=None, manifest_override=None
     archive = root / "archive.tar.gz"
     manifest = root / "manifest.json"
     with tarfile.open(archive, mode="w:gz") as tar:
+        # GNU tar -C out . includes this legal root directory entry.
+        root_member = tarfile.TarInfo(".")
+        root_member.type = tarfile.DIRTYPE
+        tar.addfile(root_member)
         for name, data, kind in (tar_members or [(name, content, "file") for name, content in files.items()]):
             member = tarfile.TarInfo("./" + name)
             if kind == "symlink":
