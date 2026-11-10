@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import {euro} from "../issued/demoInvoice.mjs";
+import CashflowScenarioPanel from "./CashflowScenarioPanel";
 import {confirmBankMatch,resetCompanyBankMatches,suggestBankMatches} from "./bankMatching.mjs";
 
 const txs=[
@@ -91,6 +92,7 @@ export default function BankingWorkspace({context,companyId}){
    `}</style>
    <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Aktivno: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · sintetični podatki izbranega podjetja; brez povezave z banko</div>
    {notice&&<div role="status" style={{padding:10,marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</div>}
+   {section==="Pregled"&&subView==="Napoved"&&<CashflowScenarioPanel companyId={companyId}/>}
    <div className="bankGrid">
      <article className="bankCard">
        <div className="bankHead"><h3>Banka · {section} / {subView}</h3><div className="bankTools">

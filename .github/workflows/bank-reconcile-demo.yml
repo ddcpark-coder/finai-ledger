@@ -5,6 +5,8 @@ on:
       - "app/banking/**"
       - "app/page.jsx"
       - "tests/bankMatching.test.mjs"
+      - "tests/cashFlowScenario.test.mjs"
+      - "tests/e2e/cashflow-scenario.spec.cjs"
       - "tests/e2e/bank-reconcile.spec.cjs"
       - ".github/workflows/bank-reconcile-demo.yml"
   workflow_dispatch:
@@ -22,7 +24,7 @@ jobs:
         with:
           node-version: "22"
       - name: Verify deterministic tenant-scoped matching
-        run: node --test tests/bankMatching.test.mjs
+        run: node --test tests/bankMatching.test.mjs tests/cashFlowScenario.test.mjs
       - name: Build web and install pinned browser runner
         run: |
           npm install --no-audit --no-fund --package-lock=false
@@ -42,7 +44,7 @@ jobs:
       - name: Test tenant isolation and matching on desktop/mobile only
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/bank-reconcile.spec.cjs
+        run: npx playwright test tests/e2e/bank-reconcile.spec.cjs tests/e2e/cashflow-scenario.spec.cjs
       - name: Save failures only
         if: failure()
         uses: actions/upload-artifact@v4
