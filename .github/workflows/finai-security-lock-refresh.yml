@@ -1,0 +1,54 @@
+name: FinAI one-time Symfony security lock refresh
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finai-security-lock-refresh.yml"
+
+# Temporary workflow: explicitly scoped to this same-repository feature branch.
+# Remove it immediately after dependency remediation; never run with secrets.
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: >-
+      github.repository == 'ddcpark-coder/finai-ledger' &&
+      github.head_ref == 'finai-incoming-tenant-audit-01' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: finai-incoming-tenant-audit-01
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Update locked Symfony security patches only
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          composer update 'symfony/*' --with-all-dependencies --no-interaction --no-progress --no-scripts --no-audit
+          composer validate --strict --no-check-publish
+          composer audit --locked --no-interaction
+          cp .env.example .env
+          php artisan test --testsuite=Feature --no-ansi --stop-on-failure
+      - name: Commit reviewed Composer lockfile to the same FinAI branch
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- backend/composer.json
+          git add -- backend/composer.lock
+          if git diff --cached --quiet; then
+            echo 'FINAI_COMPOSER_LOCK_ALREADY_CURRENT=PASS'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'FINAI: refresh patched Symfony dependencies, audit PASS'
+            git push origin HEAD:refs/heads/finai-incoming-tenant-audit-01
+          fi
