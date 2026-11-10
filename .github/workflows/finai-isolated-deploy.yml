@@ -100,12 +100,31 @@ jobs:
             --output "$RUNNER_TEMP/finai-offline-ftps-staging-plan.json"
           digest="$(sha256sum "$RUNNER_TEMP/finai-web-release.tar.gz" | cut -d ' ' -f 1)"
           echo "sha256=$digest" >> "$GITHUB_OUTPUT"
+          # Also provide a ready-to-extract ZIP containing the actual web root files,
+          # so no nested GitHub artifact/tar extraction is needed.
+          (cd out && zip -q -r "$RUNNER_TEMP/finai-web-root.zip" .)
+          python3 -B - "$RUNNER_TEMP/finai-static-manifest.json" "$RUNNER_TEMP/finai-web-root.zip" <<'PY'
+          import hashlib, json, sys, zipfile
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = {row["path"]: row for row in manifest["files"]}
+          with zipfile.ZipFile(sys.argv[2]) as bundle:
+              items = [entry for entry in bundle.infolist() if not entry.is_dir()]
+              assert len(items) == len(expected)
+              assert {entry.filename for entry in items} == set(expected)
+              for item in items:
+                  row = expected[item.filename]
+                  data = bundle.read(item)
+                  assert len(data) == row["size"]
+                  assert hashlib.sha256(data).hexdigest() == row["sha256"]
+          print("FINAI_WEB_ROOT_ZIP=PASS")
+          PY
           echo "FINAI_HIPERM_STATIC_RELEASE=PASS"
       - uses: actions/upload-artifact@v4
         with:
           name: finai-isolated-static-release
           path: |
             ${{ runner.temp }}/finai-web-release.tar.gz
+            ${{ runner.temp }}/finai-web-root.zip
             ${{ runner.temp }}/finai-static-manifest.json
             ${{ runner.temp }}/finai-offline-ftps-staging-plan.json
           retention-days: 7
