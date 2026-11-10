@@ -162,13 +162,13 @@ jobs:
             "$RUNNER_TEMP/finai-release/finai-web-release.tar.gz"
 
   promote:
-    name: Explicitly approved production switch (never automatic)
+    name: Controlled FinAI-only publish (auto only on verified isolated account)
     needs: [gate-tests, static-release, stage]
     if: >-
-      github.event_name == 'workflow_dispatch' &&
-      inputs.promote_to_production == true &&
       github.ref == 'refs/heads/main' &&
-      vars.FINAI_PRODUCTION_ENABLED == 'true'
+      vars.FINAI_PRODUCTION_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.promote_to_production == true) ||
+       (github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true'))
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: finai-production
@@ -176,7 +176,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Switch only the isolated FinAI current release symlink
+      - name: Switch only isolated FinAI release, smoke test, rollback on failure
         shell: bash
         env:
           FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
@@ -185,5 +185,37 @@ jobs:
           FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
           FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
           RELEASE_SHA256: ${{ needs.static-release.outputs.sha256 }}
+          IS_AUTOMATIC: ${{ github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true' }}
         run: |
+          set -euo pipefail
+          # Use only the pre-existing forced-command gate of a dedicated FinAI OS account.
+          # The first publication requires human-approved migration from the existing landing page.
+          previous="$(bash ops/finai-ci-isolated-ssh.sh status | sed -n 's/^production_active=//p')"
+          [[ "$previous" == none || "$previous" =~ ^[0-9a-f]{64}$ ]] ||
+            { echo 'STOP: invalid previous FinAI release' >&2; exit 65; }
+          if [[ "$IS_AUTOMATIC" == true && "$previous" == none ]]; then
+            echo 'STOP: first website publication needs a verified rollback baseline' >&2
+            exit 65
+          fi
+
           bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
+
+          # Minimal live smoke test. Only this one known FinAI HTTPS endpoint is queried.
+          if ! (curl --fail --silent --show-error --max-time 25 --max-redirs 2 \
+                --proto '=https' --proto-redir '=https' --location \
+                'https://e-integrator.si/' | grep -qi 'FinAI'); then
+            echo 'FINAI_LIVE_SMOKE=FAIL' >&2
+            if [[ "$previous" =~ ^[0-9a-f]{64}$ && "$previous" != "$RELEASE_SHA256" ]]; then
+              echo 'FINAI_ROLLBACK=ATTEMPT' >&2
+              bash ops/finai-ci-isolated-ssh.sh promote "$previous" || {
+                echo 'FINAI_ROLLBACK=FAILED_MANUAL_RECOVERY_REQUIRED' >&2
+                exit 70
+              }
+              echo 'FINAI_ROLLBACK=PASS'
+            else
+              echo 'FINAI_ROLLBACK=NO_PREVIOUS_RELEASE' >&2
+            fi
+            exit 69
+          fi
+          echo 'FINAI_LIVE_SMOKE=PASS'
+          echo 'FINAI_HIPERM_PUBLISH=PASS'
