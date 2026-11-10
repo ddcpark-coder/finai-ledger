@@ -13,7 +13,7 @@ test("explainable tenant-scoped demo accounting proposal has no fictional AI con
  await expect(detail).toContainText("demonstracijsko potrjeno");
  await company.selectOption("2");
  await expect(detail).not.toContainText("Demo konto 4100 · stroškovno mesto PROD");
- await expect(detail).toContainText("izbranega podjetja");
+ await expect(detail).toContainText("testno pravilo tega podjetja");
  await company.selectOption("1");
  await page.locator(".invoiceRow").filter({hasText:"Merkur d.o.o."}).click();
  await expect(detail).not.toContainText("demonstracijsko potrjeno");
