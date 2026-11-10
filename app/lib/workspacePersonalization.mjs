@@ -2,16 +2,18 @@
 // This is a UI preference: never use it to decide security or accounting permissions.
 export const DETAIL_WIDTH_MIN=260;
 export const DETAIL_WIDTH_MAX=700;
-export const DEFAULT_VIEW=Object.freeze({level:"standard",arrangement:"split",detailWidth:370});
+export const DEFAULT_VIEW=Object.freeze({level:"standard",arrangement:"split",detailWidth:370,textScale:100});
 const levels=new Set(["simple","standard","expert"]);
 const arrangements=new Set(["split","stacked","list","detail"]);
+const textScales=new Set([100,115,130]);
 export function normalizeView(value){
   const input=value&&typeof value==="object"&&!Array.isArray(value)?value:{};
   const detailWidth=Number(input.detailWidth);
   return {
     level:levels.has(input.level)?input.level:DEFAULT_VIEW.level,
     arrangement:arrangements.has(input.arrangement)?input.arrangement:DEFAULT_VIEW.arrangement,
-    detailWidth:Number.isInteger(detailWidth)?Math.max(DETAIL_WIDTH_MIN,Math.min(DETAIL_WIDTH_MAX,detailWidth)):DEFAULT_VIEW.detailWidth
+    detailWidth:Number.isInteger(detailWidth)?Math.max(DETAIL_WIDTH_MIN,Math.min(DETAIL_WIDTH_MAX,detailWidth)):DEFAULT_VIEW.detailWidth,
+    textScale:textScales.has(Number(input.textScale))?Number(input.textScale):DEFAULT_VIEW.textScale
   };
 }
 export function viewStorageKey(companyId,moduleKey){
@@ -20,6 +22,6 @@ export function viewStorageKey(companyId,moduleKey){
   return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey;
 }
 export function updateViewField(state,key,value){
-  if(!["level","arrangement","detailWidth"].includes(key))throw new Error("Neveljavna nastavitev prikaza.");
+  if(!["level","arrangement","detailWidth","textScale"].includes(key))throw new Error("Neveljavna nastavitev prikaza.");
   return normalizeView({...normalizeView(state),[key]:value});
 }
