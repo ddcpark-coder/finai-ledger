@@ -17,6 +17,15 @@ Do not ask for permission again for ordinary FinAI-only repository changes.
 If a hosting operation is blocked, continue all independent permitted work.
 The protected UI preview can use synthetic data without production deployment.
 Never claim that passing GitHub CI equals a completed Hiper M deployment.
+For a verified dedicated FinAI account only, routine releases may auto-stage on
+successful main builds and auto-publish the **synthetic/demo** web edition when
+FINAI_STAGE_ENABLED, FINAI_PRODUCTION_ENABLED and FINAI_AUTO_PUBLISH_ENABLED are
+explicitly configured, the environment approval applies, a known previous
+release exists, and the exact live commit smoke check passes. Roll back if that
+check fails. The initial deployment is always manual after a recovery point.
+Ordinary UI edits need only compilation, release integrity and the one live
+smoke check; reserve comprehensive E2E/Windows suites for affected critical
+code or deliberate manual dispatch.
 
 This fast-track explicitly DOES NOT authorize any new keys, shared cPanel
 changes, or FinAI write operations on the shared `laskot48` account.
