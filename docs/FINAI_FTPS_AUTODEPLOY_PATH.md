@@ -45,6 +45,16 @@ Ustvarjeni namenski račun: `finai-deploy@e-integrator.si`, FTP gostitelj v cPan
 - Uspešen TLS handshake **ne dokazuje** FTPS omejitve na direktorij, uporabniških pravic, HTTPS poddomene ali možnosti objave. Ne vključi `FINAI_STAGE_ENABLED` ali drugih pisalnih spremenljivk.
 - Ob neuspehu certifikata ne izključi preverjanja TLS; uporabi natančen FTPS naslov z veljavnim certifikatom, ki ga potrdi ponudnik.
 
+### Rezultat prvega dejanskega preverjanja – 10. 11. 2026
+
+- [GitHub Actions #42780098979](https://github.com/ddcpark-coder/finai-ledger/actions/runs/42780098979) – sintetični testi **PASS**, dejanska neavtenticirana FTP/TLS omrežna povezava **FAILED: `CONNECT_TIMEOUT`** po približno 12 sekundah.
+- To pomeni, da GitHub-ov izvajalnik **ni dokončal TCP povezave na `ftp.laskoteka.si:21`**. Vzroka brez ponudnikovih omrežnih dnevnikov ni mogoče določiti: strežniški požarni zid, omejitve IP, neustrezen hostname/DNS, servis ali druga omrežna ovira.
+- `CONNECT_TIMEOUT` **ni** dokaz napake certifikata, niti uspešnega preverjanja FTPS jaila; TLS pogajanje se še ni začelo. FTP uporabniško ime in geslo **nista bila uporabljena**. Ni bilo FTP prijave, prenosov ali sprememb.
+- Dodana je diagnostika z vnaprej določenimi kategorijami (`CONNECT_TIMEOUT`, `CONNECT_REFUSED`, `TLS_CERTIFICATE_REJECTED` itd.) brez izpisa skrivnosti ali surovega odziva FTP strežnika.
+- Po prvem neuspehu je omrežni preizkus v `.github/workflows/finai-ftps-tls-preflight.yml` omejen na **izrecni `workflow_dispatch` iz `main`**. Običajni PR izvaja samo sintetične teste in ne sproža ponavljajočih neuspešnih omrežnih poizkusov.
+
+**Zahteva podpori Hiper M:** preverite, ali je port TCP 21 na gostitelju `ftp.laskoteka.si` dosegljiv iz GitHub-hosted izvajalnikov, in ali obstaja požarni zid ali IP filtriranje. Prosimo za preverjen zunanji FTPS hostname s certifikatom za ta hostname in pravilno nastavitev pasivnih FTP vrat. Ne spreminjajte nastavitev Laškoteke ali STNG zaradi tega pregleda. Če je do strežnika mogoče dostopati samo z omejenega IP obsega, naj ponudnik predlaga varen način povezovanja (npr. namenski statični izhodni IP) brez širjenja SSH pravic na `laskot48`.
+
 ## Potrditev od Hiper M, potrebna za nadaljevanje
 
 Podpora Hiper M naj brez sprememb skupnih servisov pisno pojasni:
