@@ -519,7 +519,7 @@ export default function Page(){
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext}/>}
-       {section==="Banka"&&<BankingWorkspace context={activeContext}/>}
+       {section==="Banka"&&<BankingWorkspace context={activeContext} companyId={company}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
        {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
        {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext}/>}
