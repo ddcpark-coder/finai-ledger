@@ -55,6 +55,35 @@ The approved Project instructions are mirrored in
 ChatGPT Project settings; this repository file does not authorize shared-host
 writes or deploys.
 
+## Mandatory adaptive UX and accessible complexity
+
+Every FinAI module, subview, dialog and major work panel MUST remain usable
+by people with different levels of digital and business experience.
+
+- Offer **Osnovno, Običajno, Napredno** complexity: Osnovno uses understandable
+  Slovenian labels and an uncluttered task path, Običajno shows practical
+  detail, and Napredno exposes the full technical/accounting context.
+- Users must be able to change panel arrangement (side-by-side, stacked,
+  list-focused, detail-focused), usable widths, text size, density and
+  applicable widget visibility/ordering. Preferences must be scoped to
+  **user + company + module + subview** rather than one global layout.
+- A user can always restore a safe default; controls must remain keyboard
+  accessible and functional on small screens. Do not hide primary safety
+  warnings, important totals, errors or authorizations in a "simple" mode.
+- Hiding a field or switching a view is presentation only, and MUST NOT change
+  server-side tenant isolation, validation, permissions, accounting calculations,
+  audit records or legal obligations.
+- Every visible button must either perform its stated action or clearly be
+  disabled and marked `v pripravi`. Never label synthetic/mock AI results,
+  OCR, invoices, bank transfers, imports or FURS operations as live.
+- Deliver reusable adaptive components and minimal path-specific unit/UX tests
+  instead of hard-coding custom behavior into each screen. Where a module has
+  incomplete customization coverage, call it out explicitly and extend the
+  shared component before claiming that all windows are fully customizable.
+- Local browser storage is only a development/demo fallback. True cross-device
+  personalization requires a verified, tenant-scoped authenticated preferences
+  API; do not promise synchronization before that path is connected.
+
 ## FinAI isolation and architecture
 
 - FinAI production target is **Hiper M**, on its own **separate cPanel/OS account** with isolated database, files, domain roots, users, SSH identities, logs, backups and rollback. Vercel is never production.
