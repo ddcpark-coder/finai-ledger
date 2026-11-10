@@ -20,6 +20,25 @@ Status: Identity/preferences Laravel API se uspešno zažene v PHP 8.4 CI. To š
 
 Ne izvajaj vseh starejših poslovnih migracij na živi bazi, dokler ni preverjeno njihovo zaporedje in skladnost.
 
+## Sintetični API prejetih računov (izključeno v produkciji)
+
+**Novo:** strogo omejeni API-poti za učenje poteka ustvarjanja in potrjevanja
+*izključno demonstracijskih* računov. `FINAI_DEMO_WORKFLOWS_ENABLED=false`
+je privzeto. Za lokalni, izolirani QA s sintetičnimi podatki lahko v namenskem
+testnem okolju vključite `FINAI_DEMO_WORKFLOWS_ENABLED=true` in migracijo
+`2026_11_11_000019_create_demo_incoming_invoices.php`, vendar ne izvajajte
+migracije na skupnem računu Hiper M.
+
+- `GET /api/companies/{companyId}/demo/incoming-invoices` — do 100 zapisov trenutnega podjetja.
+- `POST /api/companies/{companyId}/demo/incoming-invoices` — ustvarjanje demo zapisa s potrditvijo `demo_only=true` in dovoljenjem `invoices.write`.
+- `POST /api/companies/{companyId}/demo/incoming-invoices/{invoiceId}/approve` — dovoljenje `invoices.approve`, transakcijska odobritev in zapis v revizijsko tabelo.
+
+Skupne omejitve: prijava, preverjen e-naslov, aktivno podjetje in članstvo,
+pravice, dodatna 2FA za privilegirane vloge, zaščita CSRF, omejitve zahtev,
+izolacija `company_id` in prepoved resničnih podatkov. To **niso** povezave
+za produkcijsko knjigovodstvo, prejem PDF/XML ali shrambo originalov.
+Frontend demo ostaja lokalni in ni priklopljen na te API-poti.
+
 ## Implementirane API-poti
 - GET /up — health check
 - GET /api/me — identiteta in aktivna podjetja
