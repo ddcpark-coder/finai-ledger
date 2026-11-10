@@ -1,5 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
+import DemoInvoiceCreator from "./DemoInvoiceCreator";
+import {issueDraft,simulateSending} from "./demoInvoice.mjs";
 
 const invoices=[
  {id:"IR-2026-0054",number:"2026-0054",partner:"ABC d.o.o.",net:"1.000,00 €",tax:"220,00 €",gross:"1.220,00 €",issue:"02. 11. 2026",due:"17. 11. 2026",status:"Plačano",delivery:"E-pošta",sent:true,paid:true},
@@ -13,27 +15,55 @@ export default function IssuedInvoicesWorkspace({context}){
  const subView=context?.level3??"Vsi";
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
- const [selected,setSelected]=useState(invoices[0]);
- const [issued,setIssued]=useState(false);
- const [sent,setSent]=useState(false);
- const list=useMemo(()=>invoices.filter(x=>{
+ const [records,setRecords]=useState(invoices);
+ const [selectedId,setSelectedId]=useState(invoices[0].id);
+ const [creatorOpen,setCreatorOpen]=useState(false);
+ const [notice,setNotice]=useState("");
+ const [showPreview,setShowPreview]=useState(false);
+ const [newId,setNewId]=useState(null);
+ const selected=records.find(x=>x.id===selectedId)??records[0];
+ const list=useMemo(()=>records.filter(x=>{
    const q=query.toLowerCase();
    const selectedContext=section==="Pregled"?(subView==="Osnutki"?x.status==="Osnutek":subView==="Izdani"?x.status!=="Osnutek":true)
      :section==="Terjatve"?(subView==="Plačano"?x.paid:subView==="Zapadlo"?x.status==="Zapadlo":!x.paid&&x.status!=="Osnutek")
      :section==="Pošiljanje"?(subView==="E-pošta"?x.delivery==="E-pošta":subView==="e-račun"?x.delivery==="e-račun":x.sent)
      :section==="Opomini"?(subView==="Predlogi"?x.status==="Zapadlo":false)
      :section==="Knjiženje"?x.status!=="Osnutek":true;
-   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||x.status===filter)&&selectedContext;
- }),[query,filter,section,subView]);
+   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(filter==="Vsi"||x.status===filter)&&(selectedContext||x.id===newId);
+ }),[records,query,filter,section,subView,newId]);
 
- const effectiveStatus=issued&&selected.status==="Osnutek"?(sent?"Poslano":"Izdano"):selected.status;
- const effectiveNumber=issued&&selected.status==="Osnutek"?"2026-0055":selected.number;
-
+ const effectiveStatus=selected.status;
+ const effectiveNumber=selected.number;
+ const createDraft=draft=>{
+   setRecords(old=>[draft,...old]);
+   setSelectedId(draft.id);setNewId(draft.id);
+   setCreatorOpen(false);setFilter("Vsi");setQuery("");setShowPreview(false);
+   setNotice("Demonstracijski osnutek je ustvarjen. Ni shranjen na strežnik.");
+ };
+ const issueSelected=()=>{
+   try{
+     const updated=issueDraft(selected,records);
+     setRecords(old=>old.map(row=>row.id===selectedId?updated:row));
+     setNotice("Račun je samo DEMONSTRACIJSKO izdan. Ni ustvarjene uradne listine ali knjižbe.");
+   }catch(error){setNotice(error.message)}
+ };
+ const sendSelected=()=>{
+   try{
+     const updated=simulateSending(selected);
+     setRecords(old=>old.map(row=>row.id===selectedId?updated:row));
+     setNotice("Pošiljanje je le simulirano. Nobeno e-poštno sporočilo ni bilo poslano.");
+   }catch(error){setNotice(error.message)}
+ };
+ const resetDemo=()=>{
+   setRecords(invoices);setSelectedId(invoices[0].id);
+   setCreatorOpen(false);setFilter("Vsi");setQuery("");setNewId(null);setShowPreview(false);
+   setNotice("Demonstracijski podatki so ponastavljeni.");
+ };
  useEffect(()=>{
-   if(list.length&&!list.some(row=>row.id===selected.id)){
-     setSelected(list[0]);setIssued(false);setSent(false);
+   if(list.length&&!list.some(row=>row.id===selectedId)){
+     setSelectedId(list[0].id);setShowPreview(false);
    }
- },[list,selected.id]);
+ },[list,selectedId]);
 
  return <section className="issuedWorkspace">
    <style>{`
@@ -52,17 +82,19 @@ export default function IssuedInvoicesWorkspace({context}){
    .totals{margin-top:8px;display:grid;gap:5px}.totals div{display:flex;justify-content:space-between;font-size:9px}.totals div:last-child{font-size:11px;font-weight:800;padding-top:6px;border-top:1px solid var(--line)}
    .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:12px}.flow div{border:1px solid var(--line);border-radius:8px;padding:7px;text-align:center;font-size:8px;color:var(--muted)}.flow .on{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
    .receivableBox{border:1px solid color-mix(in srgb,var(--accent2) 45%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--accent2) 5%,var(--panel))}.receivableBox b,.receivableBox small{display:block}.receivableBox small{font-size:8px;color:var(--muted);margin-top:3px}
+   .demoDocumentPreview{margin-top:10px;border:1px solid var(--line);background:var(--bg2);padding:12px;border-radius:10px;font-size:10px;line-height:1.6}.demoDocumentPreview h4{margin:0 0 5px;font-size:12px}.demoDocumentPreview div{display:flex;justify-content:space-between;gap:9px}.demoDocumentPreview strong{font-variant-numeric:tabular-nums}
    @media(max-width:1100px){.issuedGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow2{grid-template-columns:1.2fr .8fr .7fr}.invoiceRow2>*:nth-child(2),.invoiceRow2>*:nth-child(4){display:none}.invoiceMeta{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr 1fr}.issuedTools input{width:100%}.line2{grid-template-columns:1.3fr .7fr .7fr}.line2>*:nth-child(2){display:none}}
    `}</style>
 
-   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b></div>
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demo brez shranjevanja, knjiženja ali pošiljanja</div>
+   {notice&&<div role="status" style={{padding:"9px 12px",marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11,color:"var(--text)"}}>{notice}</div>}
    <div className="issuedGrid">
      <article className="issuedCard">
-       <div className="issuedHead"><h3>Izdani računi · {section} / {subView}</h3><div className="issuedTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči kupca ali račun ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Plačano</option><option>Zapadlo</option></select><button className="primary">＋ Nov račun</button></div></div>
+       <div className="issuedHead"><h3>Izdani računi · {section} / {subView}</h3><div className="issuedTools"><input aria-label="Išči izdane račune" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči kupca ali račun ..."/><select aria-label="Filter statusa računa" value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Izdano</option><option>Poslano</option><option>Plačano</option><option>Zapadlo</option></select><button type="button" className="primary" onClick={()=>setCreatorOpen(true)}>＋ Nov račun</button><button type="button" className="secondary" onClick={resetDemo}>Ponastavi demo</button></div></div>
        <div className="flow"><div className="on">Osnutek</div><div className="on">Izdano</div><div className="on">Poslano</div><div>Plačilo</div><div>Zaključeno</div></div>
        <div className="invoiceRow2 head"><span>Račun</span><span>Partner</span><span>Znesek</span><span>Rok</span><span>Status</span></div>
        {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>V tem demonstracijskem pogledu ni računov.</p>}
-       {list.map(x=><button className="invoiceRow2" key={x.id} onClick={()=>{setSelected(x);setIssued(false);setSent(false)}}>
+       {list.map(x=><button className="invoiceRow2" key={x.id} aria-pressed={x.id===selectedId} onClick={()=>{setSelectedId(x.id);setNewId(null);setShowPreview(false);setNotice("")}}>
          <span><b>{x.number}</b><small>{x.id}</small></span>
          <span><b>{x.partner}</b><small>{x.delivery}</small></span>
          <b className="amount">{x.gross}</b>
@@ -76,34 +108,44 @@ export default function IssuedInvoicesWorkspace({context}){
        <h3>{effectiveNumber}</h3><small>{selected.partner} · {selected.id}</small>
 
        <div className="invoiceMeta">
-         <div><small>Datum izdaje</small><b>{issued&&selected.status==="Osnutek"?"02. 11. 2026":selected.issue}</b></div>
-         <div><small>Rok plačila</small><b>{issued&&selected.status==="Osnutek"?"17. 11. 2026":selected.due}</b></div>
-         <div><small>Način dostave</small><b>{sent?"E-pošta":selected.delivery}</b></div>
+         <div><small>Datum izdaje</small><b>{selected.issue}</b></div>
+         <div><small>Rok plačila</small><b>{selected.due}</b></div>
+         <div><small>Način dostave</small><b>{selected.delivery}</b></div>
          <div><small>Valuta</small><b>EUR</b></div>
        </div>
 
        <div className="invoiceSection2"><h4>Postavke</h4>
-         <div className="line2"><span>Storitev / projekt</span><span>1 ×</span><b>{selected.net}</b><span>22 % DDV</span></div>
+         <div className="line2"><span>{selected.description||"Storitev / projekt"}</span><span>1 ×</span><b>{selected.net}</b><span>{selected.vatRate?selected.vatRate.replace(".",","):"22"} % DDV</span></div>
          <div className="totals"><div><span>Neto</span><b>{selected.net}</b></div><div><span>DDV</span><b>{selected.tax}</b></div><div><span>Skupaj</span><b>{selected.gross}</b></div></div>
        </div>
 
        <div className="invoiceSection2"><h4>Terjatev in knjiženje</h4>
-         <div className="receivableBox"><b>1200 · Terjatve do kupcev</b><small>Ob izdaji se pripravi uravnotežena temeljnica in odprta postavka z rokom plačila.</small></div>
+         <div className="receivableBox"><b>Simuliran prikaz terjatve</b><small>Glavna knjiga ni povezana: izdaja v tem pogledu ne ustvari temeljnice ali odprte postavke.</small></div>
        </div>
 
        <div className="invoiceSection2"><h4>Artefakti</h4>
-         <div className="line2"><span>PDF račun</span><span></span><b>{effectiveStatus==="Osnutek"?"Ni ustvarjen":"Pripravljen"}</b><span>SHA-256</span></div>
-         <div className="line2"><span>e-račun XML</span><span></span><b>{effectiveStatus==="Osnutek"?"Ni ustvarjen":"Pripravljen"}</b><span>strukturiran</span></div>
+         <div className="line2"><span>PDF račun</span><span></span><b>Ni ustvarjen</b><span>demo</span></div>
+         <div className="line2"><span>e-račun XML</span><span></span><b>Ni ustvarjen</b><span>demo</span></div>
        </div>
 
        <div className="invoiceSection2"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>
-         {selected.status==="Osnutek"&&!issued&&<button className="primary" onClick={()=>setIssued(true)}>Izdaj račun in dodeli številko</button>}
-         {selected.status==="Osnutek"&&issued&&!sent&&<button className="primary" onClick={()=>setSent(true)}>Pošlji račun</button>}
-         <button className="secondary">Predogled PDF</button>
-         <button className="secondary">Prikaži temeljnico</button>
-         {effectiveStatus==="Zapadlo"&&<button className="secondary">Pripravi opomin</button>}
-       </div></div>
+         {selected.status==="Osnutek"&&<button className="primary" onClick={issueSelected}>Simuliraj izdajo in dodeli DEMO številko</button>}
+         {selected.status==="Izdano"&&<button className="primary" onClick={sendSelected}>Simuliraj pošiljanje (brez e-pošte)</button>}
+         <button className="secondary" onClick={()=>setShowPreview(v=>!v)}>{showPreview?"Skrij HTML predogled":"Prikaži HTML predogled"}</button>
+         <button className="secondary" disabled title="Knjiženje v glavno knjigo ni povezano">Temeljnica (v pripravi)</button>
+         {effectiveStatus==="Zapadlo"&&<button className="secondary" disabled>Opomin (v pripravi)</button>}
+       </div>
+       {showPreview&&<div className="demoDocumentPreview" aria-label="HTML predogled demonstracijskega računa">
+         <h4>DEMO · {selected.number==="—"?"Osnutek računa":selected.number}</h4>
+         <p>{selected.partner}<br/>{selected.description||"Storitev / projekt"}<br/>Datum izdaje: {selected.issue} · Rok: {selected.due}</p>
+         <div><span>Neto</span><strong>{selected.net}</strong></div>
+         <div><span>DDV ({selected.vatRate?selected.vatRate.replace(".",","):"22"} %)</span><strong>{selected.tax}</strong></div>
+         <div><b>Skupaj</b><strong>{selected.gross}</strong></div>
+         <small>Ta predogled ni uradni račun ali PDF in ni primeren za uporabo v poslovanju.</small>
+       </div>}
+       </div>
      </aside>}{list.length===0&&<aside className="issuedCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
+   {creatorOpen&&<DemoInvoiceCreator records={records} onCancel={()=>setCreatorOpen(false)} onCreate={createDraft}/>}
  </section>
 }
