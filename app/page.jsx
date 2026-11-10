@@ -496,7 +496,7 @@ export default function Page(){
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
-       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext}/>}
+       {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext}/>}
        {section==="Banka"&&<BankingWorkspace context={activeContext}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
