@@ -1,0 +1,56 @@
+name: FinAI FTPS host TLS verification (no login or writes)
+
+on:
+  pull_request:
+    paths:
+      - "ops/finai-ftps-tls-only-preflight.py"
+      - "tests/test_finai_ftps_tls_only_preflight.py"
+      - ".github/workflows/finai-ftps-tls-preflight.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ops/finai-ftps-tls-only-preflight.py"
+      - "tests/test_finai_ftps_tls_only_preflight.py"
+      - ".github/workflows/finai-ftps-tls-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-client:
+    name: Verify no FTP credentials or mutations in preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run only related synthetic tests
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s tests -p 'test_finai_ftps_tls_only_preflight.py' -v
+          python3 -B ops/finai-ftps-tls-only-preflight.py | grep -Fxq 'FINAI_REMOTE_WRITES=DISABLED'
+          echo 'FINAI_FTPS_TLS_CLIENT_SYNTHETIC=PASS'
+
+  unauthenticated-tls:
+    name: TLS handshake only at confirmed FinAI FTP endpoint
+    if: github.repository == 'ddcpark-coder/finai-ledger'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    needs: synthetic-client
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Authenticate server certificate (never FTP LOGIN)
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          python3 -B ops/finai-ftps-tls-only-preflight.py --remote-tls-only
+          echo 'FINAI_FTPS_READONLY_TLS=PASS'
