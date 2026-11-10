@@ -6,6 +6,7 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await expect(shell).toHaveAttribute("data-level","standard");
   await page.getByLabel("Zahtevnost").selectOption("simple");
   await page.getByLabel("Razporeditev").selectOption("stacked");
+  await page.getByLabel("Velikost prikaza").selectOption("130");
   await expect(shell).toHaveAttribute("data-level","simple");
   await expect(shell).toHaveAttribute("data-arrangement","stacked");
 
@@ -23,6 +24,7 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.goto("/?module=incoming_invoices&view=Pregled&subview=Vsi");
   await expect(shell).toHaveAttribute("data-level","simple");
   await expect(shell).toHaveAttribute("data-arrangement","stacked");
+  await expect(page.getByLabel("Velikost prikaza")).toHaveValue("130");
 
   const companies=page.locator(".topbarMain select.companySwitch");
   await companies.selectOption("2");
