@@ -6,6 +6,7 @@ on:
       - "app/incoming/**"
       - "app/page.jsx"
       - "tests/e2e/incoming-tenant.spec.cjs"
+      - "tests/e2e/incoming-local-preview.spec.cjs"
       - ".github/workflows/incoming-tenant-browser.yml"
   workflow_dispatch:
 
@@ -43,7 +44,7 @@ jobs:
       - name: Run only cross-company scenario, desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/incoming-tenant.spec.cjs
+        run: npx playwright test tests/e2e/incoming-tenant.spec.cjs tests/e2e/incoming-local-preview.spec.cjs
       - name: Preserve failure trace only
         if: failure()
         uses: actions/upload-artifact@v4
