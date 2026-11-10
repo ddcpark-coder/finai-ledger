@@ -94,7 +94,7 @@ jobs:
           marker.write_text(json.dumps({
               "application": "finai-ledger",
               "commit": os.environ["GITHUB_SHA"]
-          }, sort_keys=True) + "\\n", encoding="utf-8")
+          }, sort_keys=True) + "\n", encoding="utf-8")
           PY
       - name: Validate and package static assets
         id: digest
