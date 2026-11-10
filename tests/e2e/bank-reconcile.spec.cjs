@@ -25,6 +25,8 @@ test("bank demo: explainable partial match, company boundary and session-only re
  await company.selectOption("2");
  await expect(b).toContainText("Demo usklajeno");
  await page.reload();
+ await company.selectOption("2");
+ await expect(b).toBeVisible();
  await expect(b).not.toContainText("Demo usklajeno");
 });
 
