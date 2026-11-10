@@ -19,7 +19,7 @@ export function normalizeView(value){
 export function viewStorageKey(companyId,moduleKey,viewKey="default"){
   if(!Number.isSafeInteger(companyId)||companyId<1)throw new Error("Neveljavno podjetje.");
   if(typeof moduleKey!=="string"||!/^[a-z_]{2,48}$/.test(moduleKey))throw new Error("Neveljaven modul.");
-  if(typeof viewKey!=="string"||viewKey.length<1||viewKey.length>160||/[\\x00-\\x1f]/.test(viewKey))throw new Error("Neveljaven podpogled.");
+  if(typeof viewKey!=="string"||viewKey.length<1||viewKey.length>160||Array.from(viewKey).some(ch=>ch.charCodeAt(0)<32))throw new Error("Neveljaven podpogled.");
   return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey+":view-"+encodeURIComponent(viewKey);
 }
 export function updateViewField(state,key,value){
