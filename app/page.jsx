@@ -518,7 +518,7 @@ export default function Page(){
        {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
-       {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext}/>}
+       {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext} companyId={company} supplierName={companies.find(x=>x.id===company)?.name} supplierTaxNumber={companies.find(x=>x.id===company)?.tax}/>}
        {section==="Banka"&&<BankingWorkspace context={activeContext} companyId={company}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
        {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
