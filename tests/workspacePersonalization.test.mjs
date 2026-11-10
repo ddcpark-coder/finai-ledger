@@ -17,11 +17,15 @@ test("all three complexity levels and four window layouts are supported",()=>{
 test("company and module preference namespaces cannot leak between workspaces",()=>{
  const keys=new Set([
   viewStorageKey(1,"incoming_invoices"),viewStorageKey(2,"incoming_invoices"),
-  viewStorageKey(1,"banking"),viewStorageKey(2,"banking")
+  viewStorageKey(1,"banking"),viewStorageKey(2,"banking"),
+  viewStorageKey(1,"banking","Usklajevanje::Predlogi")
  ]);
- assert.equal(keys.size,4);
+ assert.equal(keys.size,5);
  for(const bad of [0,-1,1.3,NaN])assert.throws(()=>viewStorageKey(bad,"banking"));
  for(const bad of ["banking/../../x","",null])assert.throws(()=>viewStorageKey(1,bad));
+ assert.notEqual(viewStorageKey(1,"banking","Pregled::Vsi"),viewStorageKey(1,"banking","Usklajevanje::Predlogi"));
+ assert.throws(()=>viewStorageKey(1,"banking","Wrong\\nView"));
+ assert.throws(()=>viewStorageKey(1,"banking",null));
 });
 test("updates preserve independent user preferences and block unknown fields",()=>{
  const v=updateViewField(DEFAULT_VIEW,"detailWidth",460);
