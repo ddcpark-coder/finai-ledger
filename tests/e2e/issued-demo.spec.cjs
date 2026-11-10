@@ -46,7 +46,7 @@ test("synthetic invoice actions never persist records after reload",async({page}
   await modal.getByLabel("Opis postavke").fill("Demonstracijska storitev");
   await modal.getByLabel("Neto znesek (€)").fill("20,00");
   await modal.getByRole("button",{name:"Ustvari osnutek"}).click();
-  await expect(page.getByText("Preizkusni kupec")).toBeVisible();
+  await expect(page.locator(".invoiceRow2").filter({hasText:"Preizkusni kupec"})).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Preizkusni kupec")).toHaveCount(0);
+  await expect(page.locator(".invoiceRow2").filter({hasText:"Preizkusni kupec"})).toHaveCount(0);
 });
