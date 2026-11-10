@@ -54,23 +54,7 @@ echo 'FINAI_ISOLATED_STATUS=PASS'
 
 if [[ "$operation" == stage ]]; then
   response="$(ssh "${opts[@]}" "$remote" "finai:stage:v1:$digest" < "$archive")"
-  grep -Eq '^FINAI_ISOLATED_DEPLOY=STAGED(_ALREADY_PRESENT)?
-
-set +e
-ssh "${opts[@]}" "$remote" 'id' >/dev/null 2>&1
-denied=$?
-set -e
-[[ "$denied" == 64 ]] ||
-  { echo 'STOP: SSH forced command protection drift' >&2; exit 68; }
-echo 'FINAI_ISOLATED_DENY_CHECK=PASS'
-if [[ "$operation" == status ]]; then
-  active="$(sed -n 's/^production_active=//p' <<<"$status")"
-  [[ "$active" == none || "$active" =~ ^[0-9a-f]{64}$ ]] ||
-    { echo 'STOP: invalid production status' >&2; exit 68; }
-  echo "production_active=$active"
-fi
-echo "FINAI_DEPLOY_${operation^^}=PASS"
- <<<"$response" ||
+  grep -Eq '^FINAI_ISOLATED_DEPLOY=STAGED(_ALREADY_PRESENT)?$' <<<"$response" ||
     { echo 'STOP: isolated staging not confirmed' >&2; exit 68; }
 elif [[ "$operation" == promote ]]; then
   response="$(ssh "${opts[@]}" "$remote" "finai:promote:v1:$digest")"
@@ -89,4 +73,10 @@ set -e
 [[ "$denied" == 64 ]] ||
   { echo 'STOP: SSH forced command protection drift' >&2; exit 68; }
 echo 'FINAI_ISOLATED_DENY_CHECK=PASS'
+if [[ "$operation" == status ]]; then
+  active="$(sed -n 's/^production_active=//p' <<<"$status")"
+  [[ "$active" == none || "$active" =~ ^[0-9a-f]{64}$ ]] ||
+    { echo 'STOP: invalid production status' >&2; exit 68; }
+  echo "production_active=$active"
+fi
 echo "FINAI_DEPLOY_${operation^^}=PASS"
