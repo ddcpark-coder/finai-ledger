@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\WorkspacePreferencesController;
+use App\Http\Controllers\Api\DemoIncomingInvoicesController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,4 +36,12 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::put('/companies/{companyId}/my/workspace-preferences',
         [WorkspacePreferencesController::class, 'update'])
         ->whereNumber('companyId');
+    // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
+    Route::get('/companies/{companyId}/demo/incoming-invoices',
+        [DemoIncomingInvoicesController::class, 'index'])->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/incoming-invoices',
+        [DemoIncomingInvoicesController::class, 'store'])->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/incoming-invoices/{invoiceId}/approve',
+        [DemoIncomingInvoicesController::class, 'approve'])
+        ->whereNumber('companyId')->whereNumber('invoiceId');
 });
