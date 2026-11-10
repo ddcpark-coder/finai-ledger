@@ -3,6 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import dynamic from "next/dynamic";
 import {defaultNavigation as nav,modules} from "./modules/moduleRegistry";
 import ContextNavigation from "./components/ContextNavigation";
+import AdaptiveWorkspace from "./components/AdaptiveWorkspace";
 import useContextNavigation from "./hooks/useContextNavigation";
 import useWorkspacePreferenceSync,{useLocalWorkspaceAppearance} from "./hooks/useWorkspacePreferenceSync";
 
@@ -354,6 +355,7 @@ export default function Page(){
  const [menu,setMenu]=useState(false);
  const [query,setQuery]=useState("");
  const [layout,setLayout]=useState(defaultLayout);
+ const [layoutLoadedFor,setLayoutLoadedFor]=useState(null);
  const [customizer,setCustomizer]=useState(false);
  const [dragId,setDragId]=useState(null);
  const [twoFactor,setTwoFactor]=useState(true);
@@ -391,11 +393,29 @@ export default function Page(){
    stats:[],rows:[]
  };
  useEffect(()=>{
-   try{const saved=localStorage.getItem("finai:workspace:demo-user");if(saved)setLayout(JSON.parse(saved))}catch{}
    const handler=(e)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();setCommand(v=>!v)} if(e.key==="Escape"){setCommand(false);setDrawer(null);setMenu(false);setCustomizer(false);setUserPanel(false)}};
    window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler)
  },[]);
- useEffect(()=>{try{localStorage.setItem("finai:workspace:demo-user",JSON.stringify(layout))}catch{}},[layout]);
+ useEffect(()=>{
+   setLayoutLoadedFor(null);
+   let next=defaultLayout;
+   try{
+     const saved=JSON.parse(window.localStorage.getItem("finai:workspace:demo-user:company-"+company)??"null");
+     if(Array.isArray(saved)){
+       const seen=new Set();
+       const items=saved.filter(x=>{
+         if(!x||typeof x.id!=="string"||!Object.hasOwn(widgetDefs,x.id)||seen.has(x.id))return false;
+         seen.add(x.id);return true;
+       }).map(x=>({id:x.id,size:["s","m","l","xl"].includes(x.size)?x.size:widgetDefs[x.id].size}));
+       next=items;
+     }
+   }catch{}
+   setLayout(next);setLayoutLoadedFor(company);
+ },[company]);
+ useEffect(()=>{
+   if(layoutLoadedFor!==company)return;
+   try{window.localStorage.setItem("finai:workspace:demo-user:company-"+company,JSON.stringify(layout))}catch{}
+ },[company,layout,layoutLoadedFor]);
  const applyPreset=(name)=>setLayout(presets[name].map(id=>({id,size:widgetDefs[id].size})));
  const toggleWidget=(id)=>setLayout(items=>items.some(x=>x.id===id)?items.filter(x=>x.id!==id):[...items,{id,size:widgetDefs[id].size}]);
  const setWidgetSize=(id,size)=>setLayout(items=>items.map(x=>x.id===id?{...x,size}:x));
@@ -478,6 +498,7 @@ export default function Page(){
          </span>
        </div>
 
+       <AdaptiveWorkspace companyId={company} moduleKey={activeRoute.module}>
        {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
@@ -534,6 +555,7 @@ export default function Page(){
            </div>
          </aside>
        </div>}
+       </AdaptiveWorkspace>
      </main>
    </section>
 
