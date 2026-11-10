@@ -38,7 +38,7 @@ export function makeDraft(form, records, companyId=1){
   },0);
   return {
     id:"IR-DEMO-"+companyId+"-"+String(nextId).padStart(4,"0"),companyId,
-    number:"—", partner, description,
+    number:"—", partner, description, currency:"EUR",
     net:euro(netCents),tax:euro(taxCents),gross:euro(netCents+taxCents),
     netCents,taxCents,grossCents:netCents+taxCents,
     vatRate:key,dueDays:days,
