@@ -2,6 +2,10 @@
 const EUR = new Intl.NumberFormat("sl-SI", {style:"currency",currency:"EUR"});
 const VAT_TENTHS = {"0":0,"9.5":95,"22":220};
 
+export function assertInvoiceCompany(companyId){
+  if(!Number.isSafeInteger(companyId)||companyId<1)throw new Error("Neveljavno podjetje.");
+}
+
 export function centsFromInput(value){
   const raw=String(value??"").trim().replace(",",".");
   if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(raw))throw new Error("Vnesi veljaven neto znesek (največ dve decimalki).");
@@ -16,7 +20,8 @@ export function euro(cents){
   return EUR.format(cents/100);
 }
 
-export function makeDraft(form, records){
+export function makeDraft(form, records, companyId=1){
+  assertInvoiceCompany(companyId);
   const partner=String(form.partner??"").trim();
   const description=String(form.description??"").trim();
   if(partner.length<2||partner.length>120)throw new Error("Vnesi naziv kupca (2–120 znakov).");
@@ -27,13 +32,13 @@ export function makeDraft(form, records){
   const days=Number(form.dueDays);
   if(![8,15,30].includes(days))throw new Error("Izberi plačilni rok.");
   const taxCents=Math.round(netCents*VAT_TENTHS[key]/1000);
-  const nextId=1+records.reduce((max,invoice)=>{
-    const match=String(invoice.id).match(/^IR-DEMO-(\d{4})$/);
+  const nextId=1+records.filter(row=>(row.companyId??1)===companyId).reduce((max,invoice)=>{
+    const match=String(invoice.id).match(new RegExp("^IR-DEMO-"+companyId+"-(\\d{4})$"));
     return match?Math.max(max,Number(match[1])):max;
   },0);
   return {
-    id:"IR-DEMO-"+String(nextId).padStart(4,"0"),
-    number:"—", partner, description,
+    id:"IR-DEMO-"+companyId+"-"+String(nextId).padStart(4,"0"),companyId,
+    number:"—", partner, description, currency:"EUR",
     net:euro(netCents),tax:euro(taxCents),gross:euro(netCents+taxCents),
     netCents,taxCents,grossCents:netCents+taxCents,
     vatRate:key,dueDays:days,
@@ -48,12 +53,15 @@ export function localDate(date){
   return [n(date.getDate()),n(date.getMonth()+1),date.getFullYear()].join(". ")+"";
 }
 
-export function issueDraft(invoice,records,now=new Date()){
+export function issueDraft(invoice,records,now=new Date(),companyId=invoice?.companyId??1){
+  assertInvoiceCompany(companyId);
+  if((invoice?.companyId??1)!==companyId)throw new Error("Račun ni iz izbranega podjetja.");
   if(!invoice||invoice.status!=="Osnutek")throw new Error("Izdati je mogoče samo osnutek.");
   if(!(now instanceof Date)||Number.isNaN(now.getTime()))throw new Error("Neveljaven datum.");
   const year=now.getFullYear();
   let highest=0;
   for(const row of records){
+    if((row.companyId??1)!==companyId)continue;
     const match=String(row.number).match(/^(?:DEMO-)?(\d{4})-(\d{4})$/);
     if(match&&Number(match[1])===year)highest=Math.max(highest,Number(match[2]));
   }
@@ -64,7 +72,9 @@ export function issueDraft(invoice,records,now=new Date()){
     issue:localDate(now),due:localDate(dueDate),status:"Izdano",demo:true};
 }
 
-export function simulateSending(invoice){
+export function simulateSending(invoice,companyId=invoice?.companyId??1){
+  assertInvoiceCompany(companyId);
+  if((invoice?.companyId??1)!==companyId)throw new Error("Račun ni iz izbranega podjetja.");
   if(!invoice||invoice.status!=="Izdano")throw new Error("Simulirano pošiljanje je mogoče samo za izdan račun.");
   return {...invoice,status:"Poslano",sent:true,delivery:"Simulacija · brez pošiljanja",demo:true};
 }

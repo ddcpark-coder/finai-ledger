@@ -1,0 +1,54 @@
+name: FinAI e-invoice readiness targeted QA
+on:
+  pull_request:
+    paths:
+      - "app/issued/**"
+      - "app/page.jsx"
+      - "tests/demoIssuedTenant.test.mjs"
+      - "tests/eInvoiceReadiness.test.mjs"
+      - "tests/e2e/issued-einvoice-tenant.spec.cjs"
+      - ".github/workflows/einvoice-readiness-qa.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  einvoice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Focused invoice/tenant/metadata checks
+        run: node --test tests/demoInvoice.test.mjs tests/demoIssuedTenant.test.mjs tests/eInvoiceReadiness.test.mjs
+      - name: Install app and pinned test runner
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+          npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Serve local static app
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-invoice-preflight.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: One mobile and desktop tenant/preflight scenario
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/issued-einvoice-tenant.spec.cjs
+      - name: Save traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-einvoice-readiness-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
