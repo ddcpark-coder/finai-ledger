@@ -24,7 +24,7 @@ test("company and module preference namespaces cannot leak between workspaces",(
  for(const bad of [0,-1,1.3,NaN])assert.throws(()=>viewStorageKey(bad,"banking"));
  for(const bad of ["banking/../../x","",null])assert.throws(()=>viewStorageKey(1,bad));
  assert.notEqual(viewStorageKey(1,"banking","Pregled::Vsi"),viewStorageKey(1,"banking","Usklajevanje::Predlogi"));
- assert.throws(()=>viewStorageKey(1,"banking","Wrong\\nView"));
+ assert.throws(()=>viewStorageKey(1,"banking","Wrong"+String.fromCharCode(10)+"View"));
  assert.throws(()=>viewStorageKey(1,"banking",null));
 });
 test("updates preserve independent user preferences and block unknown fields",()=>{
