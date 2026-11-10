@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - 'next.config.mjs'
-      - 'app/**'
+      # Windows packaging is not rerun for each web-only/UI change.
+      # Manually dispatch for large frontend changes affecting offline desktop.
       - 'desktop/windows/**'
       - '.github/workflows/finai-hiperm-desktop-build.yml'
   workflow_dispatch:

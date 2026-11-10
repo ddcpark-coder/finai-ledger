@@ -8,10 +8,14 @@ export PATH=/usr/bin:/bin
 operation="${1:-}"
 digest="${2:-}"
 archive="${3:-}"
-[[ "$operation" == stage || "$operation" == promote ]] ||
-  { echo 'STOP: expected stage|promote' >&2; exit 64; }
-[[ "$digest" =~ ^[0-9a-f]{64}$ ]] ||
-  { echo 'STOP: expected exact SHA256' >&2; exit 64; }
+[[ "$operation" == stage || "$operation" == promote || "$operation" == status ]] ||
+  { echo 'STOP: expected status|stage|promote' >&2; exit 64; }
+if [[ "$operation" == status ]]; then
+  [[ "$#" -eq 1 ]] || { echo 'STOP: status takes no arguments' >&2; exit 64; }
+else
+  [[ "$digest" =~ ^[0-9a-f]{64}$ ]] ||
+    { echo 'STOP: expected exact SHA256' >&2; exit 64; }
+fi
 [[ -n "${FINAI_DEPLOY_SSH_PRIVATE_KEY:-}" && -n "${FINAI_DEPLOY_SSH_KNOWN_HOSTS:-}" ]] ||
   { echo 'STOP: isolated deploy key/known hosts not configured' >&2; exit 64; }
 [[ "${FINAI_DEPLOY_SSH_USER:-}" =~ ^[a-zA-Z][a-zA-Z0-9_-]{1,30}$ &&
@@ -52,13 +56,15 @@ if [[ "$operation" == stage ]]; then
   response="$(ssh "${opts[@]}" "$remote" "finai:stage:v1:$digest" < "$archive")"
   grep -Eq '^FINAI_ISOLATED_DEPLOY=STAGED(_ALREADY_PRESENT)?$' <<<"$response" ||
     { echo 'STOP: isolated staging not confirmed' >&2; exit 68; }
-else
+elif [[ "$operation" == promote ]]; then
   response="$(ssh "${opts[@]}" "$remote" "finai:promote:v1:$digest")"
   grep -Fxq 'FINAI_ISOLATED_DEPLOY=PROMOTED' <<<"$response" ||
     { echo 'STOP: isolated production promotion not confirmed' >&2; exit 68; }
 fi
-grep -Fxq "release_sha256=$digest" <<<"$response" ||
-  { echo 'STOP: unexpected release reported by host' >&2; exit 68; }
+if [[ "$operation" != status ]]; then
+  grep -Fxq "release_sha256=$digest" <<<"$response" ||
+    { echo 'STOP: unexpected release reported by host' >&2; exit 68; }
+fi
 
 set +e
 ssh "${opts[@]}" "$remote" 'id' >/dev/null 2>&1
@@ -67,4 +73,10 @@ set -e
 [[ "$denied" == 64 ]] ||
   { echo 'STOP: SSH forced command protection drift' >&2; exit 68; }
 echo 'FINAI_ISOLATED_DENY_CHECK=PASS'
+if [[ "$operation" == status ]]; then
+  active="$(sed -n 's/^production_active=//p' <<<"$status")"
+  [[ "$active" == none || "$active" =~ ^[0-9a-f]{64}$ ]] ||
+    { echo 'STOP: invalid production status' >&2; exit 68; }
+  echo "production_active=$active"
+fi
 echo "FINAI_DEPLOY_${operation^^}=PASS"

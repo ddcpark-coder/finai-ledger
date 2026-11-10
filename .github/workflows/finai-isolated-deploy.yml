@@ -84,6 +84,18 @@ jobs:
         run: |
           npm install --no-audit --no-fund --package-lock=false
           npm run build
+          # Public, non-secret release marker. Required to prove the actual version is live.
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          marker = Path("out/finai-build.json")
+          if marker.exists() or marker.is_symlink():
+              raise SystemExit("FinAI build marker conflicts with existing output")
+          marker.write_text(json.dumps({
+              "application": "finai-ledger",
+              "commit": os.environ["GITHUB_SHA"]
+          }, sort_keys=True) + "\n", encoding="utf-8")
+          PY
       - name: Validate and package static assets
         id: digest
         shell: bash
@@ -162,13 +174,13 @@ jobs:
             "$RUNNER_TEMP/finai-release/finai-web-release.tar.gz"
 
   promote:
-    name: Explicitly approved production switch (never automatic)
+    name: Controlled FinAI-only publish (auto only on verified isolated account)
     needs: [gate-tests, static-release, stage]
     if: >-
-      github.event_name == 'workflow_dispatch' &&
-      inputs.promote_to_production == true &&
       github.ref == 'refs/heads/main' &&
-      vars.FINAI_PRODUCTION_ENABLED == 'true'
+      vars.FINAI_PRODUCTION_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.promote_to_production == true) ||
+       (github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true'))
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: finai-production
@@ -176,7 +188,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Switch only the isolated FinAI current release symlink
+      - name: Switch only isolated FinAI release, smoke test, rollback on failure
         shell: bash
         env:
           FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
@@ -185,5 +197,51 @@ jobs:
           FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
           FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
           RELEASE_SHA256: ${{ needs.static-release.outputs.sha256 }}
+          IS_AUTOMATIC: ${{ github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true' }}
+          FIRST_PUBLISH_RESTORE_READY: ${{ vars.FINAI_FIRST_PUBLISH_RESTORE_READY }}
         run: |
+          set -euo pipefail
+          # Use only the pre-existing forced-command gate of a dedicated FinAI OS account.
+          # The first publication requires human-approved migration from the existing landing page.
+          previous="$(bash ops/finai-ci-isolated-ssh.sh status | sed -n 's/^production_active=//p')"
+          [[ "$previous" == none || "$previous" =~ ^[0-9a-f]{64}$ ]] ||
+            { echo 'STOP: invalid previous FinAI release' >&2; exit 65; }
+          if [[ "$previous" == none ]]; then
+            if [[ "$IS_AUTOMATIC" == true || "$FIRST_PUBLISH_RESTORE_READY" != YES ]]; then
+              echo 'STOP: initial publish requires approved landing backup and manual release' >&2
+              exit 65
+            fi
+          fi
+
           bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
+
+          # Minimal live smoke test. Only this one known FinAI HTTPS endpoint is queried.
+          smoke_file="$RUNNER_TEMP/finai-live-build.json"
+          if ! (curl --fail --silent --show-error --max-time 25 --max-redirs 2 \
+                --proto '=https' --proto-redir '=https' --location \
+                --output "$smoke_file" 'https://e-integrator.si/finai-build.json' &&
+                python3 - "$smoke_file" "$GITHUB_SHA" <<'PY'
+          import json, sys
+          from pathlib import Path
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+              assert payload == {"application":"finai-ledger", "commit":sys.argv[2]}
+          except (ValueError, OSError, AssertionError):
+              raise SystemExit(1)
+          PY
+          ); then
+            echo 'FINAI_LIVE_SMOKE=FAIL' >&2
+            if [[ "$previous" =~ ^[0-9a-f]{64}$ && "$previous" != "$RELEASE_SHA256" ]]; then
+              echo 'FINAI_ROLLBACK=ATTEMPT' >&2
+              bash ops/finai-ci-isolated-ssh.sh promote "$previous" || {
+                echo 'FINAI_ROLLBACK=FAILED_MANUAL_RECOVERY_REQUIRED' >&2
+                exit 70
+              }
+              echo 'FINAI_ROLLBACK=PASS'
+            else
+              echo 'FINAI_ROLLBACK=NO_PREVIOUS_RELEASE' >&2
+            fi
+            exit 69
+          fi
+          echo 'FINAI_LIVE_SMOKE=PASS'
+          echo 'FINAI_HIPERM_PUBLISH=PASS'

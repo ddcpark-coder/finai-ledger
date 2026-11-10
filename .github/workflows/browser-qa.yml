@@ -3,7 +3,13 @@ name: FinAI desktop/mobile interaction QA
 on:
   pull_request:
     paths:
-      - "app/**"
+      # Full desktop/mobile scenarios only for interaction-sensitive changes.
+      # Styling and routine page edits get the static build + integrity check instead.
+      - "app/auth/**"
+      - "app/issued/**"
+      - "app/modules/contextNavigation.js"
+      - "app/modules/contextRoute.mjs"
+      - "app/modules/moduleRegistry.js"
       - "next.config.mjs"
       - "tests/e2e/**"
       - "playwright.config.cjs"
