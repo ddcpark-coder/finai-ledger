@@ -498,7 +498,7 @@ export default function Page(){
          </span>
        </div>
 
-       <AdaptiveWorkspace companyId={company} moduleKey={activeRoute.module}>
+       <AdaptiveWorkspace companyId={company} moduleKey={activeRoute.module} viewKey={(activeRoute.view??"Pregled")+"::"+(activeRoute.subview??"Vsi")}>
        {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
