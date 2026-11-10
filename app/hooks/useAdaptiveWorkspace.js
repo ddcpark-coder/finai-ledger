@@ -2,10 +2,10 @@
 import {useEffect,useState} from "react";
 import {DEFAULT_VIEW,normalizeView,viewStorageKey} from "../lib/workspacePersonalization.mjs";
 
-export default function useAdaptiveWorkspace(companyId,moduleKey){
+export default function useAdaptiveWorkspace(companyId,moduleKey,viewKey){
  const [view,setView]=useState(DEFAULT_VIEW);
  const [loadedKey,setLoadedKey]=useState(null);
- const key=viewStorageKey(companyId,moduleKey);
+ const key=viewStorageKey(companyId,moduleKey,viewKey);
  useEffect(()=>{
    setLoadedKey(null);
    let next=DEFAULT_VIEW;
