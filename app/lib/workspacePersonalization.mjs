@@ -16,10 +16,11 @@ export function normalizeView(value){
     textScale:textScales.has(Number(input.textScale))?Number(input.textScale):DEFAULT_VIEW.textScale
   };
 }
-export function viewStorageKey(companyId,moduleKey){
+export function viewStorageKey(companyId,moduleKey,viewKey="default"){
   if(!Number.isSafeInteger(companyId)||companyId<1)throw new Error("Neveljavno podjetje.");
   if(typeof moduleKey!=="string"||!/^[a-z_]{2,48}$/.test(moduleKey))throw new Error("Neveljaven modul.");
-  return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey;
+  if(typeof viewKey!=="string"||viewKey.length<1||viewKey.length>160||/[\\x00-\\x1f]/.test(viewKey))throw new Error("Neveljaven podpogled.");
+  return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey+":view-"+encodeURIComponent(viewKey);
 }
 export function updateViewField(state,key,value){
   if(!["level","arrangement","detailWidth","textScale"].includes(key))throw new Error("Neveljavna nastavitev prikaza.");
