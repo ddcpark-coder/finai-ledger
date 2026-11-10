@@ -28,6 +28,8 @@ jobs:
         run: |
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+      - name: Focused synthetic invoice calculation and state tests
+        run: npm run test:issued-demo
       - name: Install Chromium for desktop and mobile emulation
         run: npx playwright install --with-deps chromium
       - name: Build Next.js
