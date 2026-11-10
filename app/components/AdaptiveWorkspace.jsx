@@ -10,8 +10,8 @@ const MODES=[
  ["detail","Samo podrobnosti"]
 ];
 
-export default function AdaptiveWorkspace({companyId,moduleKey,children}){
- const {view,setView,ready}=useAdaptiveWorkspace(companyId,moduleKey);
+export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}){
+ const {view,setView,ready}=useAdaptiveWorkspace(companyId,moduleKey,viewKey);
  const helpId=useId();
  const set=(key,value)=>setView(prev=>updateViewField(prev,key,value));
  return <section className="finaiAdaptive" data-level={view.level} data-arrangement={view.arrangement}
@@ -75,7 +75,7 @@ export default function AdaptiveWorkspace({companyId,moduleKey,children}){
        <span>{view.detailWidth} px</span>
      </label>
      <button type="button" disabled={!ready} onClick={()=>setView(DEFAULT_VIEW)}>Ponastavi pogled</button>
-     <span className="finaiAdaptiveCaption" role="note">Nastavitve veljajo le za ta modul in izbrano podjetje; shranjene so lokalno v brskalniku. Skrita polja ne spreminjajo podatkov ali uporabniških dovoljenj.</span>
+     <span className="finaiAdaptiveCaption" role="note">Nastavitve veljajo za ta podpogled in izbrano podjetje; shranjene so lokalno v brskalniku. Skrita polja ne spreminjajo podatkov ali uporabniških dovoljenj.</span>
    </div>
    <div className="finaiAdaptiveBody">{children}</div>
  </section>;
