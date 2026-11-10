@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from "react";
 import DemoIncomingCreator from "./DemoIncomingCreator";
 import {approveIncomingDemo,companyIncomingRecords,makeIncomingDemoEvent} from "./demoIncoming.mjs";
+import {getDemoAccountSuggestion,recordDemoRuleChoice} from "./demoAccountingRules.mjs";
 
 const invoices=[
  {companyId:1,id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
@@ -26,6 +27,7 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
  const [audit,setAudit]=useState([]);
  const companyRecords=useMemo(()=>companyIncomingRecords(records,companyId),[records,companyId]);
  const selected=companyRecords.find(row=>row.id===selectedId)??companyRecords[0];
+ const demoSuggestion=getDemoAccountSuggestion(selected,companyId);
  const companyAudit=useMemo(()=>audit.filter(event=>event.companyId===companyId).slice(-8).reverse(),[audit,companyId]);
  const createDemo=row=>{
    if(row.companyId!==companyId)throw new Error("Podjetje se je med vnosom spremenilo.");
@@ -131,19 +133,25 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
          <div className="lineItem"><span>Storitve / material</span><span>1 kos</span><b>{selected.gross}</b></div>
        </div>
 
-       <div className="invoiceSection"><h4>AI predlog knjiženja</h4>
+       <div className="invoiceSection"><h4>Razložljiv predlog kontiranja</h4>
          <div className="aiBox">
-           <b>{selected.account==="—"?"Predlog še ni pripravljen":selected.account+" · stroškovno mesto "+selected.cost}</b>
-           <small>{selected.ai?selected.ai+" % gotovost · "+(selected.ai>=98?"kandidat za avtomatizacijo":selected.ai>=90?"visoka gotovost, pregled":"zahteva pregled"):"Čaka na uspešno ekstrakcijo dokumenta."}</small>
-           {selected.ai>0&&<div className="aiExplain">
-             <div className="aiSignal"><span>Pravilo partnerja</span><b>{selected.partner==="Merkur d.o.o."?"ujema se":"ni determinističnega ujemanja"}</b></div>
-             <div className="aiSignal"><span>Potrjena zgodovina</span><b>{selected.partner==="Merkur d.o.o."?"18 podobnih knjižb":"6 podobnih knjižb"}</b></div>
-             <div className="aiSignal"><span>Predlagan DDV</span><b>{selected.vat}</b></div>
-             <div className="aiSignal"><span>Risk signal</span><b>{selected.partner==="Merkur d.o.o."?"brez":"brez"}</b></div>
-           </div>}
-           {selected.partner==="Merkur d.o.o."&&<div className="anomaly"><b>Kontrola anomalij: brez kritičnega odstopanja</b><div style={{marginTop:3,color:"var(--muted)"}}>Znesek in vzorec sta skladna z zgodovino partnerja.</div></div>}
-           {selected.ai>0&&<div className="aiActions"><button className={aiDecision==="accepted"?"on":""} onClick={()=>setAiDecision("accepted")}>Potrdi</button><button className={aiDecision==="modified"?"on":""} onClick={()=>setAiDecision("modified")}>Spremeni</button><button className={aiDecision==="rejected"?"on":""} onClick={()=>setAiDecision("rejected")}>Zavrni</button></div>}
-           {aiDecision&&<small style={{marginTop:7,color:"var(--accent)"}}>Demo izbira “{aiDecision==="accepted"?"potrjeno":aiDecision==="modified"?"spremenjeno":"zavrnjeno"}” velja le za trenutni prikaz. Učenje AI ni aktivno.</small>}
+           {demoSuggestion?<><b>Demo konto {demoSuggestion.account} · stroškovno mesto {demoSuggestion.costCenter}</b>
+             <small>Vir: vnaprej določeno testno pravilo tega podjetja. To ni napoved AI ali računovodsko potrjen konto.</small>
+             <div className="aiExplain"><div className="aiSignal"><span>Zakaj ta predlog?</span><b>{demoSuggestion.reason}</b></div></div>
+             <p style={{fontSize:10,lineHeight:1.55,color:"var(--muted)"}}>{demoSuggestion.explanation}</p>
+             <div className="aiActions" style={{gridTemplateColumns:"repeat(2,minmax(0,1fr))"}}>
+               <button type="button" className={aiDecision==="accepted"?"on":""} onClick={()=>{
+                 try{recordDemoRuleChoice(demoSuggestion,"accepted",companyId);setAiDecision("accepted");setNotice("Demo predlog je označen kot potrjen samo v trenutnem prikazu. Ni knjiženja ali AI učenja.");}
+                 catch(error){setNotice(error.message);}
+               }}>Potrdi demo predlog</button>
+               <button type="button" className={aiDecision==="rejected"?"on":""} onClick={()=>{
+                 try{recordDemoRuleChoice(demoSuggestion,"rejected",companyId);setAiDecision("rejected");setNotice("Demo predlog je zavrnjen samo v trenutnem prikazu. Ni knjiženja ali AI učenja.");}
+                 catch(error){setNotice(error.message);}
+               }}>Zavrni demo predlog</button>
+             </div>
+             {aiDecision&&<small style={{marginTop:7,color:"var(--accent)"}}>Izbira: {aiDecision==="accepted"?"demonstracijsko potrjeno":"demonstracijsko zavrnjeno"} · brez trajne shrambe.</small>}
+           </>:<><b>Ni določenega pravila za izbranega dobavitelja</b>
+             <small>Predlog kontiranja ni pripravljen. Ročna izbira konta in strokovni pregled bosta na voljo po priklopu računovodskega zaledja. Program ne ugiba konta in ničesar ne knjiži.</small></>}
          </div>
        </div>
 

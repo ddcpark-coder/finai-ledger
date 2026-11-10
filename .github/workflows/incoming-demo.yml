@@ -7,6 +7,7 @@ on:
       - "app/issued/demoInvoice.mjs"
       - "tests/demoIncoming.test.mjs"
       - "tests/localFilePreview.test.mjs"
+      - "tests/demoAccountingRules.test.mjs"
       - ".github/workflows/incoming-demo.yml"
   push:
     branches: [main]
@@ -33,4 +34,4 @@ jobs:
         with:
           node-version: "22"
       - name: Incoming invoice validation and state transitions (synthetic only)
-        run: node --test tests/demoIncoming.test.mjs tests/localFilePreview.test.mjs
+        run: node --test tests/demoIncoming.test.mjs tests/localFilePreview.test.mjs tests/demoAccountingRules.test.mjs
