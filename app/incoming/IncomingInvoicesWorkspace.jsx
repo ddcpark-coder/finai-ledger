@@ -1,5 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
+import DemoIncomingCreator from "./DemoIncomingCreator";
+import {approveIncomingDemo} from "./demoIncoming.mjs";
 
 const invoices=[
  {id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
@@ -13,24 +15,45 @@ export default function IncomingInvoicesWorkspace({context}){
  const subView=context?.level3??"Vsi";
  const [query,setQuery]=useState("");
  const [status,setStatus]=useState("Vsi");
- const [selected,setSelected]=useState(invoices[0]);
- const [approved,setApproved]=useState(false);
+ const [records,setRecords]=useState(invoices);
+ const [selectedId,setSelectedId]=useState(invoices[0].id);
+ const [newId,setNewId]=useState(null);
+ const [creatorOpen,setCreatorOpen]=useState(false);
+ const [notice,setNotice]=useState("");
  const [aiDecision,setAiDecision]=useState(null);
- const list=useMemo(()=>invoices.filter(x=>{
+ const selected=records.find(row=>row.id===selectedId)??records[0];
+ const createDemo=row=>{
+   setRecords(old=>[row,...old]);setSelectedId(row.id);setNewId(row.id);
+   setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
+   setNotice("Demonstracijski prejeti račun je dodan samo v trenutni prikaz.");
+ };
+ const approveSelected=()=>{
+   try{
+     const updated=approveIncomingDemo(selected);
+     setRecords(old=>old.map(row=>row.id===selectedId?updated:row));
+     setNotice("Odobritev je le demonstracijska. Knjižba, datoteka in obvestilo niso ustvarjeni.");
+   }catch(error){setNotice(error.message)}
+ };
+ const resetDemo=()=>{
+   setRecords(invoices);setSelectedId(invoices[0].id);setNewId(null);
+   setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
+   setNotice("Demonstracijski prejeti računi so ponastavljeni.");
+ };
+ const list=useMemo(()=>records.filter(x=>{
    const q=query.toLowerCase();
    const contextMatch=section==="Pregled"?(subView==="V obdelavi"?x.status==="Obdelava":subView==="Novo"?x.status==="Pregled":true)
     :section==="Za pregled"?(subView==="Napake"?x.status==="Napaka":subView==="OCR"?x.ocr>0&&x.status!=="Odobreno":x.ai>0&&x.status==="Pregled")
     :section==="Odobritve"?(subView==="Odobreno"?x.status==="Odobreno":subView==="Zavrnjeno"?false:x.status==="Pregled")
     :section==="Knjiženje"?(subView==="Predlog"?x.account!=="—":subView==="Temeljnica"?x.status==="Odobreno":x.status==="Odobreno")
     :true;
-   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status)&&contextMatch;
- }),[query,status,section,subView]);
+   return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status)&&(contextMatch||x.id===newId);
+ }),[records,query,status,section,subView,newId]);
 
  useEffect(()=>{
-   if(list.length&&!list.some(row=>row.id===selected.id)){
-     setSelected(list[0]);setApproved(false);setAiDecision(null);
+   if(list.length&&!list.some(row=>row.id===selectedId)){
+     setSelectedId(list[0].id);setAiDecision(null);
    }
- },[list,selected.id]);
+ },[list,selectedId]);
 
  return <section className="incomingWorkspace">
    <style>{`
@@ -54,25 +77,26 @@ export default function IncomingInvoicesWorkspace({context}){
    @media(max-width:1100px){.incomingGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow{grid-template-columns:1.3fr .8fr .7fr}.invoiceRow>*:nth-child(2),.invoiceRow>*:nth-child(4){display:none}.detailGrid{grid-template-columns:1fr}.statusStrip{grid-template-columns:1fr 1fr 1fr}.incomingTools input{width:100%}}
    `}</style>
 
-   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · pregled prikaznih podatkov</div>
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracija brez prenosa datotek ali knjiženja</div>
+   {notice&&<div role="status" style={{padding:"9px 12px",marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</div>}
    <div className="incomingGrid">
      <article className="incomingCard">
-       <div className="incomingHead"><h3>Prejeti računi · {section} / {subView}</h3><div className="incomingTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja ali račun ..."/><select value={status} onChange={e=>setStatus(e.target.value)}><option>Vsi</option><option>Pregled</option><option>Odobreno</option><option>Obdelava</option><option>Napaka</option></select><button className="primary">＋ Naloži račun</button></div></div>
-       <div className="dropZone"><b>Spusti PDF, XML ali e-račun sem</b><small>Original ostane varen; OCR/XML/AI obdelava poteka ločeno.</small></div>
+       <div className="incomingHead"><h3>Prejeti računi · {section} / {subView}</h3><div className="incomingTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja ali račun ..."/><select value={status} onChange={e=>setStatus(e.target.value)}><option>Vsi</option><option>Pregled</option><option>Odobreno</option><option>Obdelava</option><option>Napaka</option></select><button type="button" className="primary" onClick={()=>setCreatorOpen(true)}>＋ Nov demo račun</button><button type="button" className="secondary" onClick={resetDemo}>Ponastavi demo</button></div></div>
+       <div className="dropZone"><b>Ročni vnos demonstracijskega prejetega računa</b><small>Uvoz PDF/XML, OCR in AI obdelava še niso povezani. Vnesi samo sintetične podatke.</small></div>
        <div className="statusStrip"><div className="on">Prejeto</div><div className="on">Obdelava</div><div className="on">Pregled</div><div>Odobreno</div><div>Knjiženo</div></div>
        <div className="invoiceRow head"><span>Partner / račun</span><span>Datum / rok</span><span>Znesek</span><span>OCR / AI</span><span>Status</span></div>
        {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>V demonstracijskih podatkih ni zapisov za izbrani pogled.</p>}
-       {list.map(x=><button className="invoiceRow" key={x.id} onClick={()=>{setSelected(x);setApproved(false);setAiDecision(null)}}>
+       {list.map(x=><button className="invoiceRow" key={x.id} aria-pressed={x.id===selectedId} onClick={()=>{setSelectedId(x.id);setNewId(null);setAiDecision(null);setNotice("");}}>
          <span><b>{x.partner}</b><small>{x.number} · {x.id}</small></span>
          <span><b>{x.date}</b><small>rok {x.due}</small></span>
          <b className="invoiceAmount">{x.gross}</b>
          <span><b>{x.ocr?x.ocr+" %":"—"}</b><small>AI {x.ai?x.ai+" %":"—"}</small></span>
-         <span className={"state "+(x.status==="Pregled"?"review":x.status==="Odobreno"?"ok":x.status==="Obdelava"?"process":"error")}>{approved&&x.id===selected.id?"Odobreno":x.status}</span>
+         <span className={"state "+(x.status==="Pregled"?"review":x.status==="Odobreno"?"ok":x.status==="Obdelava"?"process":"error")}>{x.status}</span>
        </button>)}
      </article>
 
      {list.length>0&&<aside className="incomingCard invoiceDetail">
-       <span className={"state "+(selected.status==="Pregled"?"review":selected.status==="Odobreno"?"ok":selected.status==="Obdelava"?"process":"error")}>{approved?"Odobreno":selected.status}</span>
+       <span className={"state "+(selected.status==="Pregled"?"review":selected.status==="Odobreno"?"ok":selected.status==="Obdelava"?"process":"error")}>{selected.status}</span>
        <h3>{selected.partner}</h3><small>{selected.number} · {selected.id}</small>
 
        <div className="detailGrid">
@@ -105,17 +129,18 @@ export default function IncomingInvoicesWorkspace({context}){
            </div>}
            {selected.partner==="Merkur d.o.o."&&<div className="anomaly"><b>Kontrola anomalij: brez kritičnega odstopanja</b><div style={{marginTop:3,color:"var(--muted)"}}>Znesek in vzorec sta skladna z zgodovino partnerja.</div></div>}
            {selected.ai>0&&<div className="aiActions"><button className={aiDecision==="accepted"?"on":""} onClick={()=>setAiDecision("accepted")}>Potrdi</button><button className={aiDecision==="modified"?"on":""} onClick={()=>setAiDecision("modified")}>Spremeni</button><button className={aiDecision==="rejected"?"on":""} onClick={()=>setAiDecision("rejected")}>Zavrni</button></div>}
-           {aiDecision&&<small style={{marginTop:7,color:"var(--accent)"}}>Feedback “{aiDecision==="accepted"?"potrjeno":aiDecision==="modified"?"spremenjeno":"zavrnjeno"}” bo uporabljen kot učni dogodek.</small>}
+           {aiDecision&&<small style={{marginTop:7,color:"var(--accent)"}}>Demo izbira “{aiDecision==="accepted"?"potrjeno":aiDecision==="modified"?"spremenjeno":"zavrnjeno"}” velja le za trenutni prikaz. Učenje AI ni aktivno.</small>}
          </div>
        </div>
 
        <div className="invoiceSection"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>
-         <button className="primary" disabled={selected.status!=="Pregled"||approved} onClick={()=>setApproved(true)}>{approved?"Odobreno":"Odobri račun"}</button>
-         {selected.status==="Napaka"&&<button className="secondary">Ponovno obdelaj</button>}
-         <button className="secondary">Uredi podatke</button>
-         <button className="secondary">Odpri original</button>
+         <button className="primary" disabled={!selected.demo||selected.status!=="Pregled"} onClick={approveSelected}>{selected.status==="Odobreno"?"Odobreno (demo)":"Odobri demo račun"}</button>
+         {selected.status==="Napaka"&&<button className="secondary" disabled title="OCR ni povezan z demonstracijo">Ponovno obdelaj (v pripravi)</button>}
+         <button className="secondary" disabled title="Urejanje in shramba izvirnikov še nista povezana">Uredi podatke (v pripravi)</button>
+         <button className="secondary" disabled title="Datoteke niso naložene">Odpri original (v pripravi)</button>
        </div></div>
      </aside>}{list.length===0&&<aside className="incomingCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
+   {creatorOpen&&<DemoIncomingCreator records={records} onCreate={createDemo} onCancel={()=>setCreatorOpen(false)}/>}
  </section>
 }
