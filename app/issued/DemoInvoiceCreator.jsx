@@ -4,7 +4,7 @@ import {makeDraft} from "./demoInvoice.mjs";
 
 const EMPTY={partner:"",description:"",net:"",vatRate:"22",dueDays:"15"};
 
-export default function DemoInvoiceCreator({records,onCreate,onCancel}){
+export default function DemoInvoiceCreator({records,companyId,onCreate,onCancel}){
   const [form,setForm]=useState(EMPTY);
   const [error,setError]=useState("");
   const update=(key,value)=>{
@@ -14,7 +14,7 @@ export default function DemoInvoiceCreator({records,onCreate,onCancel}){
   const submit=event=>{
     event.preventDefault();
     try {
-      const draft=makeDraft(form,records);
+      const draft=makeDraft(form,records,companyId);
       onCreate(draft);
     } catch(exc){
       setError(exc instanceof Error?exc.message:"Osnutka ni bilo mogoče ustvariti.");
