@@ -5,6 +5,10 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   const shell=page.locator(".finaiAdaptive");
   await expect(shell).toHaveAttribute("data-level","standard");
   await page.getByLabel("Zahtevnost").selectOption("simple");
+  const guidance=page.getByRole("region",{name:"Pojasnila trenutnega modula"});
+  await expect(guidance).toBeVisible();
+  await expect(guidance).toContainText("Kako pregledam prejeti račun?");
+  await expect(guidance).toContainText("Predlagani naslednji korak");
   await page.getByLabel("Razporeditev").selectOption("stacked");
   await page.getByLabel("Velikost prikaza").selectOption("130");
   await expect(shell).toHaveAttribute("data-level","simple");
@@ -41,4 +45,7 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.getByRole("button",{name:"Ponastavi pogled"}).click();
   await expect(shell).toHaveAttribute("data-level","standard");
   await expect(shell).toHaveAttribute("data-arrangement","split");
+  await expect(page.getByRole("region",{name:"Pojasnila trenutnega modula"})).toHaveCount(0);
+  await page.getByRole("button",{name:"Pomoč pri tem pogledu"}).click();
+  await expect(page.getByRole("region",{name:"Pojasnila trenutnega modula"})).toBeVisible();
 });
