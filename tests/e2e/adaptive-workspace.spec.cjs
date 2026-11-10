@@ -14,6 +14,11 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await expect(shell).toHaveAttribute("data-level","simple");
   await expect(shell).toHaveAttribute("data-arrangement","stacked");
 
+  await page.goto("/?module=incoming_invoices&view=Odobritve&subview=Odobreno");
+  await expect(shell).toHaveAttribute("data-level","standard");
+  await page.goto("/?module=incoming_invoices&view=Pregled&subview=Vsi");
+  await expect(shell).toHaveAttribute("data-level","simple");
+
   await page.goto("/?module=banking&view=Pregled&subview=Vsi");
   await expect(shell).toHaveAttribute("data-level","standard");
   await page.getByLabel("Zahtevnost").selectOption("expert");
