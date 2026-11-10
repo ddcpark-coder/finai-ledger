@@ -201,9 +201,11 @@ jobs:
           bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
 
           # Minimal live smoke test. Only this one known FinAI HTTPS endpoint is queried.
+          smoke_file="$RUNNER_TEMP/finai-live-smoke.html"
           if ! (curl --fail --silent --show-error --max-time 25 --max-redirs 2 \
                 --proto '=https' --proto-redir '=https' --location \
-                'https://e-integrator.si/' | grep -qi 'FinAI'); then
+                --output "$smoke_file" 'https://e-integrator.si/' &&
+                grep -qi 'FinAI' "$smoke_file"); then
             echo 'FINAI_LIVE_SMOKE=FAIL' >&2
             if [[ "$previous" =~ ^[0-9a-f]{64}$ && "$previous" != "$RELEASE_SHA256" ]]; then
               echo 'FINAI_ROLLBACK=ATTEMPT' >&2
