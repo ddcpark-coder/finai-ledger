@@ -16,7 +16,7 @@ export function normalizeView(value){
 }
 export function viewStorageKey(companyId,moduleKey){
   if(!Number.isSafeInteger(companyId)||companyId<1)throw new Error("Neveljavno podjetje.");
-  if(!/^[a-z_]{2,48}$/.test(String(moduleKey)))throw new Error("Neveljaven modul.");
+  if(typeof moduleKey!=="string"||!/^[a-z_]{2,48}$/.test(moduleKey))throw new Error("Neveljaven modul.");
   return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey;
 }
 export function updateViewField(state,key,value){
