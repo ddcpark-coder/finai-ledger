@@ -36,6 +36,15 @@ Preverjevalnik sme uporabljati samo namensko prijavo `finai-…@e-integrator.si`
 
 Tudi če je osnovni test `PWD/CWD` uspešen, izpiše **`FINAI_PROVIDER_ISOLATION_VERIFICATION=REQUIRED`**. Tak test ne dovoljuje pisalnih operacij.
 
+## FTPS certifikat in povezljivost brez prijave – FTPS-TLS-01
+
+Ustvarjeni namenski račun: `finai-deploy@e-integrator.si`, FTP gostitelj v cPanel: `ftp.laskoteka.si`, explicit TLS na vratih `21`. **To je FTP strežnik, ne dovoljenje za pisanje v Laškoteko.**
+
+- `ops/finai-ftps-tls-only-preflight.py` naredi samo `CONNECT` in `AUTH TLS`, obvezno preveri CA + hostname na strežniškem certifikatu ter zaključi povezavo. Ne uporablja FTP uporabniškega imena, gesla, `LOGIN`, `CWD`, `STOR`, `DELE` ali drugih ukazov za spremembe.
+- `.github/workflows/finai-ftps-tls-preflight.yml` izvede sintetični test odjemalca in **omrežni, vendar neavtenticiran bralni TLS handshake** do točno določenega gostitelja. Ne potrebuje novih skrivnosti.
+- Uspešen TLS handshake **ne dokazuje** FTPS omejitve na direktorij, uporabniških pravic, HTTPS poddomene ali možnosti objave. Ne vključi `FINAI_STAGE_ENABLED` ali drugih pisalnih spremenljivk.
+- Ob neuspehu certifikata ne izključi preverjanja TLS; uporabi natančen FTPS naslov z veljavnim certifikatom, ki ga potrdi ponudnik.
+
 ## Potrditev od Hiper M, potrebna za nadaljevanje
 
 Podpora Hiper M naj brez sprememb skupnih servisov pisno pojasni:
