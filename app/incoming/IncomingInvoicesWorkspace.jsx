@@ -1,45 +1,59 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import DemoIncomingCreator from "./DemoIncomingCreator";
-import {approveIncomingDemo} from "./demoIncoming.mjs";
+import {approveIncomingDemo,companyIncomingRecords,makeIncomingDemoEvent} from "./demoIncoming.mjs";
 
 const invoices=[
- {id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
- {id:"PR-2026-0187",partner:"Petrol d.d.",number:"P-2026-88021",gross:"320,00 €",date:"01. 11. 2026",due:"16. 11. 2026",status:"Odobreno",ocr:98,ai:96,vat:"22 %",account:"4070",cost:"UPRAVA"},
- {id:"PR-2026-0186",partner:"Telekom Slovenije",number:"TS-2026-33421",gross:"185,00 €",date:"31. 10. 2026",due:"15. 11. 2026",status:"Obdelava",ocr:90,ai:0,vat:"22 %",account:"—",cost:"—"},
- {id:"PR-2026-0185",partner:"Lidl Slovenija",number:"LIDL-2026-7788",gross:"214,50 €",date:"30. 10. 2026",due:"14. 11. 2026",status:"Napaka",ocr:0,ai:0,vat:"—",account:"—",cost:"—"}
+ {companyId:1,id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
+ {companyId:1,id:"PR-2026-0187",partner:"Petrol d.d.",number:"P-2026-88021",gross:"320,00 €",date:"01. 11. 2026",due:"16. 11. 2026",status:"Odobreno",ocr:98,ai:96,vat:"22 %",account:"4070",cost:"UPRAVA"},
+ {companyId:1,id:"PR-2026-0186",partner:"Telekom Slovenije",number:"TS-2026-33421",gross:"185,00 €",date:"31. 10. 2026",due:"15. 11. 2026",status:"Obdelava",ocr:90,ai:0,vat:"22 %",account:"—",cost:"—"},
+ {companyId:1,id:"PR-2026-0185",partner:"Lidl Slovenija",number:"LIDL-2026-7788",gross:"214,50 €",date:"30. 10. 2026",due:"14. 11. 2026",status:"Napaka",ocr:0,ai:0,vat:"—",account:"—",cost:"—"}
+  ,{companyId:2,id:"PR-2026-B001",partner:"Testni dobavitelj B",number:"TEST-B-001",gross:"85,00 €",date:"04. 11. 2026",due:"19. 11. 2026",status:"Pregled",ocr:0,ai:0,vat:"22 %",account:"—",cost:"—"}
+  ,{companyId:3,id:"PR-2026-C001",partner:"Vzorčni dobavitelj C",number:"TEST-C-001",gross:"150,00 €",date:"05. 11. 2026",due:"20. 11. 2026",status:"Pregled",ocr:0,ai:0,vat:"22 %",account:"—",cost:"—"}
 ];
 
-export default function IncomingInvoicesWorkspace({context}){
+export default function IncomingInvoicesWorkspace({context,companyId}){
  const section=context?.level2??"Pregled";
  const subView=context?.level3??"Vsi";
  const [query,setQuery]=useState("");
  const [status,setStatus]=useState("Vsi");
  const [records,setRecords]=useState(invoices);
- const [selectedId,setSelectedId]=useState(invoices[0].id);
+ const [selectedId,setSelectedId]=useState(null);
  const [newId,setNewId]=useState(null);
  const [creatorOpen,setCreatorOpen]=useState(false);
  const [notice,setNotice]=useState("");
  const [aiDecision,setAiDecision]=useState(null);
- const selected=records.find(row=>row.id===selectedId)??records[0];
+ const [audit,setAudit]=useState([]);
+ const companyRecords=useMemo(()=>companyIncomingRecords(records,companyId),[records,companyId]);
+ const selected=companyRecords.find(row=>row.id===selectedId)??companyRecords[0];
+ const companyAudit=useMemo(()=>audit.filter(event=>event.companyId===companyId).slice(-8).reverse(),[audit,companyId]);
  const createDemo=row=>{
+   if(row.companyId!==companyId)throw new Error("Podjetje se je med vnosom spremenilo.");
    setRecords(old=>[row,...old]);setSelectedId(row.id);setNewId(row.id);
+   setAudit(old=>[...old,makeIncomingDemoEvent("created",companyId,row)]);
    setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
-   setNotice("Demonstracijski prejeti račun je dodan samo v trenutni prikaz.");
+   setNotice("Demo račun dodan za izbrano podjetje. Evidentirano v sejni aktivnosti.");
  };
  const approveSelected=()=>{
    try{
-     const updated=approveIncomingDemo(selected);
-     setRecords(old=>old.map(row=>row.id===selectedId?updated:row));
+     const updated=approveIncomingDemo(selected,companyId);
+     setRecords(old=>old.map(row=>row.id===selected.id&&row.companyId===companyId?updated:row));
+     setAudit(old=>[...old,makeIncomingDemoEvent("approved",companyId,updated)]);
      setNotice("Odobritev je le demonstracijska. Knjižba, datoteka in obvestilo niso ustvarjeni.");
    }catch(error){setNotice(error.message)}
  };
  const resetDemo=()=>{
-   setRecords(invoices);setSelectedId(invoices[0].id);setNewId(null);
+   setRecords(old=>[...old.filter(row=>row.companyId!==companyId),...invoices.filter(row=>row.companyId===companyId)]);
+   setSelectedId(null);setNewId(null);
+   setAudit(old=>[...old,makeIncomingDemoEvent("reset",companyId)]);
    setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
-   setNotice("Demonstracijski prejeti računi so ponastavljeni.");
+   setNotice("Demonstracijski računi trenutnega podjetja so ponastavljeni; ostala podjetja so nespremenjena.");
  };
- const list=useMemo(()=>records.filter(x=>{
+ useEffect(()=>{
+   setSelectedId(null);setNewId(null);setCreatorOpen(false);setAiDecision(null);
+   setQuery("");setStatus("Vsi");setNotice("");
+ },[companyId]);
+ const list=useMemo(()=>companyRecords.filter(x=>{
    const q=query.toLowerCase();
    const contextMatch=section==="Pregled"?(subView==="V obdelavi"?x.status==="Obdelava":subView==="Novo"?x.status==="Pregled":true)
     :section==="Za pregled"?(subView==="Napake"?x.status==="Napaka":subView==="OCR"?x.ocr>0&&x.status!=="Odobreno":x.ai>0&&x.status==="Pregled")
@@ -47,7 +61,7 @@ export default function IncomingInvoicesWorkspace({context}){
     :section==="Knjiženje"?(subView==="Predlog"?x.account!=="—":subView==="Temeljnica"?x.status==="Odobreno":x.status==="Odobreno")
     :true;
    return (!q||[x.partner,x.number,x.id].join(" ").toLowerCase().includes(q))&&(status==="Vsi"||x.status===status)&&(contextMatch||x.id===newId);
- }),[records,query,status,section,subView,newId]);
+ }),[companyRecords,query,status,section,subView,newId]);
 
  useEffect(()=>{
    if(list.length&&!list.some(row=>row.id===selectedId)){
@@ -77,7 +91,7 @@ export default function IncomingInvoicesWorkspace({context}){
    @media(max-width:1100px){.incomingGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow{grid-template-columns:1.3fr .8fr .7fr}.invoiceRow>*:nth-child(2),.invoiceRow>*:nth-child(4){display:none}.detailGrid{grid-template-columns:1fr}.statusStrip{grid-template-columns:1fr 1fr 1fr}.incomingTools input{width:100%}}
    `}</style>
 
-   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracija brez prenosa datotek ali knjiženja</div>
+   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · prikaz samo izbranega podjetja · brez prenosa datotek ali knjiženja</div>
    {notice&&<div role="status" style={{padding:"9px 12px",marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</div>}
    <div className="incomingGrid">
      <article className="incomingCard">
@@ -141,6 +155,15 @@ export default function IncomingInvoicesWorkspace({context}){
        </div></div>
      </aside>}{list.length===0&&<aside className="incomingCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </div>
-   {creatorOpen&&<DemoIncomingCreator records={records} onCreate={createDemo} onCancel={()=>setCreatorOpen(false)}/>}
+   <article className="incomingCard" aria-label="Demonstracijska revizijska aktivnost" style={{marginTop:10,padding:14}}>
+     <h3 style={{fontSize:12,margin:"0 0 6px"}}>Sejna aktivnost · trenutno podjetje</h3>
+     <p style={{fontSize:9,color:"var(--muted)",margin:"0 0 10px"}}>Le demonstracijska zgodovina v pomnilniku brskalnika. Ni trajna, varovana revizijska sled in ne dokazuje knjiženja.</p>
+     {!companyAudit.length&&<p style={{fontSize:10,color:"var(--muted)"}}>V tej seji še ni aktivnosti za izbrano podjetje.</p>}
+     {companyAudit.map((event,index)=><div key={event.at+"-"+index} style={{display:"flex",justifyContent:"space-between",gap:12,borderTop:"1px solid var(--line)",padding:"8px 0",fontSize:10}}>
+       <span>{event.action==="created"?"Ustvarjen demo račun":event.action==="approved"?"Odobren demo račun":"Ponastavljen demo"} {event.number?("· "+event.number):""}</span>
+       <time dateTime={event.at} style={{color:"var(--muted)",whiteSpace:"nowrap"}}>{new Date(event.at).toLocaleString("sl-SI")}</time>
+     </div>)}
+   </article>
+   {creatorOpen&&<DemoIncomingCreator records={companyRecords} companyId={companyId} onCreate={createDemo} onCancel={()=>setCreatorOpen(false)}/>}
  </section>
 }

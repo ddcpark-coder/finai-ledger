@@ -1,0 +1,54 @@
+name: FinAI incoming company isolation - focused browser QA
+
+on:
+  pull_request:
+    paths:
+      - "app/incoming/**"
+      - "app/page.jsx"
+      - "tests/e2e/incoming-tenant.spec.cjs"
+      - ".github/workflows/incoming-tenant-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  incoming-tenant:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned, test-only browser runner
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Build static app
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+      - name: Serve locally with synthetic data
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-incoming-tenant.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Run only cross-company scenario, desktop and mobile
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/incoming-tenant.spec.cjs
+      - name: Preserve failure trace only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-incoming-tenant-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn

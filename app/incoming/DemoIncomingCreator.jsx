@@ -4,7 +4,7 @@ import {makeIncomingDemo} from "./demoIncoming.mjs";
 
 const INITIAL={partner:"",number:"",gross:"",vatRate:"22",dueDays:"15"};
 
-export default function DemoIncomingCreator({records,onCreate,onCancel}){
+export default function DemoIncomingCreator({records,companyId,onCreate,onCancel}){
   const [form,setForm]=useState(INITIAL);
   const [error,setError]=useState("");
   const update=(field,value)=>{
@@ -13,7 +13,7 @@ export default function DemoIncomingCreator({records,onCreate,onCancel}){
   };
   const submit=event=>{
     event.preventDefault();
-    try{onCreate(makeIncomingDemo(form,records));}
+    try{onCreate(makeIncomingDemo(form,records,new Date(),companyId));}
     catch(err){setError(err instanceof Error?err.message:"Računa ni bilo mogoče dodati.");}
   };
   return <div className="incomingDemoBackdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onCancel()}}>
@@ -30,7 +30,7 @@ export default function DemoIncomingCreator({records,onCreate,onCancel}){
         @media(max-width:520px){.incomingDemoForm .twocol{grid-template-columns:1fr}}
       `}</style>
       <h2 id="incomingDemoTitle">Nov demonstracijski prejeti račun</h2>
-      <p>Ročni vnos s sintetičnimi podatki. Brez nalaganja PDF/XML, OCR, AI, shranjevanja ali knjiženja. Podatki izginejo ob osvežitvi strani.</p>
+      <p>Ročni vnos s sintetičnimi podatki za izbrano podjetje. Brez nalaganja PDF/XML, OCR, AI, shranjevanja ali knjiženja. Podatki izginejo ob osvežitvi strani.</p>
       <form className="incomingDemoForm" onSubmit={submit}>
         <label>Dobavitelj
           <input autoFocus required maxLength={120} value={form.partner} onChange={e=>update("partner",e.target.value)} placeholder="Primer: Testni dobavitelj d.o.o."/>
