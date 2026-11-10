@@ -1,0 +1,34 @@
+name: FinAI incoming invoices - targeted synthetic tests
+
+on:
+  pull_request:
+    paths:
+      - "app/incoming/**"
+      - "app/issued/demoInvoice.mjs"
+      - "tests/demoIncoming.test.mjs"
+      - ".github/workflows/incoming-demo.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/incoming/**"
+      - "app/issued/demoInvoice.mjs"
+      - "tests/demoIncoming.test.mjs"
+      - ".github/workflows/incoming-demo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  incoming-demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Incoming invoice validation and state transitions (synthetic only)
+        run: node --test tests/demoIncoming.test.mjs
