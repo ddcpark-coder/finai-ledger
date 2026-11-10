@@ -47,8 +47,8 @@ test("rejects empty, invalid, oversized and negative values",()=>{
 test("creates unique IDs and non-legal DEMO issue numbers",()=>{
   const first=makeDraft(input,existing);
   const second=makeDraft(input,[...existing,first]);
-  assert.equal(first.id,"IR-DEMO-0001");
-  assert.equal(second.id,"IR-DEMO-0002");
+  assert.equal(first.id,"IR-DEMO-1-0001");
+  assert.equal(second.id,"IR-DEMO-1-0002");
   const now=new Date(2026,10,10,12,0);
   const firstIssued=issueDraft(first,[...existing,first,second],now);
   assert.equal(firstIssued.status,"Izdano");
