@@ -1,5 +1,6 @@
 "use client";
-import {useState} from "react";
+import {useEffect,useState} from "react";
+import {validateLocalPreviewFile} from "./localFilePreview.mjs";
 import {makeIncomingDemo} from "./demoIncoming.mjs";
 
 const INITIAL={partner:"",number:"",gross:"",vatRate:"22",dueDays:"15"};
@@ -7,6 +8,27 @@ const INITIAL={partner:"",number:"",gross:"",vatRate:"22",dueDays:"15"};
 export default function DemoIncomingCreator({records,companyId,onCreate,onCancel}){
   const [form,setForm]=useState(INITIAL);
   const [error,setError]=useState("");
+  const [sampleFile,setSampleFile]=useState(null);
+  const [sampleMeta,setSampleMeta]=useState(null);
+  const [previewUrl,setPreviewUrl]=useState(null);
+  useEffect(()=>{
+    if(!sampleFile||!sampleMeta?.image){setPreviewUrl(null);return}
+    const url=URL.createObjectURL(sampleFile);
+    setPreviewUrl(url);
+    return ()=>URL.revokeObjectURL(url);
+  },[sampleFile,sampleMeta]);
+  const chooseFile=event=>{
+    const file=event.target.files?.[0];
+    if(!file)return;
+    try{
+      const metadata=validateLocalPreviewFile(file);
+      setSampleMeta(metadata);setSampleFile(file);setError("");
+    }catch(error){
+      setSampleFile(null);setSampleMeta(null);
+      setError(error instanceof Error?error.message:"Vzorčne datoteke ni mogoče prikazati.");
+    }
+  };
+  const clearFile=()=>{setSampleFile(null);setSampleMeta(null);setPreviewUrl(null);};
   const update=(field,value)=>{
     setForm(old=>({...old,[field]:value}));
     setError("");
@@ -27,10 +49,14 @@ export default function DemoIncomingCreator({records,companyId,onCreate,onCancel
         .incomingDemoForm .twocol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .incomingDemoError{padding:10px;border:1px solid var(--danger);border-radius:9px;color:var(--danger);font-size:11px}
         .incomingDemoActions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+        .incomingDemoSample{padding:10px;border:1px dashed var(--line);border-radius:11px;background:var(--bg2)}
+        .incomingDemoSample p{margin:5px 0 10px;font-size:10px;line-height:1.5}
+        .incomingDemoSample img{display:block;width:100%;height:auto;max-height:170px;object-fit:contain;border-radius:8px;margin-top:8px}
+        .incomingDemoSample .twocol label{font-size:10px;cursor:pointer}
         @media(max-width:520px){.incomingDemoForm .twocol{grid-template-columns:1fr}}
       `}</style>
       <h2 id="incomingDemoTitle">Nov demonstracijski prejeti račun</h2>
-      <p>Ročni vnos s sintetičnimi podatki za izbrano podjetje. Brez nalaganja PDF/XML, OCR, AI, shranjevanja ali knjiženja. Podatki izginejo ob osvežitvi strani.</p>
+      <p>Ročni vnos in lokalni predogled sintetičnega računa za izbrano podjetje. Datoteka se nikamor ne naloži in se ne shrani v račun. OCR, AI in knjiženje niso aktivirani.</p>
       <form className="incomingDemoForm" onSubmit={submit}>
         <label>Dobavitelj
           <input autoFocus required maxLength={120} value={form.partner} onChange={e=>update("partner",e.target.value)} placeholder="Primer: Testni dobavitelj d.o.o."/>
@@ -53,6 +79,26 @@ export default function DemoIncomingCreator({records,companyId,onCreate,onCancel
             <option value="8">8 dni</option><option value="15">15 dni</option><option value="30">30 dni</option>
           </select>
         </label>
+        <section className="incomingDemoSample" aria-label="Lokalni predogled dokumenta">
+          <b style={{fontSize:11}}>Fotografija ali PDF – samo lokalni preizkus</b>
+          <p>Uporabi izključno sintetični dokument. Izbrana datoteka ostane v tem oknu, ni OCR-obdelana in se ob potrditvi ne prenese v sistem.</p>
+          <div className="twocol">
+            <label>Izberi vzorec JPG, PNG ali PDF
+              <input type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                aria-label="Izberi lokalni vzorec dokumenta" onChange={chooseFile}/>
+            </label>
+            <label>Fotografiraj vzorec (mobilno)
+              <input type="file" capture="environment" accept="image/jpeg,image/png"
+                aria-label="Fotografiraj lokalni vzorec" onChange={chooseFile}/>
+            </label>
+          </div>
+          {sampleMeta&&<div role="status" style={{marginTop:10,fontSize:10}}>
+            <strong>Lokalno izbrano:</strong> {sampleMeta.name} ({Math.ceil(sampleMeta.size/1024)} KB).
+            <button type="button" className="secondary" style={{marginLeft:8}} onClick={clearFile}>Odstrani vzorec</button>
+            {sampleMeta.image&&previewUrl&&<img src={previewUrl} alt="Predogled sintetičnega dokumenta samo v brskalniku"/>}
+            <p>Predogled je začasen in se ne shrani med prejetimi računi.</p>
+          </div>}
+        </section>
         {error&&<div role="alert" className="incomingDemoError">{error}</div>}
         <div className="incomingDemoActions">
           <button type="button" className="secondary" onClick={onCancel}>Prekliči</button>
