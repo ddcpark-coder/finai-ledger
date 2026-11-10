@@ -1,0 +1,36 @@
+name: FinAI FTPS DNS and TCP21 comparison (read-only)
+
+on:
+  pull_request:
+    paths:
+      - "ops/finai-ftps-network-compare.py"
+      - ".github/workflows/finai-ftps-network-compare.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dns-tcp:
+    name: DNS / IPv4 / IPv6 from ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate offline mode
+        shell: bash
+        run: |
+          python -B ops/finai-ftps-network-compare.py
+      - name: Compare confirmed hostnames on FTP control port only
+        shell: bash
+        run: |
+          python -B ops/finai-ftps-network-compare.py --network
