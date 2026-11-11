@@ -1,4 +1,5 @@
 "use client";
+import BusinessChainPanel from "../business/BusinessChainPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
@@ -9,7 +10,7 @@ const quotes=[
  {id:"PON-2026-0039",partner:"Delta d.o.o.",version:1,status:"Zavrnjeno",net:1800,tax:396,gross:2196,valid:"05. 11. 2026",owner:"Jerica",opportunity:"Montaža"}
 ];
 
-export default function QuotesWorkspace({context}){
+export default function QuotesWorkspace({context,companyId}){
  const section=context?.level2??"Pregled";
  const subView=context?.level3??"Vse";
  const [query,setQuery]=useState("");
@@ -48,6 +49,7 @@ export default function QuotesWorkspace({context}){
   <span className="qstate ok">Sprejete: {quotes.filter(q=>q.status==="Sprejeto").length}</span>
   <span className="qstate draft">Osnutki: {quotes.filter(q=>q.status==="Osnutek").length}</span>
  </div>}
+ <BusinessChainPanel companyId={companyId} moduleKey="quotes"/>
  <AdaptivePaneGrid className="quotesGrid">
   <article className="quoteCard">
    <div className="quoteHead"><h3>Ponudbe · {section} / {subView}</h3><div className="quoteTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči ponudbo, partnerja, priložnost ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Sprejeto</option><option>Zavrnjeno</option></select><button className="primary">＋ Nova ponudba</button></div></div>

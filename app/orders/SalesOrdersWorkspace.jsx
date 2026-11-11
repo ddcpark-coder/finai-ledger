@@ -1,4 +1,5 @@
 "use client";
+import BusinessChainPanel from "../business/BusinessChainPanel";
 import {useEffect,useMemo,useState} from "react";
 const orders=[
 {id:"NAR-2026-0008",partner:"ABC d.o.o.",status:"V izvedbi",gross:2989,delivery:"12. 11. 2026",source:"PON-2026-0042",reserved:"Delno"},
@@ -6,7 +7,7 @@ const orders=[
 {id:"NAR-2026-0006",partner:"Studio Kreativ s.p.",status:"Dostavljeno",gross:1195.6,delivery:"03. 11. 2026",source:"Ročno",reserved:"—"},
 {id:"NAR-2026-0005",partner:"Delta d.o.o.",status:"Fakturirano",gross:2196,delivery:"31. 10. 2026",source:"PON-2026-0038",reserved:"Da"}
 ];
-export default function SalesOrdersWorkspace({context}){
+export default function SalesOrdersWorkspace({context,companyId}){
  const section=context?.level2??"Pregled";
  const subView=context?.level3??"Vsa";
  const [q,setQ]=useState(""); const [filter,setFilter]=useState("Vsi"); const [sel,setSel]=useState(orders[0]);
@@ -32,6 +33,7 @@ export default function SalesOrdersWorkspace({context}){
  `}</style>
  <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Naročila · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
  <div className="flow"><div className="on">Potrjeno</div><div className="on">Izvedba</div><div>Pripravljeno</div><div>Dobavnica</div><div>Račun</div><div>Zaključeno</div></div>
+ <BusinessChainPanel companyId={companyId} moduleKey="orders"/>
  <div className="sog"><article className="soc"><div className="soh"><h3>Naročila kupcev · {section} / {subView}</h3><div className="tools"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Išči naročilo ali partnerja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>V izvedbi</option><option>Pripravljeno</option><option>Dostavljeno</option><option>Fakturirano</option></select><button className="primary">＋ Novo naročilo</button></div></div><div className="sor head"><span>Naročilo</span><span>Partner</span><span>Dostava</span><span>Vrednost</span><span>Status</span></div>{!rows.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>Ni naročil za izbrani podpogled.</p>}{rows.map(x=><button className="sor" key={x.id} onClick={()=>setSel(x)}><span><b>{x.id}</b><small>{x.source}</small></span><span><b>{x.partner}</b><small>Rezervacija: {x.reserved}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className="st">{x.status}</span></button>)}</article>
  {rows.length>0&&<aside className="soc detail"><span className="st">{sel.status}</span><h3>{sel.id}</h3><small>{sel.partner} · {sel.source}</small><div className="meta"><div><small>Vrednost</small><b>{sel.gross.toFixed(2)} €</b></div><div><small>Želeni datum</small><b>{sel.delivery}</b></div><div><small>Rezervacija</small><b>{sel.reserved}</b></div><div><small>Vir</small><b>{sel.source}</b></div></div><div className="sec"><h4>Postavke</h4><div className="line"><span>Reklamna tabla 100 × 70 cm</span><b>20 kos</b></div><div className="line"><span>Montaža na lokaciji</span><b>12 h</b></div></div><div className="sec"><h4>Naslednji koraki</h4><div style={{display:"grid",gap:7}}><button className="primary">Premakni v naslednjo fazo</button><button className="secondary">Odpri rezervacije</button><button className="secondary">Ustvari dobavnico</button><button className="secondary">Pripravi račun</button><button className="secondary">Prikaži audit sled</button></div></div></aside>}{rows.length===0&&<aside className="soc" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}</div></section>
 }
