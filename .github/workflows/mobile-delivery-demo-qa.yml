@@ -1,0 +1,51 @@
+name: FinAI mobile delivery signing - focused synthetic QA
+on:
+  pull_request:
+    paths:
+      - "app/documents/**"
+      - "tests/demoDeliveryProof.test.mjs"
+      - "tests/e2e/mobile-delivery-proof.spec.cjs"
+      - ".github/workflows/mobile-delivery-demo-qa.yml"
+permissions:
+  contents: read
+jobs:
+  delivery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify signed evidence hashes, consent and company boundaries
+        run: node --test tests/demoDeliveryProof.test.mjs
+      - name: Build synthetic mobile web application
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+          npm run build
+      - name: Serve local synthetic web export
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-mobile-delivery.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Test one end-to-end signature flow on desktop and mobile
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/mobile-delivery-proof.spec.cjs
+      - name: Failure traces only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-mobile-delivery-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
