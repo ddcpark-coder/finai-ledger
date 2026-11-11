@@ -1,6 +1,7 @@
 const {test,expect}=require("@playwright/test");
 
 test("opt-in mobile/desktop synthetic PWA has controlled offline shell but never business API cache",async({page,context})=>{
+ test.skip(process.env.NEXT_PUBLIC_FINAI_DEMO_PWA_ENABLED!=="true","PWA is intentionally disabled in standard builds.");
  await page.goto("/");
  const panel=page.getByRole("complementary",{name:"Namestitev sintetičnega FinAI demo prikaza"});
  await expect(panel).toBeVisible();
