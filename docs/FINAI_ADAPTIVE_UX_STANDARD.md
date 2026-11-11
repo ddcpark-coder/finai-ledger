@@ -56,3 +56,14 @@ Za naslednjih deset modulov je vizualni CSS vrstni red **nadomeščen z dejanski
 Skupni `AdaptivePaneGrid` ob spremembi nastavitev prestavi prvi (seznam) in drugi (podrobnosti) element v dejanskem DOM. Tako bralniki zaslona in tabulator sledijo prikazanemu vrstnemu redu. V načinu »Samo seznam« oziroma »Samo podrobnosti« se vedno skrije pravo semantično okno, ne zgolj »prvi« ali »drugi« element. Kjer par oken ni zaznan, komponenta ne ugiba o vlogi oken in ne spreminja zaporedja.
 
 **Omejitev:** posebni pogledi (npr. DDV in nekatere računovodske/identitetne kompozicije), več kot dve okni ter modalni obrazci še nimajo univerzalnega semantičnega premikanja. Dinamično preurejanje lahko pri posameznem podoknu ponovno ustvari DOM; nadaljnji cilj je ohranitev fokusa in stanja notranjih obrazcev. Ločen ciljni pregled s tipkovnico in bralnikom zaslona je še potreben za produkcijski WCAG QA.
+
+## NEXT-01: gostota obrazcev (namizno in mobilno)
+
+Vsako podjetje/modul/podpogled lahko v skupnem meniju **Gostota obrazca** izbere:
+
+- **Udobno – večja polja:** osnovne tekstovne kontrole imajo najmanj 42 px višine in več navpičnega odmika.
+- **Zgoščeno – več podatkov:** na namizju uporabljamo manjše polje (od 32 px) in ožjo notranjo razdaljo za profesionalne uporabnike.
+
+Na mobilnih napravah in zaslonih z grobim kazalcem imajo interaktivna vnosna polja in gumbi **najmanj 44 px**, tudi če je izbran zgoščen način. Izbira je predstavitvena nastavitev, ne spreminja polj, validacije, označb, dovoljenj ali računovodskih pravil. Nastavitve se shranjujejo lokalno oziroma v obstoječem uporabniškem profilu FinAI (če je avtenticirani API dejansko dostopen); stare nastavitve brez polja `formDensity` se dopolnijo z `comfortable`.
+
+**Še odprto:** individualne predloge vsakega obrazca, premikanje posameznih polj in dokumentnih blokov, napredna prilagoditev po vlogah ter WCAG QA za vsak specializiran dialog.
