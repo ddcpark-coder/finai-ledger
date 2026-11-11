@@ -1,3 +1,4 @@
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 "use client";
 import {useEffect,useRef,useState} from "react";
 
@@ -72,7 +73,7 @@ export default function DocumentsWorkspace({context}){
   `}</style>
 
   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Dokumenti · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
-  <div className="docsGrid">
+  <AdaptivePaneGrid className="docsGrid">
    <article className="docCard">
     <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary">＋ Nov dokument</button></div>
     <div className="pwaBox"><b>Mobilna dobavnica · načrtovani PWA potek</b><small>Android / iPhone / iPad · podpis s prstom ali pisalom · kamera · e-mail kopija · brez papirja.</small></div>
@@ -98,6 +99,6 @@ export default function DocumentsWorkspace({context}){
 
     <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!signature||!signer||!email||completed} onClick={()=>setCompleted(true)}>{completed?"Dobavnica zaključena (demo)":"Simuliraj zaključek dobavnice"}</button><button className="secondary" disabled={!completed||sent} onClick={()=>setSent(true)}>{sent?"✓ Simulirano pošiljanje":"Simuliraj pošiljanje kopije"}</button><button className="secondary">Uporabi kvalificiran SI-PASS podpis</button></div></div>
    </aside>:<aside className="docCard delivery"><h3>{selected.title}</h3><small>{selected.type} · {selected.status}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
-  </div>
+  </AdaptivePaneGrid>
  </section>
 }
