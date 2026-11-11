@@ -1,4 +1,5 @@
 "use client";
+import BusinessChainPanel from "../business/BusinessChainPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 
@@ -41,7 +42,7 @@ function SignaturePad({onChange}){
  return <div><canvas ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{width:"100%",height:180,touchAction:"none",border:"1px dashed var(--line)",borderRadius:12,background:"var(--bg2)"}}/><button className="secondary" style={{marginTop:7}} onClick={clear}>Počisti podpis</button></div>
 }
 
-export default function DocumentsWorkspace({context}){
+export default function DocumentsWorkspace({context,companyId}){
  const section=context?.level2??"Vsi dokumenti";
  const subView=context?.level3??"Nedavno";
  const [selected,setSelected]=useState(docs[0]);
@@ -73,7 +74,8 @@ export default function DocumentsWorkspace({context}){
   `}</style>
 
   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Dokumenti · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
-  <AdaptivePaneGrid className="docsGrid">
+  <BusinessChainPanel companyId={companyId} moduleKey="documents"/>
+ <AdaptivePaneGrid className="docsGrid">
    <article className="docCard">
     <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary">＋ Nov dokument</button></div>
     <div className="pwaBox"><b>Mobilna dobavnica · načrtovani PWA potek</b><small>Android / iPhone / iPad · podpis s prstom ali pisalom · kamera · e-mail kopija · brez papirja.</small></div>
