@@ -46,6 +46,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
             'expected_version'=>$version,
             'level'=>'simple',
             'arrangement'=>'stacked',
+            'paneOrder'=>'detail-first',
             'detailWidth'=>420,
             'textScale'=>130,
         ];
@@ -74,6 +75,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
         $this->putJson($first,$this->payload())->assertOk()
             ->assertJsonPath('data.version',1)
             ->assertJsonPath('data.settings.level','simple')
+            ->assertJsonPath('data.settings.paneOrder','detail-first')
             ->assertJsonPath('data.settings.textScale',130);
         $this->getJson($first)->assertOk()
             ->assertJsonPath('data.settings.detailWidth',420);
@@ -146,7 +148,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
 
         foreach ([
             ['level'=>'admin'], ['arrangement'=>'root'],['detailWidth'=>900],
-            ['textScale'=>900],['expected_version'=>-1],
+            ['textScale'=>900],['paneOrder'=>'unsafe'],['expected_version'=>-1],
         ] as $bad) {
             $this->putJson($url,[...$this->payload(),...$bad])->assertUnprocessable();
         }
