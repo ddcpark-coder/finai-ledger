@@ -27,3 +27,14 @@ Skupni `AdaptiveWorkspace` je že povezan z vsemi glavnimi moduli FinAI. Podpira
 4. Ciljni dostopnostni QA: tipkovnica, povečava, širine oken, mobilni zaslon, kontrast in bralniki zaslona.
 
 Do dokazane varne namestitve ostaja lokalni prikaz sintetičen; produkcija na Hiper M ni objavljena.
+
+## Razvoj: sinhronizacija oken v uporabniški profil (PROFILE-SYNC-01)
+
+Pripravljena je prva implementacija **za prihodnji izolirani FinAI backend**:
+- `GET/PUT /api/companies/{companyId}/my/adaptive-views/{moduleKey}?view=...` shranjuje nastavitve `level`, `arrangement`, `detailWidth` in `textScale` v že obstoječi tabeli `workspace_layouts`.
+- Identiteta uporabnika izhaja iz prijavljene seje, podjetje se preveri s `company.access`, ime modula je omejeno na registrirane module in podpogled na kontrolirano dolžino. Strežnik preveri obseg nastavitev in `expected_version`; spremenjena druga seja vrne **409** brez prepisa.
+- V brskalniku se ob prisotnem **preverjenem** `NEXT_PUBLIC_FINAI_API_BASE_URL` najprej poskusi pobrati uporabniški profil; ob nedosegljivem API ostane lokalna nastavitev. Prikaz uporabnika jasno označi lokalno, sinhronizirano ali konfliktnost stanja.
+- Statika in sintetični demo ostaneta **brez URL API** in zato lokalna. Tabela ne vsebuje računovodskih podatkov.
+- Profilni API še ni objavljen, zato mednapravne sinhronizacije na `e-integrator.si` **ni dovoljeno označiti za aktivno**.
+
+Povezava s prijavljeno sejo v produkciji je pogojena z ločenim FinAI gostovanjem, HTTPS, pravilnimi Sanctum first-party domenami, ustreznimi migracijami in ciljnim CSRF/2FA QA. Delno prilagajanje posameznih notranjih podoken je ločen prihodnji razvojni korak.
