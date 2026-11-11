@@ -30,7 +30,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
           npm run build
       - name: Serve local synthetic web export
         run: |
