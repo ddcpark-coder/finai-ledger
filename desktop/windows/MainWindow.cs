@@ -22,6 +22,7 @@ internal sealed class MainWindow : Form
 
     private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
     private readonly LocalDraftStore drafts = new();
+    private readonly SyntheticDeliveryQueue deliveryQueue = new();
     private double displayZoom = 1.0;
     private readonly Button zoomReset = new()
     {
