@@ -17,6 +17,7 @@ test("desktop and mobile demo task inbox filters, state and company isolation",a
  const done=taskCenter.locator(".finaiTaskRow").filter({hasText:"Preglej prejeti vzorčni račun"});
  await expect(done).toBeVisible();
  await page.reload();
+ await taskCenter.getByLabel("Filter opravil").selectOption("done");
  await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toBeVisible();
  await company.selectOption("2");
  await expect(taskCenter).toContainText("podjetje 2");
