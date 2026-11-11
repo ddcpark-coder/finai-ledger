@@ -68,6 +68,12 @@ internal static class Program
             }
         }
 
+        if (args.Length == 1 && args[0] == "--delivery-queue-self-test")
+        {
+            try { return SyntheticDeliveryQueue.SelfTest() ? 0 : 11; }
+            catch (Exception) { return 12; } // Never expose encrypted payloads.
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
