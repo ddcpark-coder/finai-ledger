@@ -5,14 +5,16 @@ export const DEMO_FLOW_STAGES=Object.freeze({
  accepted:{label:"Ponudba sprejeta (demo)",next:"create_order"},
  ordered:{label:"Naročilo ustvarjeno (demo)",next:"confirm_delivery"},
  delivered:{label:"Dobavnica potrjena (demo)",next:"prepare_invoice"},
- invoiced:{label:"Priprava demo računa zaključena",next:null}
+ invoiced:{label:"Demo račun pripravljen, plačilo še ni potrjeno",next:"record_payment"},
+ paid:{label:"Demo plačilo potrjeno",next:null}
 });
 export const DEMO_FLOW_ACTIONS=Object.freeze({
  send_quote:{from:"draft",to:"quoted",module:"quotes",label:"Simuliraj pripravo ponudbe"},
  accept_quote:{from:"quoted",to:"accepted",module:"orders",label:"Potrdi sprejem demo ponudbe"},
  create_order:{from:"accepted",to:"ordered",module:"orders",label:"Ustvari demo naročilo"},
  confirm_delivery:{from:"ordered",to:"delivered",module:"documents",label:"Potrdi demo dobavnico"},
- prepare_invoice:{from:"delivered",to:"invoiced",module:"issued_invoices",label:"Simuliraj pripravo računa"}
+ prepare_invoice:{from:"delivered",to:"invoiced",module:"issued_invoices",label:"Simuliraj pripravo računa"},
+ record_payment:{from:"invoiced",to:"paid",module:"banking",label:"Potrdi sintetično plačilo"}
 });
 const PARTNERS={
  1:{name:"Sintetični kupec Alfa",grossCents:122000},
@@ -46,7 +48,7 @@ export function restoreDemoCommercialFlow(raw,companyId){
  demoFlowKey(companyId);
  if(raw==null)return null;
  if(raw.companyId!==companyId||raw.id!=="SYN-CHAIN-"+companyId+"-001"||
-    !Array.isArray(raw.history)||raw.history.length>5)return null;
+    !Array.isArray(raw.history)||raw.history.length>6)return null;
  let next=createDemoCommercialFlow(companyId);
  try{
   for(const step of raw.history){
