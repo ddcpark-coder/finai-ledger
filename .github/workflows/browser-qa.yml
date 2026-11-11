@@ -8,6 +8,9 @@ on:
       - "app/auth/**"
       - "app/issued/**"
       - "app/business/**"
+      - "app/integrations/**"
+      - "app/orders/**"
+      - "tests/cmsOrderAdapter.test.mjs"
       - "tests/demoCommercialFlow.test.mjs"
       - "app/modules/contextNavigation.js"
       - "app/modules/contextRoute.mjs"
@@ -37,7 +40,7 @@ jobs:
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
       - name: Focused synthetic invoice calculation and state tests
-        run: npm run test:issued-demo && node --test tests/demoCommercialFlow.test.mjs
+        run: npm run test:issued-demo && node --test tests/demoCommercialFlow.test.mjs && node --test tests/cmsOrderAdapter.test.mjs
       - name: Install Chromium for desktop and mobile emulation
         run: npx playwright install --with-deps chromium
       - name: Build Next.js
