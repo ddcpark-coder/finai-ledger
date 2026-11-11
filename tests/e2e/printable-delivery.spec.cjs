@@ -12,12 +12,16 @@ test("print/PDF preview requires valid signed demo delivery and never crosses co
  const trigger=page.getByRole("button",{name:"Predogled za tisk / PDF"});
  await expect(trigger).toBeDisabled();
  const canvas=page.getByLabel("Površina za risanje demonstracijskega podpisa");
+ await canvas.scrollIntoViewIfNeeded();
  const box=await canvas.boundingBox();expect(box).toBeTruthy();
  await page.mouse.move(box.x+30,box.y+50);
  await page.mouse.down();
  await page.mouse.move(box.x+140,box.y+75,{steps:8});
+ await page.mouse.move(box.x+160,box.y+85,{steps:6});
  await page.mouse.up();
+ await expect(page.getByText("Podpis zajet (še nepotrjen)")).toBeVisible();
  await page.getByRole("checkbox",{name:/Potrjujem, da je podpisnik/}).check();
+ await expect(page.getByRole("button",{name:"Zaključi in preveri demo dokazilo"})).toBeEnabled();
  await page.getByRole("button",{name:"Zaključi in preveri demo dokazilo"}).click();
  await expect(trigger).toBeEnabled();
  await trigger.click();
