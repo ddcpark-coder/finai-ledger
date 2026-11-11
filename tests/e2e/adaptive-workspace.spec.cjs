@@ -36,6 +36,16 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.getByLabel("Zahtevnost").selectOption("expert");
   await page.getByLabel("Razporeditev").selectOption("list");
   await expect(shell).toHaveAttribute("data-arrangement","list");
+  const bankPanes=page.locator(".bankGrid > [data-finai-pane]");
+  await expect(bankPanes.first()).toHaveAttribute("data-finai-pane","list");
+  await expect(bankPanes).toHaveCount(2);
+  await expect(page.locator(".bankGrid > [data-finai-pane=detail]")).toBeHidden();
+  await page.getByLabel("Razporeditev").selectOption("split");
+  await page.getByLabel("Vrstni red oken").selectOption("detail-first");
+  await expect(bankPanes.first()).toHaveAttribute("data-finai-pane","detail");
+  await page.getByLabel("Razporeditev").selectOption("detail");
+  await expect(page.locator(".bankGrid > [data-finai-pane=list]")).toBeHidden();
+  await expect(page.locator(".bankGrid > [data-finai-pane=detail]")).toBeVisible();
 
   // Changes in the banking module must not change the invoices module.
   await page.goto("/?module=incoming_invoices&view=Pregled&subview=Vsi");
