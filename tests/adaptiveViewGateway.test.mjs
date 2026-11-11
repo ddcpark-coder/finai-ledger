@@ -75,9 +75,9 @@ test("a failed authorization or conflicting version is not mistaken for successf
      error=>error.status===409
    );
    await assert.rejects(
-     fetchAdaptiveView(1,"banking","Pregled::Računi\nadmin"),
-     error=>error.status===409
+     fetchAdaptiveView(1,"banking","Pregled::Računi"+String.fromCharCode(10)+"admin"),
+     /Neveljaven podpogled/
    );
-   assert.equal(calls.length,2);
+   assert.equal(calls.length,1);
  }finally{globalThis.fetch=realFetch}
 });
