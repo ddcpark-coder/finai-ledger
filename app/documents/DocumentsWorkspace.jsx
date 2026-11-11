@@ -3,6 +3,8 @@ import BusinessChainPanel from "../business/BusinessChainPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "./demoDeliveryProof.mjs";
+import {makePrintableDelivery} from "./printableDelivery.mjs";
+import DeliveryPrintPreview from "./DeliveryPrintPreview";
 
 const docs=[
  {companyId:1,type:"Dobavnica",title:"DOB-2026-0048",link:"ABC d.o.o.",status:"Za podpis",date:"03. 11. 2026"},
@@ -59,11 +61,12 @@ export default function DocumentsWorkspace({context,companyId}){
  const [proofBusy,setProofBusy]=useState(false);
  const [proofError,setProofError]=useState("");
  const [accepted,setAccepted]=useState(false);
+ const [printable,setPrintable]=useState(null);
  useEffect(()=>{
    setSelected(docs.find(d=>d.companyId===companyId)??null);
    setSigner("Sintetični prejemnik");setEmail("demo@example.test");
    setSignature("");setCompleted(false);setSent(false);
-   setProof(null);setProofError("");setAccepted(false);
+   setProof(null);setProofError("");setAccepted(false);setPrintable(null);
  },[companyId]);
  const finish=async()=>{
    if(proofBusy||completed)return;
@@ -78,6 +81,13 @@ export default function DocumentsWorkspace({context,companyId}){
      setProof(evidence);setCompleted(true);
    }catch(error){setProofError(error.message||"Zaključevanje ni uspelo.");}
    finally{setProofBusy(false);}
+ };
+ const openPrintable=async()=>{
+   if(!completed||!proof)return;
+   try{
+     const printableDoc=await makePrintableDelivery(proof,companyId);
+     setPrintable(printableDoc);setProofError("");
+   }catch(error){setProofError(error.message||"Predogleda ni mogoče pripraviti.");}
  };
  const exportProof=()=>{
    if(!completed||!proof)return;
@@ -102,7 +112,7 @@ export default function DocumentsWorkspace({context,companyId}){
  useEffect(()=>{
    if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected?.title)){
      setSelected(visibleDocs[0]);setCompleted(false);setSent(false);
-     setSignature("");setProof(null);setAccepted(false);setProofError("");
+     setSignature("");setProof(null);setAccepted(false);setProofError("");setPrintable(null);
    }
  },[section,subView,companyId,selected?.title]);
 
@@ -117,10 +127,10 @@ export default function DocumentsWorkspace({context,companyId}){
  <AdaptivePaneGrid className="docsGrid">
    <article className="docCard">
     <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary" type="button" disabled title="Prava dokumentna hramba še ni vključena">＋ Nov dokument (v pripravi)</button></div>
-    <div className="pwaBox"><b>Mobilna dobavnica · demonstracija</b><small>Podpis z miško, prstom ali pisalom in lokalni SHA-256 dokazni paket. Ni končnega PDF, e-pošte, certificiranega podpisa ali strežniške shrambe.</small></div>
+    <div className="pwaBox"><b>Mobilna dobavnica · demonstracija</b><small>Podpis z miško, prstom ali pisalom in lokalni SHA-256 dokazni paket. Natisljiv predogled z možnostjo shranitve v PDF prek brskalnika; brez certificiranega podpisa, e-pošte ali strežniške shrambe.</small></div>
     <div className="docRow head"><span>Tip</span><span>Dokument</span><span>Povezava</span><span>Status</span></div>
     {!visibleDocs.length&&<p style={{fontSize:10,color:"var(--muted)",padding:12}}>Za izbrani podpogled še ni dokumentov v demonstracijskem naboru.</p>}
-    {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false);setSignature("");setProof(null);setAccepted(false);setProofError("")}}>
+    {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false);setSignature("");setProof(null);setAccepted(false);setProofError("");setPrintable(null)}}>
       <span><b>{d.type}</b><small>{d.date}</small></span><span><b>{d.title}</b></span><span>{d.link}</span><span className={"docStatus "+(d.status==="Final"?"ok":"warn")}>{d.status}</span>
     </button>)}
    </article>
@@ -138,7 +148,7 @@ export default function DocumentsWorkspace({context,companyId}){
 
     <div className="deliverySec"><h4>Preverjanje demonstracijskega prevzema</h4>
       <div className="proof"><b>{proof?"Lokalno dokazilo izračunano":signature?"Podpis zajet (še nepotrjen)":"Podpis še ni zajet"}</b>
-        <small>Ob zaključku izračunamo SHA-256 dobavnice, podpisa in dokaznega zapisa ter zabeležimo čas. Ne beležimo IP ali lokacije. To ni kvalificirani e-podpis, pravno preverjeno dokazilo ali končni PDF.</small>
+        <small>Ob zaključku izračunamo SHA-256 dobavnice, podpisa in dokaznega zapisa ter zabeležimo čas. Ne beležimo IP ali lokacije. To ni kvalificirani e-podpis niti PDF z vgrajenim kriptografskim podpisom.</small>
         {proof&&<><small>Čas: {proof.signedAt}</small><small>SHA-256 dokazila: {proof.evidenceSha256}</small></>}
       </div>
       <label style={{display:"flex",gap:8,alignItems:"start",marginTop:9,fontSize:11,lineHeight:1.4}}>
@@ -152,10 +162,12 @@ export default function DocumentsWorkspace({context,companyId}){
       <button type="button" className="primary" disabled={!signature||!signer.trim()||!accepted||completed||proofBusy} onClick={finish}>{completed?"Demo dobavnica potrjena":proofBusy?"Preverjam celovitost …":"Zaključi in preveri demo dokazilo"}</button>
       {proofError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{proofError}</p>}
       <button type="button" className="secondary" disabled={!completed||!proof} onClick={exportProof}>Izvozi demo dokazilo (.json)</button>
+      <button type="button" className="secondary" disabled={!completed||!proof} onClick={openPrintable}>Predogled za tisk / PDF</button>
       <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
       <button type="button" className="secondary" disabled title="Integracija s kvalificiranim podpisom še ni na voljo">Kvalificiran podpis (v pripravi)</button>
     </div></div>
    </aside>:<aside className="docCard delivery"><h3>{activeSelected?.title??"—"}</h3><small>{activeSelected?.type??"Dokument"} · {activeSelected?.status??"—"}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
   </AdaptivePaneGrid>
+  {printable&&<DeliveryPrintPreview printable={printable} onClose={()=>setPrintable(null)}/>}
  </section>
 }

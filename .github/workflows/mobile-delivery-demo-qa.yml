@@ -4,7 +4,10 @@ on:
     paths:
       - "app/documents/**"
       - "tests/demoDeliveryProof.test.mjs"
+      - "tests/printableDelivery.test.mjs"
+      - "app/documents/printableDelivery.mjs"
       - "tests/e2e/mobile-delivery-proof.spec.cjs"
+      - "tests/e2e/printable-delivery.spec.cjs"
       - ".github/workflows/mobile-delivery-demo-qa.yml"
 permissions:
   contents: read
@@ -20,14 +23,14 @@ jobs:
         with:
           node-version: "22"
       - name: Verify signed evidence hashes, consent and company boundaries
-        run: node --test tests/demoDeliveryProof.test.mjs
+        run: node --test tests/demoDeliveryProof.test.mjs tests/printableDelivery.test.mjs
       - name: Build synthetic mobile web application
         env:
           NEXT_TELEMETRY_DISABLED: "1"
         run: |
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
           npm run build
       - name: Serve local synthetic web export
         run: |
@@ -40,7 +43,7 @@ jobs:
       - name: Test one end-to-end signature flow on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/mobile-delivery-proof.spec.cjs
+        run: npx playwright test tests/e2e/mobile-delivery-proof.spec.cjs tests/e2e/printable-delivery.spec.cjs
       - name: Failure traces only
         if: failure()
         uses: actions/upload-artifact@v4
