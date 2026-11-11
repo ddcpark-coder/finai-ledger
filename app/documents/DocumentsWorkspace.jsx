@@ -4,6 +4,10 @@ import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "./demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "./demoDeliveryPdf.mjs";
+import {
+ encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
+ readEncryptedDemoProof,deleteEncryptedDemoProof
+} from "./mobileProofVault.mjs";
 
 const docs=[
  {companyId:1,type:"Dobavnica",title:"DOB-2026-0048",link:"ABC d.o.o.",status:"Za podpis",date:"03. 11. 2026"},
@@ -62,11 +66,23 @@ export default function DocumentsWorkspace({context,companyId}){
  const [pdfBusy,setPdfBusy]=useState(false);
  const [pdfError,setPdfError]=useState("");
  const [accepted,setAccepted]=useState(false);
+ const [vaultPassword,setVaultPassword]=useState("");
+ const [vaultBusy,setVaultBusy]=useState(false);
+ const [vaultExists,setVaultExists]=useState(false);
+ const [vaultMessage,setVaultMessage]=useState("");
+ useEffect(()=>{
+   let active=true;
+   readEncryptedDemoProof(companyId)
+     .then(value=>{if(active)setVaultExists(Boolean(value))})
+     .catch(()=>{if(active)setVaultExists(false)});
+   return()=>{active=false};
+ },[companyId]);
  useEffect(()=>{
    setSelected(docs.find(d=>d.companyId===companyId)??null);
    setSigner("Sintetični prejemnik");setEmail("demo@example.test");
    setSignature("");setCompleted(false);setSent(false);
    setProof(null);setProofError("");setPdfError("");setAccepted(false);
+   setVaultPassword("");setVaultMessage("");
  },[companyId]);
  const finish=async()=>{
    if(proofBusy||completed)return;
@@ -81,6 +97,41 @@ export default function DocumentsWorkspace({context,companyId}){
      setProof(evidence);setCompleted(true);
    }catch(error){setProofError(error.message||"Zaključevanje ni uspelo.");}
    finally{setProofBusy(false);}
+ };
+ const saveMobileProof=async()=>{
+   if(!completed||!proof||vaultBusy)return;
+   setVaultBusy(true);setVaultMessage("");
+   try{
+     const encrypted=await encryptDemoProof(proof,companyId,vaultPassword);
+     await storeEncryptedDemoProof(encrypted,companyId);
+     setVaultExists(true);setVaultPassword("");
+     setVaultMessage("Sintetično dokazilo je šifrirano shranjeno samo na tej napravi. Sinhronizacija ni aktivna.");
+   }catch(error){setVaultMessage(error.message||"Šifrirana hramba ni uspela.");}
+   finally{setVaultBusy(false);}
+ };
+ const restoreMobileProof=async()=>{
+   if(!vaultExists||vaultBusy)return;
+   setVaultBusy(true);setVaultMessage("");
+   try{
+     const encrypted=await readEncryptedDemoProof(companyId);
+     const restored=await decryptDemoProof(encrypted,companyId,vaultPassword);
+     setProof(restored);setSigner(restored.signer);
+     setSignature(restored.signatureDataUrl);setAccepted(true);setCompleted(true);
+     setVaultPassword("");
+     setVaultMessage("Sintetično dokazilo je uspešno dešifrirano in ponovno preverjeno.");
+   }catch(error){setVaultMessage(error.message||"Lokalna obnova ni uspela.");}
+   finally{setVaultBusy(false);}
+ };
+ const removeMobileProof=async()=>{
+   if(!vaultExists||vaultBusy)return;
+   if(!window.confirm("Odstranim šifrirano testno dokazilo iz te naprave?"))return;
+   setVaultBusy(true);
+   try{
+     await deleteEncryptedDemoProof(companyId);
+     setVaultExists(false);setVaultPassword("");
+     setVaultMessage("Odstranjena je samo lokalna šifrirana kopija tega sintetičnega podjetja.");
+   }catch{setVaultMessage("Lokalne kopije ni bilo mogoče odstraniti.");}
+   finally{setVaultBusy(false);}
  };
  const exportPdf=async()=>{
    if(!completed||!proof||pdfBusy)return;
@@ -160,7 +211,12 @@ export default function DocumentsWorkspace({context,companyId}){
 
     <div className="deliverySec"><h4>Podpisnik</h4><input className="field" value={signer} disabled={completed} aria-label="Podpisnik dobavnice" onChange={e=>setSigner(e.target.value)} placeholder="Ime in priimek"/><input className="field" value={email} disabled={completed} type="email" aria-label="E-pošta za demonstracijo" onChange={e=>setEmail(e.target.value)} placeholder="E-pošta za kopijo"/></div>
 
-    <div className="deliverySec"><h4>Podpis na zaslonu</h4><SignaturePad key={companyId+"-"+activeSelected.title+"-"+(completed?"done":"open")} onChange={setSignature} disabled={completed}/></div>
+    <div className="deliverySec"><h4>Podpis na zaslonu</h4>
+      {proof&&completed
+        ?<img src={proof.signatureDataUrl} alt="Preverjena slika sintetičnega podpisa (ni kvalificiran podpis)"
+          style={{width:"100%",height:160,objectFit:"contain",border:"1px dashed var(--line)",borderRadius:12}}/>
+        :<SignaturePad key={companyId+"-"+activeSelected.title} onChange={setSignature} disabled={completed}/>}
+    </div>
 
     <div className="deliverySec"><h4>Preverjanje demonstracijskega prevzema</h4>
       <div className="proof"><b>{proof?"Lokalno dokazilo izračunano":signature?"Podpis zajet (še nepotrjen)":"Podpis še ni zajet"}</b>
@@ -185,6 +241,37 @@ export default function DocumentsWorkspace({context,companyId}){
       <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
       <button type="button" className="secondary" disabled title="Integracija s kvalificiranim podpisom še ni na voljo">Kvalificiran podpis (v pripravi)</button>
     </div></div>
+    <div className="deliverySec" aria-label="Lokalna šifrirana hramba sintetičnega dokazila">
+      <h4>Šifrirana lokalna kopija (demo)</h4>
+      <p style={{fontSize:11,lineHeight:1.55,color:"var(--muted)"}}>
+        V brskalniku se hrani samo šifrirano dokazilo. Geslo se ne pošlje nikamor in ga FinAI ne shrani.
+        Ob izgubi gesla lokalne kopije ni mogoče obnoviti. Prava sinhronizacija in offline zagon PWA še nista vključena.
+      </p>
+      <label style={{display:"block",fontSize:11}}>
+        Lokalno geslo (12 ali več znakov)
+        <input type="password" className="field" autoComplete="new-password"
+          aria-label="Geslo šifriranega demo dokazila"
+          minLength={12} maxLength={128} value={vaultPassword}
+          onChange={event=>setVaultPassword(event.target.value)}
+          placeholder="Lokalno geslo, ki ga ne shranjujemo"/>
+      </label>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+        <button type="button" className="secondary" onClick={saveMobileProof}
+          disabled={!completed||!proof||vaultBusy||vaultPassword.length<12}>
+          Shrani šifrirano demo kopijo
+        </button>
+        <button type="button" className="secondary" onClick={restoreMobileProof}
+          disabled={!vaultExists||vaultBusy||vaultPassword.length<12}>
+          Obnovi šifrirano demo kopijo
+        </button>
+        <button type="button" className="secondary" onClick={removeMobileProof}
+          disabled={!vaultExists||vaultBusy}>Izbriši lokalno demo kopijo</button>
+      </div>
+      <p style={{fontSize:10,color:"var(--muted)"}}>
+        {vaultExists?"Šifrirana kopija je prisotna na napravi.":"Šifrirana kopija še ni shranjena."}
+      </p>
+      {vaultMessage&&<p role="status" style={{fontSize:11}}>{vaultMessage}</p>}
+    </div>
    </aside>:<aside className="docCard delivery"><h3>{activeSelected?.title??"—"}</h3><small>{activeSelected?.type??"Dokument"} · {activeSelected?.status??"—"}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
   </AdaptivePaneGrid>
  </section>
