@@ -12,7 +12,7 @@ function endpoint(companyId,moduleKey,viewKey){
  if(!Number.isSafeInteger(companyId)||companyId<1)throw new Error("Neveljavno podjetje.");
  if(typeof moduleKey!=="string"||!/^[a-z_]{2,48}$/.test(moduleKey))
    throw new Error("Neveljaven modul.");
- if(typeof viewKey!=="string"||viewKey.length<1||viewKey.length>160)
+ if(typeof viewKey!=="string"||viewKey.length<1||viewKey.length>160||Array.from(viewKey).some(ch=>ch.charCodeAt(0)<32))
    throw new Error("Neveljaven podpogled.");
  return apiBase+"/companies/"+encodeURIComponent(companyId)
    +"/my/adaptive-views/"+encodeURIComponent(moduleKey)
