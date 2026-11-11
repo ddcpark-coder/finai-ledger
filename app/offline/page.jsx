@@ -33,6 +33,10 @@ export default function OfflinePage() {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+  const [queueCompany,setQueueCompany] = useState("1");
+  const [queueItems,setQueueItems] = useState([]);
+  const [queueBusy,setQueueBusy] = useState(false);
+  const [queueMessage,setQueueMessage] = useState("");
   const pending = useRef(new Map());
 
   function send(type, data = {}) {
@@ -56,6 +60,36 @@ export default function OfflinePage() {
     }
   }
 
+  async function refreshQueue(companyId) {
+    try{
+      const result=await send("queue.list",{companyId});
+      if(!result.ok)throw new Error("Local queue unavailable");
+      setQueueItems(result.entries??[]);
+    }catch{
+      setQueueItems([]);
+      setQueueMessage("Testna vrsta ni dosegljiva.");
+    }
+  }
+  async function addQueueItem(){
+    if(queueBusy)return;
+    setQueueBusy(true);setQueueMessage("");
+    try{
+      const result=await send("queue.create",{companyId:queueCompany});
+      if(!result.ok)throw new Error("Queue refused");
+      await refreshQueue(queueCompany);
+      setQueueMessage("Sintetična dobavnica je šifrirano shranjena samo na tej napravi. Samodejne sinhronizacije ni.");
+    }catch{setQueueMessage("Shranjevanje testne dobavnice ni uspelo.");}
+    finally{setQueueBusy(false);}
+  }
+  async function removeQueueItem(id){
+    if(!window.confirm("Izbrišem to lokalno sintetično dobavnico iz vrste?"))return;
+    try{
+      const result=await send("queue.delete",{companyId:queueCompany,id});
+      if(!result.ok)throw new Error("Delete refused");
+      await refreshQueue(queueCompany);
+      setQueueMessage("Odstranjena je samo testna dobavnica izbranega podjetja.");
+    }catch{setQueueMessage("Brisanje testne dobavnice ni uspelo.");}
+  }
   useEffect(() => {
     const bridge = window.chrome?.webview;
     if (!bridge) return;
@@ -70,7 +104,7 @@ export default function OfflinePage() {
     bridge.addEventListener("message", onMessage);
     setConnected(true);
     send("offline.status").then((result) => {
-      if (result?.ok && result.local) return refresh();
+      if (result?.ok && result.local) return Promise.all([refresh(),refreshQueue("1")]);
       setMessage("Lokalno shranjevanje ni pripravljeno.");
     }).catch(() => setMessage("Lokalno shranjevanje ni dosegljivo."));
     return () => {
@@ -146,6 +180,39 @@ export default function OfflinePage() {
             </article>)}
           </section>
         </div>
+        <section className="panel" aria-label="Šifrirana lokalna vrsta dobavnic" style={{marginTop:20}}>
+          <h2>Terenska dobavnica – lokalna testna vrsta</h2>
+          <p className="muted">Primer za Windows namizno aplikacijo. Dobavnice so sintetične in šifrirane z DPAPI.
+            Ni prenosa v oblak, podpisovanja, izdaje računa ali sinhronizacije.
+            Za vsako podjetje je na voljo ločen vzorec.</p>
+          <label htmlFor="queue-company">Demonstracijsko podjetje</label>
+          <select id="queue-company" aria-label="Podjetje testne dobavnice" value={queueCompany}
+            disabled={!connected||queueBusy}
+            onChange={async e=>{
+              const companyId=e.target.value;
+              setQueueCompany(companyId);setQueueItems([]);setQueueMessage("");
+              await refreshQueue(companyId);
+            }} style={{padding:"12px",background:"#091725",color:"#edf8ff",border:"1px solid #375367",borderRadius:9,minWidth:180}}>
+            <option value="1">Podjetje A</option>
+            <option value="2">Podjetje B</option>
+            <option value="3">Podjetje C</option>
+          </select>
+          <div style={{marginTop:12}}>
+            <button type="button" disabled={!connected||queueBusy} onClick={addQueueItem}>
+              {queueBusy?"Shranjujem …":"Dodaj sintetično dobavnico v vrsto"}
+            </button>
+          </div>
+          <div role="status" className="message">{queueMessage}</div>
+          {queueItems.length===0&&<p className="muted">Za izbrano podjetje v testni vrsti ni dobavnic.</p>}
+          {queueItems.map(item=><article className="draft" key={item.Id}>
+            <strong>{item.DocumentId}</strong>
+            <p>Čaka samo lokalno · brez avtomatskega prenosa</p>
+            <div className="meta">
+              <span>{new Date(item.CreatedUtc).toLocaleString("sl-SI")}</span>
+              <button type="button" className="ghost" onClick={()=>removeQueueItem(item.Id)}>Odstrani iz vrste</button>
+            </div>
+          </article>)}
+        </section>
         <p className="footer">Offline-first zasnova · Testni osnutki se ne pošiljajo na strežnik · <Link href="/">Predogled ostalih FinAI modulov</Link> · Produkcijsko knjiženje še ni omogočeno.</p>
       </div>
     </main>

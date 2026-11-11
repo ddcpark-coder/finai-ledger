@@ -7,6 +7,7 @@ on:
       # Windows packaging is not rerun for each web-only/UI change.
       # Manually dispatch for large frontend changes affecting offline desktop.
       - 'desktop/windows/**'
+      - 'app/offline/page.jsx'
       - '.github/workflows/finai-hiperm-desktop-build.yml'
   workflow_dispatch:
     inputs:
@@ -95,6 +96,9 @@ jobs:
           & dist/windows/EIntegrator.Desktop.exe --ledger-recovery-self-test
           if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02D full encrypted ledger backup/recovery rejected, code $LASTEXITCODE" }
           Write-Output 'FINAI_OFFLINE_LEDGER_RECOVERY=PASS'
+          & dist/windows/EIntegrator.Desktop.exe --delivery-queue-self-test
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic delivery queue integrity test failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_OFFLINE_SYNTHETIC_DELIVERY_QUEUE=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Acquire Microsoft offline WebView2 runtime and verify its signature

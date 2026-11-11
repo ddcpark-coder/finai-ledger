@@ -12,6 +12,14 @@
 - GitHub Actions sam sestavi nepodpisani `.exe`, vključi statične datoteke in ločeni **offline WebView2 Runtime Standalone Installer** s preverjenim Microsoft Authenticode podpisom ter ustvari notranji preizkusni `setup.exe` z Inno Setup. Ni produkcijske objave.
 - Minimalni avtomatizirani test `EIntegrator.Desktop.exe --self-test` ustvari šifriran lokalni osnutek, zapre in ponovno odpre SQLite, preveri, da vsebina na disku ni v jasnem besedilu, in ga izbriše.
 
+## NEXT-01 — šifrirana sintetična dobavniška vrsta (Windows)
+
+- Zaslon `/offline/` vključuje izbor demonstracijskega podjetja in gumb za dodajanje **fiksne sintetične dobavnice** v lokalno vrsto; ponovni vnos je idempotenten.
+- Namenska SQLite `synthetic-delivery-queue.db` vsebuje samo identifikator in ID podjetja v običajnih stolpcih; vsebina vsakega zapisa je za trenutnega uporabnika Windows šifrirana z **DPAPI CurrentUser** in preverjena pred prikazom. Dejanske poslovne dobavnice ali drugi dokumenti niso dovoljeni.
+- Izbira podjetja omejuje izpis in brisanje; tuje podjetje ne more izbrisati drugega zapisa. Vrsta nima strežniških zahtevkov, prenosa ali funkcije »sinhroniziraj« in ne predstavlja trajne produkcijske shrambe.
+- Vključeno v obstoječi Windows CI s ciljnim `--delivery-queue-self-test`: ponovno odprtje, različna podjetja, ni dvojnikov, ni nezavarovanega besedila dokumenta v SQLite in zavrnitev spremenjene šifrirane vsebine.
+- Šele pozneje: izolirana mobilna offline vrsta, avtoriziran strežnik, idempotentni dogodki, sinhronizacijski konflikti, varovana obnova in resnična prijava. Ne uporabljati realnih podatkov.
+
 ## Omejitve prve izdaje
 
 To **še ni celovita offline računovodska aplikacija**. Obstoječi Next.js moduli so večinoma demonstracijski, vse prave knjižbe, davčne evidence, fakturiranje, zaloge, dokumenti, več podjetij in sinhronizacija zahtevajo nadaljnjo implementacijo. Lokalna SQLite za zdaj vsebuje samo testne osnutke; ne sprejemamo pravih finančnih ali osebnih podatkov.

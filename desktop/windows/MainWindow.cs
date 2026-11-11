@@ -22,6 +22,7 @@ internal sealed class MainWindow : Form
 
     private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
     private readonly LocalDraftStore drafts = new();
+    private readonly SyntheticDeliveryQueue deliveryQueue = new();
     private double displayZoom = 1.0;
     private readonly Button zoomReset = new()
     {
@@ -321,6 +322,19 @@ internal sealed class MainWindow : Form
                 case "draft.delete":
                     var key = root.GetProperty("id").GetString() ?? "";
                     Respond(id, new { ok = true, deleted = drafts.Delete(key) });
+                    break;
+                case "queue.list":
+                    var listCompany = root.GetProperty("companyId").GetString() ?? "";
+                    Respond(id, new { ok = true, entries = deliveryQueue.List(listCompany) });
+                    break;
+                case "queue.create":
+                    var newCompany = root.GetProperty("companyId").GetString() ?? "";
+                    Respond(id, new { ok = true, entry = deliveryQueue.Enqueue(newCompany) });
+                    break;
+                case "queue.delete":
+                    var deleteCompany = root.GetProperty("companyId").GetString() ?? "";
+                    var deleteId = root.GetProperty("id").GetString() ?? "";
+                    Respond(id, new { ok = true, deleted = deliveryQueue.Remove(deleteCompany, deleteId) });
                     break;
                 case "offline.status":
                     Respond(id, new { ok = true, local = true, database = "sqlite-dpapi", sync = "disabled" });
