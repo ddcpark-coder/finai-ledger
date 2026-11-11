@@ -42,7 +42,7 @@ jobs:
       - name: Focused synthetic invoice calculation and state tests
         run: npm run test:issued-demo && node --test tests/demoCommercialFlow.test.mjs && node --test tests/cmsOrderAdapter.test.mjs
       - name: Install Chromium for desktop and mobile emulation
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Build Next.js
         run: npm run build
       - name: Verify portable Hiper M static build

@@ -1,0 +1,62 @@
+name: FinAI synthetic PWA demo focused QA
+on:
+  pull_request:
+    paths:
+      - "app/layout.tsx"
+      - "app/components/DemoPwaSetup.jsx"
+      - "app/manifest.js"
+      - "public/sw-finai-demo.js"
+      - "public/finai-192.png"
+      - "public/finai-512.png"
+      - "tests/pwaShell.test.mjs"
+      - "tests/e2e/demo-pwa-shell.spec.cjs"
+      - ".github/workflows/pwa-demo-qa.yml"
+permissions:
+  contents: read
+jobs:
+  pwa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Static PWA policy smoke checks
+        run: node --test tests/pwaShell.test.mjs
+      - name: Build opt-in synthetic PWA preview
+        env:
+          NEXT_PUBLIC_FINAI_DEMO_PWA_ENABLED: "true"
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install chromium
+          npm run build
+          test -f out/manifest.webmanifest
+          test -f out/sw-finai-demo.js
+          test -f out/finai-192.png
+          test -f out/finai-512.png
+      - name: Serve synthetic static site
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-pwa.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: One install/offline shell test on desktop and mobile
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          NEXT_PUBLIC_FINAI_DEMO_PWA_ENABLED: "true"
+        run: npx playwright test tests/e2e/demo-pwa-shell.spec.cjs
+      - name: Failure traces only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-pwa-demo-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
