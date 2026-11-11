@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useMemo,useState} from "react";
 
 const products=[
@@ -38,7 +39,7 @@ export default function CatalogWorkspace({context}){
 
 
 
-  {tab==="Katalog"&&subView!=="Kategorije"&&<div className="catalogGrid">
+  {tab==="Katalog"&&subView!=="Kategorije"&&<AdaptivePaneGrid className="catalogGrid">
    <article className="catalogCard">
     <div className="catalogHead"><h3>Katalog · {subView}</h3><div className="catalogTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči SKU, naziv ali kategorijo ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Artikel</option><option>Storitev</option></select><button className="primary">＋ Nov artikel / storitev</button></div></div>
     <div className="catalogRow head"><span>SKU</span><span>Naziv</span><span>Tip</span><span>Nabavna</span><span>Prodajna</span><span>Marža</span></div>
@@ -53,7 +54,7 @@ export default function CatalogWorkspace({context}){
     <div className="catalogSec"><h4>Računovodske povezave</h4><div className="listLine"><span>DDV</span><b>{selected.tax}</b></div><div className="listLine"><span>Prihodkovni konto</span><b>7600</b></div><div className="listLine"><span>Stroškovni konto</span><b>4100</b></div></div>
     <div className="catalogSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Uredi artikel</button><button className="secondary">Dodaj v ponudbo</button><button className="secondary">Preglej cenovno zgodovino</button></div></div>
    </aside>
-  </div>}
+  </AdaptivePaneGrid>}
 
   {tab==="Ceniki"&&<div className="priceListGrid">{priceLists.filter(p=>subView==="Standardni"?p.name.startsWith("Standard"):subView==="B2B"?p.name.startsWith("B2B"):subView==="Količinski"?p.name.startsWith("Količinski"):true).map(p=><article className="priceList" key={p.name}><h3>{p.name}</h3><small>{p.scope}</small><div className="meta"><div><span>Valuta</span><b>{p.currency}</b></div><div><span>Veljavnost</span><b>{p.valid}</b></div><div><span>Prioriteta</span><b>{p.priority}</b></div></div><button className="secondary" style={{width:"100%",marginTop:10}}>Odpri cenik</button></article>)}</div>}
 
