@@ -1,3 +1,4 @@
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import {euro} from "../issued/demoInvoice.mjs";
@@ -93,7 +94,7 @@ export default function BankingWorkspace({context,companyId}){
    <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Aktivno: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · sintetični podatki izbranega podjetja; brez povezave z banko</div>
    {notice&&<div role="status" style={{padding:10,marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</div>}
    {section==="Pregled"&&subView==="Napoved"&&<CashflowScenarioPanel companyId={companyId}/>}
-   <div className="bankGrid">
+   <AdaptivePaneGrid className="bankGrid">
      <article className="bankCard">
        <div className="bankHead"><h3>Banka · {section} / {subView}</h3><div className="bankTools">
          <input aria-label="Išči bančne transakcije" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči sklic, partnerja ..."/>
@@ -147,7 +148,7 @@ export default function BankingWorkspace({context,companyId}){
        </div></div>
      </aside>}
      {!selected&&<aside className="bankCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Ni izbrane transakcije.</aside>}
-   </div>
+   </AdaptivePaneGrid>
    <article className="bankCard" aria-label="Demonstracijska zgodovina bančnih ujemanj" style={{marginTop:10,padding:14}}>
      <h3 style={{fontSize:12,margin:"0 0 6px"}}>Sejna zgodovina ujemanj</h3>
      <p style={{fontSize:10,color:"var(--muted)",margin:"0 0 9px"}}>Zgolj v spominu brskalnika in samo za to podjetje; ni trajna revizijska sled ali bančno knjiženje.</p>
