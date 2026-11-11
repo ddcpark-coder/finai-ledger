@@ -8,6 +8,8 @@ on:
       - "app/auth/**"
       - "app/issued/**"
       - "app/business/**"
+      - "app/tasks/**"
+      - "tests/demoTaskCenter.test.mjs"
       - "app/integrations/**"
       - "app/orders/**"
       - "tests/cmsOrderAdapter.test.mjs"
@@ -40,9 +42,9 @@ jobs:
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
       - name: Focused synthetic invoice calculation and state tests
-        run: npm run test:issued-demo && node --test tests/demoCommercialFlow.test.mjs && node --test tests/cmsOrderAdapter.test.mjs
+        run: npm run test:issued-demo && node --test tests/demoCommercialFlow.test.mjs && node --test tests/cmsOrderAdapter.test.mjs && node --test tests/demoTaskCenter.test.mjs
       - name: Install Chromium for desktop and mobile emulation
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Build Next.js
         run: npm run build
       - name: Verify portable Hiper M static build

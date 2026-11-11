@@ -1,0 +1,32 @@
+const {test,expect}=require("@playwright/test");
+
+test("desktop and mobile demo task inbox filters, state and company isolation",async({page})=>{
+ await page.goto("/?module=dashboard&view=Moje+naloge&subview=Danes");
+ const taskCenter=page.getByRole("region",{name:"Moje demonstracijske naloge"});
+ const company=page.locator(".topbarMain select.companySwitch");
+ await company.selectOption("1");
+ await expect(taskCenter).toBeVisible();
+ await expect(taskCenter.getByText("Podpiši sintetično dobavnico")).toBeVisible();
+ await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toHaveCount(0);
+ await taskCenter.getByLabel("Filter opravil").selectOption("overdue");
+ await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toBeVisible();
+ const first=taskCenter.locator(".finaiTaskRow").filter({hasText:"Preglej prejeti vzorčni račun"});
+ await first.getByRole("button",{name:"Označi opravljeno"}).click();
+ await expect(first).toHaveCount(0);
+ await taskCenter.getByLabel("Filter opravil").selectOption("done");
+ const done=taskCenter.locator(".finaiTaskRow").filter({hasText:"Preglej prejeti vzorčni račun"});
+ await expect(done).toBeVisible();
+ await page.reload();
+ await taskCenter.getByLabel("Filter opravil").selectOption("done");
+ await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toBeVisible();
+ await company.selectOption("2");
+ await expect(taskCenter).toContainText("Podjetje 2");
+ await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toHaveCount(0);
+ await taskCenter.getByLabel("Filter opravil").selectOption("all");
+ await expect(taskCenter.getByText("Podpiši dobavnico podjetja B")).toBeVisible();
+ await company.selectOption("1");
+ await taskCenter.getByLabel("Filter opravil").selectOption("done");
+ await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toBeVisible();
+ await done.getByRole("button",{name:"Vrni med odprte"}).click();
+ await expect(done).toHaveCount(0);
+});
