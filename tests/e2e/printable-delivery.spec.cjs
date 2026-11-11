@@ -1,0 +1,36 @@
+const {test,expect}=require("@playwright/test");
+
+test("print/PDF preview requires valid signed demo delivery and never crosses company",async({page})=>{
+ const writes=[];
+ page.on("request",request=>{
+  if(["POST","PUT","PATCH","DELETE"].includes(request.method()))writes.push(request.url());
+ });
+ await page.goto("/?module=documents&view=Dobavnice&subview=Za%20podpis");
+ const company=page.locator(".topbarMain select.companySwitch");
+ await company.selectOption("1");
+ const preview=page.getByRole("region",{name:"Predogled dobavnice za tisk"});
+ const trigger=page.getByRole("button",{name:"Predogled za tisk / PDF"});
+ await expect(trigger).toBeDisabled();
+ const canvas=page.getByLabel("Površina za risanje demonstracijskega podpisa");
+ const box=await canvas.boundingBox();expect(box).toBeTruthy();
+ await page.mouse.move(box.x+30,box.y+50);
+ await page.mouse.down();
+ await page.mouse.move(box.x+140,box.y+75,{steps:8});
+ await page.mouse.up();
+ await page.getByRole("checkbox",{name:/Potrjujem, da je podpisnik/}).check();
+ await page.getByRole("button",{name:"Zaključi in preveri demo dokazilo"}).click();
+ await expect(trigger).toBeEnabled();
+ await trigger.click();
+ await expect(preview).toBeVisible();
+ await expect(preview).toContainText("SYNTH-DOB-2026-0048");
+ await expect(preview).toContainText("Reklamna tabla 100 × 70 cm");
+ await expect(preview).toContainText("SHA-256 dobavnice");
+ await expect(preview).toContainText("SHA-256 dokaznega zapisa");
+ await expect(preview).toContainText("ni kvalificiran elektronski podpis");
+ await expect(preview.getByRole("img",{name:"Risba demonstracijskega podpisa"})).toBeVisible();
+ await expect(preview.getByRole("button",{name:"Natisni / shrani kot PDF"})).toBeEnabled();
+ await company.selectOption("2");
+ await expect(preview).toHaveCount(0);
+ await expect(page.getByRole("heading",{name:"SYNTH-DOB-2026-B001"})).toBeVisible();
+ expect(writes).toEqual([]);
+});
