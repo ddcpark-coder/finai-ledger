@@ -10,6 +10,12 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await expect(guidance).toContainText("Kako pregledam prejeti račun?");
   await expect(guidance).toContainText("Predlagani naslednji korak");
   await page.getByLabel("Razporeditev").selectOption("stacked");
+  await page.getByLabel("Vrstni red oken").selectOption("detail-first");
+  const listPane=page.locator(".incomingGrid > :first-child");
+  const detailPane=page.locator(".incomingGrid > :nth-child(2)");
+  await expect(shell).toHaveAttribute("data-pane-order","detail-first");
+  await expect.poll(()=>listPane.evaluate(el=>getComputedStyle(el).order)).toBe("2");
+  await expect.poll(()=>detailPane.evaluate(el=>getComputedStyle(el).order)).toBe("1");
   await page.getByLabel("Velikost prikaza").selectOption("130");
   await expect(shell).toHaveAttribute("data-level","simple");
   await expect(shell).toHaveAttribute("data-arrangement","stacked");
@@ -17,6 +23,7 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.reload();
   await expect(shell).toHaveAttribute("data-level","simple");
   await expect(shell).toHaveAttribute("data-arrangement","stacked");
+  await expect(shell).toHaveAttribute("data-pane-order","detail-first");
 
   await page.goto("/?module=incoming_invoices&view=Odobritve&subview=Odobreno");
   await expect(shell).toHaveAttribute("data-level","standard");
@@ -45,6 +52,7 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.getByRole("button",{name:"Ponastavi pogled"}).click();
   await expect(shell).toHaveAttribute("data-level","standard");
   await expect(shell).toHaveAttribute("data-arrangement","split");
+  await expect(shell).toHaveAttribute("data-pane-order","list-first");
   await expect(page.getByRole("region",{name:"Pojasnila trenutnega modula"})).toHaveCount(0);
   await page.getByRole("button",{name:"Pomoč pri tem pogledu"}).click();
   await expect(page.getByRole("region",{name:"Pojasnila trenutnega modula"})).toBeVisible();
