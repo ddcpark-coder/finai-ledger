@@ -2,10 +2,11 @@
 // This is a UI preference: never use it to decide security or accounting permissions.
 export const DETAIL_WIDTH_MIN=260;
 export const DETAIL_WIDTH_MAX=700;
-export const DEFAULT_VIEW=Object.freeze({level:"standard",arrangement:"split",detailWidth:370,textScale:100,paneOrder:"list-first"});
+export const DEFAULT_VIEW=Object.freeze({level:"standard",arrangement:"split",detailWidth:370,textScale:100,paneOrder:"list-first",formDensity:"comfortable"});
 const levels=new Set(["simple","standard","expert"]);
 const arrangements=new Set(["split","stacked","list","detail"]);
 const paneOrders=new Set(["list-first","detail-first"]);
+const formDensities=new Set(["comfortable","compact"]);
 const textScales=new Set([100,115,130]);
 export function normalizeView(value){
   const input=value&&typeof value==="object"&&!Array.isArray(value)?value:{};
@@ -15,7 +16,8 @@ export function normalizeView(value){
     arrangement:arrangements.has(input.arrangement)?input.arrangement:DEFAULT_VIEW.arrangement,
     detailWidth:Number.isInteger(detailWidth)?Math.max(DETAIL_WIDTH_MIN,Math.min(DETAIL_WIDTH_MAX,detailWidth)):DEFAULT_VIEW.detailWidth,
     textScale:textScales.has(Number(input.textScale))?Number(input.textScale):DEFAULT_VIEW.textScale,
-    paneOrder:paneOrders.has(input.paneOrder)?input.paneOrder:DEFAULT_VIEW.paneOrder
+    paneOrder:paneOrders.has(input.paneOrder)?input.paneOrder:DEFAULT_VIEW.paneOrder,
+    formDensity:formDensities.has(input.formDensity)?input.formDensity:DEFAULT_VIEW.formDensity
   };
 }
 export function viewStorageKey(companyId,moduleKey,viewKey="default"){
@@ -25,6 +27,6 @@ export function viewStorageKey(companyId,moduleKey,viewKey="default"){
   return "finai:adaptive:demo-user:company-"+companyId+":module-"+moduleKey+":view-"+encodeURIComponent(viewKey);
 }
 export function updateViewField(state,key,value){
-  if(!["level","arrangement","detailWidth","textScale","paneOrder"].includes(key))throw new Error("Neveljavna nastavitev prikaza.");
+  if(!["level","arrangement","detailWidth","textScale","paneOrder","formDensity"].includes(key))throw new Error("Neveljavna nastavitev prikaza.");
   return normalizeView({...normalizeView(state),[key]:value});
 }

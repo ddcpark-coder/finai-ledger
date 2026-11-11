@@ -47,6 +47,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
             'level'=>'simple',
             'arrangement'=>'stacked',
             'paneOrder'=>'detail-first',
+            'formDensity'=>'compact',
             'detailWidth'=>420,
             'textScale'=>130,
         ];
@@ -76,6 +77,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
             ->assertJsonPath('data.version',1)
             ->assertJsonPath('data.settings.level','simple')
             ->assertJsonPath('data.settings.paneOrder','detail-first')
+            ->assertJsonPath('data.settings.formDensity','compact')
             ->assertJsonPath('data.settings.textScale',130);
         $this->getJson($first)->assertOk()
             ->assertJsonPath('data.settings.detailWidth',420);
@@ -148,7 +150,7 @@ final class AdaptiveWindowPreferencesTest extends TestCase
 
         foreach ([
             ['level'=>'admin'], ['arrangement'=>'root'],['detailWidth'=>900],
-            ['textScale'=>900],['paneOrder'=>'unsafe'],['expected_version'=>-1],
+            ['textScale'=>900],['paneOrder'=>'unsafe'],['formDensity'=>'unsafe'],['expected_version'=>-1],
         ] as $bad) {
             $this->putJson($url,[...$this->payload(),...$bad])->assertUnprocessable();
         }

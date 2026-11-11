@@ -19,11 +19,21 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
  const help=getModuleGuidance(moduleKey);
  const showHelp=view.level==="simple"||helpOpen;
  const set=(key,value)=>setView(prev=>updateViewField(prev,key,value));
- return <section className="finaiAdaptive" data-level={view.level} data-arrangement={view.arrangement} data-pane-order={view.paneOrder}
+ return <section className="finaiAdaptive" data-level={view.level} data-arrangement={view.arrangement} data-pane-order={view.paneOrder} data-form-density={view.formDensity}
    style={{"--finai-detail-width":view.detailWidth+"px","--finai-text-zoom":view.textScale/100}}>
    <style>{`
      .finaiAdaptive{min-width:0;container-type:inline-size}
      .finaiAdaptiveBody{zoom:var(--finai-text-zoom);min-width:0}
+     /* Density adjusts visuals only. It cannot hide labels, errors, warnings or permissions. */
+     .finaiAdaptive[data-form-density="comfortable"] .finaiAdaptiveBody :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,button){
+       min-height:42px;
+     }
+     .finaiAdaptive[data-form-density="comfortable"] .finaiAdaptiveBody :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){padding-block:10px}
+     .finaiAdaptive[data-form-density="compact"] .finaiAdaptiveBody :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,button){min-height:32px}
+     .finaiAdaptive[data-form-density="compact"] .finaiAdaptiveBody :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){padding-block:5px}
+     @media(pointer:coarse),(max-width:760px){
+       .finaiAdaptive .finaiAdaptiveBody :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,button){min-height:44px}
+     }
      .finaiAdaptiveBar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin:0 0 12px;background:var(--panel)}
      .finaiAdaptiveBar label{font-size:10px;color:var(--text);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
      .finaiAdaptiveBar select,.finaiAdaptiveBar button{border:1px solid var(--line);border-radius:8px;background:var(--bg2);color:var(--text);min-height:32px;padding:5px 8px;font-size:11px}
@@ -81,6 +91,13 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
          onChange={e=>set("paneOrder",e.target.value)}>
          <option value="list-first">Seznam najprej</option>
          <option value="detail-first">Podrobnosti najprej</option>
+       </select>
+     </label>
+     <label htmlFor={helpId+"-density"}>Gostota obrazca
+       <select id={helpId+"-density"} value={view.formDensity} disabled={!ready}
+         onChange={e=>set("formDensity",e.target.value)}>
+         <option value="comfortable">Udobno – večja polja</option>
+         <option value="compact">Zgoščeno – več podatkov</option>
        </select>
      </label>
      <label htmlFor={helpId+"-scale"}>Velikost prikaza

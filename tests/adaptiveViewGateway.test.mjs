@@ -16,7 +16,7 @@ test("GET targets the selected company/module/view using only authenticated cook
    calls.push({url,options});
    return {ok:true,json:async()=>({data:{
      version:3,settings:{
-       level:"expert",arrangement:"stacked",detailWidth:480,textScale:115,paneOrder:"detail-first"
+       level:"expert",arrangement:"stacked",detailWidth:480,textScale:115,paneOrder:"detail-first",formDensity:"compact"
      }
    }})};
  };
@@ -41,13 +41,13 @@ test("PUT obtains first-party CSRF cookie, applies version check and normalized 
    if(url.endsWith("/sanctum/csrf-cookie"))return {ok:true};
    return {ok:true,json:async()=>({data:{
      version:4,settings:{
-       level:"simple",arrangement:"list",detailWidth:700,textScale:130,paneOrder:"detail-first"
+       level:"simple",arrangement:"list",detailWidth:700,textScale:130,paneOrder:"detail-first",formDensity:"compact"
      }
    }})};
  };
  try{
    const result=await saveAdaptiveView(1,"banking","Pregled::Napoved",{
-     level:"simple",arrangement:"list",detailWidth:999,textScale:130,paneOrder:"detail-first"
+     level:"simple",arrangement:"list",detailWidth:999,textScale:130,paneOrder:"detail-first",formDensity:"compact"
    },3);
    assert.equal(result.version,4);
    assert.equal(calls.length,2);
@@ -56,7 +56,7 @@ test("PUT obtains first-party CSRF cookie, applies version check and normalized 
    assert.equal(calls[1].options.headers["X-XSRF-TOKEN"],"abc=123");
    const sent=JSON.parse(calls[1].options.body);
    assert.deepEqual(sent,{
-     level:"simple",arrangement:"list",detailWidth:700,textScale:130,paneOrder:"detail-first",
+     level:"simple",arrangement:"list",detailWidth:700,textScale:130,paneOrder:"detail-first",formDensity:"compact",
      expected_version:3
    });
    assert.equal(calls[1].options.method,"PUT");
