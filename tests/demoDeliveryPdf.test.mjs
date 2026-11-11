@@ -21,7 +21,7 @@ test("unsigned synthetic receipt PDF is a readable, single-page valid PDF",async
  assert.equal(pdf.getPageCount(),1);
  assert.match(pdf.getTitle(),/SYNTH-DOB-2026-0048/);
  assert.match(pdf.getSubject(),/NOT a digitally signed/);
- assert.match(pdf.getProducer(),/template v2/);
+ assert.match(pdf.getKeywords(),/template=v2/);
  assert.equal(DELIVERY_PDF_TEMPLATE_VERSION,2);
 });
 test("tampered evidence and foreign tenant cannot produce a PDF",async()=>{
