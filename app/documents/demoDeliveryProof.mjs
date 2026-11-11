@@ -27,8 +27,8 @@ async function digest(value){
  return Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,"0")).join("");
 }
 function validateSignature(signature){
- if(typeof signature!=="string"||signature.length<120||signature.length>650000||
-  !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(signature))
+ if(typeof signature!=="string"||signature.length<100||signature.length>650000||
+  !/^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/=]+$/.test(signature))
   throw new Error("Zajemi veljaven demonstracijski podpis na zaslonu.");
 }
 export async function finalizeDemoDelivery({document,companyId,signer,signature,accepted,signedAt=new Date()}){
