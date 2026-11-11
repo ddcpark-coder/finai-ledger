@@ -1,3 +1,4 @@
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import DemoIncomingCreator from "./DemoIncomingCreator";
@@ -95,7 +96,7 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
 
    <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · prikaz samo izbranega podjetja · brez prenosa datotek ali knjiženja</div>
    {notice&&<div role="status" style={{padding:"9px 12px",marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</div>}
-   <div className="incomingGrid">
+   <AdaptivePaneGrid className="incomingGrid">
      <article className="incomingCard">
        <div className="incomingHead"><h3>Prejeti računi · {section} / {subView}</h3><div className="incomingTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči partnerja ali račun ..."/><select value={status} onChange={e=>setStatus(e.target.value)}><option>Vsi</option><option>Pregled</option><option>Odobreno</option><option>Obdelava</option><option>Napaka</option></select><button type="button" className="primary" onClick={()=>setCreatorOpen(true)}>＋ Nov demo račun</button><button type="button" className="secondary" onClick={resetDemo}>Ponastavi demo</button></div></div>
        <div className="dropZone"><b>Ročni vnos demonstracijskega prejetega računa</b><small>Uvoz PDF/XML, OCR in AI obdelava še niso povezani. Vnesi samo sintetične podatke.</small></div>
@@ -162,7 +163,7 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
          <button className="secondary" disabled title="Datoteke niso naložene">Odpri original (v pripravi)</button>
        </div></div>
      </aside>}{list.length===0&&<aside className="incomingCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
-   </div>
+   </AdaptivePaneGrid>
    <article className="incomingCard" aria-label="Demonstracijska revizijska aktivnost" style={{marginTop:10,padding:14}}>
      <h3 style={{fontSize:12,margin:"0 0 6px"}}>Sejna aktivnost · trenutno podjetje</h3>
      <p style={{fontSize:9,color:"var(--muted)",margin:"0 0 10px"}}>Le demonstracijska zgodovina v pomnilniku brskalnika. Ni trajna, varovana revizijska sled in ne dokazuje knjiženja.</p>
