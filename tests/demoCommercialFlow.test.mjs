@@ -5,16 +5,16 @@ import {
  restoreDemoCommercialFlow,upcomingFlowAction
 } from "../app/business/demoCommercialFlow.mjs";
 
-const steps=["send_quote","accept_quote","create_order","confirm_delivery","prepare_invoice"];
+const steps=["send_quote","accept_quote","create_order","confirm_delivery","prepare_invoice","record_payment"];
 test("complete human-acknowledged synthetic chain is sequential and reproducible",()=>{
  let f=createDemoCommercialFlow(1);
  assert.equal(f.stage,"draft");
  for(const action of steps)f=transitionDemoCommercialFlow(f,action,1);
- assert.equal(f.stage,"invoiced");
- assert.equal(f.history.length,5);
+ assert.equal(f.stage,"paid");
+ assert.equal(f.history.length,6);
  assert.equal(upcomingFlowAction(f),null);
  assert.deepEqual(restoreDemoCommercialFlow(f,1),f);
- assert.throws(()=>transitionDemoCommercialFlow(f,"prepare_invoice",1),/Prehod/);
+ assert.throws(()=>transitionDemoCommercialFlow(f,"record_payment",1),/Prehod/);
 });
 test("cannot skip stages, repeat actions or operate against another company",()=>{
  const a=createDemoCommercialFlow(1);
@@ -47,4 +47,6 @@ test("module ownership ensures each next step is explicit and reviewable",()=>{
  assert.equal(upcomingFlowAction(flow).module,"documents");
  flow=transitionDemoCommercialFlow(flow,"confirm_delivery",1);
  assert.equal(upcomingFlowAction(flow).module,"issued_invoices");
+ flow=transitionDemoCommercialFlow(flow,"prepare_invoice",1);
+ assert.equal(upcomingFlowAction(flow).module,"banking");
 });

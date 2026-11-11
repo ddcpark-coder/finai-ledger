@@ -8,7 +8,7 @@ import {
 
 const modules={
  quotes:"Ponudbe",orders:"Naročila",documents:"Dokumenti / dobavnice",
- issued_invoices:"Izdani računi"
+ issued_invoices:"Izdani računi",banking:"Banka"
 };
 const format=cents=>new Intl.NumberFormat("sl-SI",{style:"currency",currency:"EUR"}).format(cents/100);
 
@@ -50,7 +50,7 @@ export default function BusinessChainPanel({companyId,moduleKey}){
  const currentIdx=flow?stages.findIndex(([code])=>code===flow.stage):-1;
  return <section aria-label="Povezani demonstracijski poslovni tok"
    style={{border:"1px solid var(--line)",background:"var(--panel)",borderRadius:13,padding:"13px 15px",margin:"12px 0"}}>
-   <h3 style={{fontSize:13,margin:"0 0 6px"}}>Vodeni poslovni tok: ponudba → naročilo → dobavnica → račun</h3>
+   <h3 style={{fontSize:13,margin:"0 0 6px"}}>Vodeni poslovni tok: ponudba → naročilo → dobavnica → račun → plačilo</h3>
    <p style={{fontSize:10,lineHeight:1.55,color:"var(--muted)",margin:"0 0 9px"}}>
      Enoten sintetični primer, podjetje {companyId}. Vsak korak potrdi uporabnik. Brez pravega pošiljanja,
      knjiženja, dokumentov ali davčne potrditve. Shranjeno le v seji tega brskalnika.

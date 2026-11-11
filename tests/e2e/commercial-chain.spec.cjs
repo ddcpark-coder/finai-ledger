@@ -17,6 +17,10 @@ test("a single demo company can complete quote → order → delivery → invoic
  await panel.getByRole("button",{name:"Potrdi demo dobavnico"}).click();
  await panel.getByRole("link",{name:"Naslednji korak: Izdani računi"}).click();
  await panel.getByRole("button",{name:"Simuliraj pripravo računa"}).click();
+ await panel.getByRole("link",{name:"Naslednji korak: Banka"}).click();
+ await expect(panel).toContainText("Demo račun pripravljen, plačilo še ni potrjeno");
+ await panel.getByRole("button",{name:"Potrdi sintetično plačilo"}).click();
+ await expect(panel).toContainText("Demo plačilo potrjeno");
  await expect(panel).toContainText("Vsi demonstracijski koraki so potrjeni");
  await expect(panel).toContainText("SYN-CHAIN-1-001");
  await page.reload();
