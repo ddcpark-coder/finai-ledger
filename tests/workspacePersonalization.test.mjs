@@ -6,12 +6,12 @@ test("malformed settings fall back to safe defaults",()=>{
  assert.deepEqual(normalizeView(null),DEFAULT_VIEW);
  assert.deepEqual(normalizeView({level:"root",arrangement:"danger",detailWidth:"NaN"}),DEFAULT_VIEW);
  assert.deepEqual(normalizeView({level:"simple",arrangement:"stacked",detailWidth:99999}),
-   {level:"simple",arrangement:"stacked",detailWidth:700,textScale:100,paneOrder:"list-first"});
+   {level:"simple",arrangement:"stacked",detailWidth:700,textScale:100,paneOrder:"list-first",formDensity:"comfortable"});
 });
 test("all three complexity levels and four window layouts are supported",()=>{
  for(const level of ["simple","standard","expert"])for(const arrangement of ["split","stacked","list","detail"]){
   const view=normalizeView({level,arrangement,detailWidth:420});
-  assert.deepEqual(view,{level,arrangement,detailWidth:420,textScale:100,paneOrder:"list-first"});
+  assert.deepEqual(view,{level,arrangement,detailWidth:420,textScale:100,paneOrder:"list-first",formDensity:"comfortable"});
  }
 });
 test("company and module preference namespaces cannot leak between workspaces",()=>{
@@ -31,10 +31,12 @@ test("updates preserve independent user preferences and block unknown fields",()
  const v=updateViewField(DEFAULT_VIEW,"detailWidth",460);
  const w=updateViewField(v,"level","expert");
  assert.equal(w.detailWidth,460);assert.equal(w.level,"expert");
- assert.deepEqual(DEFAULT_VIEW,{level:"standard",arrangement:"split",detailWidth:370,textScale:100,paneOrder:"list-first"});
+ assert.deepEqual(DEFAULT_VIEW,{level:"standard",arrangement:"split",detailWidth:370,textScale:100,paneOrder:"list-first",formDensity:"comfortable"});
  assert.throws(()=>updateViewField(v,"permissions",true));
  assert.equal(updateViewField(v,"textScale",130).textScale,130);
  assert.equal(updateViewField(v,"textScale",200).textScale,100);
  assert.equal(updateViewField(v,"paneOrder","detail-first").paneOrder,"detail-first");
  assert.equal(updateViewField(v,"paneOrder","unsafe").paneOrder,"list-first");
+ assert.equal(updateViewField(v,"formDensity","compact").formDensity,"compact");
+ assert.equal(updateViewField(v,"formDensity","malicious").formDensity,"comfortable");
 });
