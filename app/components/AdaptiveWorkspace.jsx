@@ -35,12 +35,12 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
      .finaiWorkspaceGuide p{font-size:11px;line-height:1.55;margin:5px 0}
      .finaiWorkspaceGuide .finaiGuideCaution{color:var(--muted);font-size:10px}
      .finaiGuideHint{font-weight:700}
-     .finaiAdaptive :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace){
+     .finaiAdaptive :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.sog,.accountingGrid,.identityGrid,.workspace){
        grid-template-columns:minmax(0,1fr) minmax(240px,var(--finai-detail-width))!important
      }
-     .finaiAdaptive[data-arrangement="stacked"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace),
-     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace),
-     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace){
+     .finaiAdaptive[data-arrangement="stacked"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.sog,.accountingGrid,.identityGrid,.workspace),
+     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.sog,.accountingGrid,.identityGrid,.workspace),
+     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.sog,.accountingGrid,.identityGrid,.workspace){
        grid-template-columns:minmax(0,1fr)!important
      }
      .finaiAdaptive[data-arrangement="list"] :is(.vatGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(2),
@@ -49,13 +49,13 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
      .finaiAdaptive[data-pane-order="detail-first"] :is(.vatGrid,.accountingGrid,.identityGrid)>:first-child{order:2}
      .finaiAdaptive[data-pane-order="detail-first"] :is(.vatGrid,.accountingGrid,.identityGrid)>:nth-child(2){order:1}
      /* Accessible panes are reordered in actual React DOM, not by CSS visual order. */
-     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid)>[data-finai-pane="detail"]{display:none!important}
-     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid)>[data-finai-pane="list"]{display:none!important}
+     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.sog)>[data-finai-pane="detail"]{display:none!important}
+     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.sog)>[data-finai-pane="list"]{display:none!important}
      .finaiAdaptive[data-level="simple"] :is(.flow,.statusStrip,.confidenceRow,.aiExplain,.anomaly,.sepaBox,.accountStrip){display:none!important}
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow)>:nth-child(4),
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow).head>:nth-child(4){display:none}
      @media(max-width:800px){
-       .finaiAdaptive :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace){
+       .finaiAdaptive :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.sog,.accountingGrid,.identityGrid,.workspace){
          grid-template-columns:minmax(0,1fr)!important
        }
        .finaiAdaptiveBar .finaiAdaptiveCaption{line-height:1.4}

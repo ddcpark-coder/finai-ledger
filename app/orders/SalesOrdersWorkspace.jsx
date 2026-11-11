@@ -1,17 +1,27 @@
 "use client";
 import BusinessChainPanel from "../business/BusinessChainPanel";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
+import {DEMO_WOO_ORDERS,importSyntheticCmsOrders} from "../integrations/cmsOrderAdapter.mjs";
 import {useEffect,useMemo,useState} from "react";
 const orders=[
-{id:"NAR-2026-0008",partner:"ABC d.o.o.",status:"V izvedbi",gross:2989,delivery:"12. 11. 2026",source:"PON-2026-0042",reserved:"Delno"},
-{id:"NAR-2026-0007",partner:"Gamma GmbH",status:"Pripravljeno",gross:5200,delivery:"08. 11. 2026",source:"PON-2026-0041",reserved:"Da"},
-{id:"NAR-2026-0006",partner:"Studio Kreativ s.p.",status:"Dostavljeno",gross:1195.6,delivery:"03. 11. 2026",source:"Ročno",reserved:"—"},
-{id:"NAR-2026-0005",partner:"Delta d.o.o.",status:"Fakturirano",gross:2196,delivery:"31. 10. 2026",source:"PON-2026-0038",reserved:"Da"}
+{companyId:1,id:"NAR-2026-0008",partner:"ABC d.o.o.",status:"V izvedbi",gross:2989,delivery:"12. 11. 2026",source:"PON-2026-0042",reserved:"Delno"},
+{companyId:1,id:"NAR-2026-0007",partner:"Gamma GmbH",status:"Pripravljeno",gross:5200,delivery:"08. 11. 2026",source:"PON-2026-0041",reserved:"Da"},
+{companyId:1,id:"NAR-2026-0006",partner:"Studio Kreativ s.p.",status:"Dostavljeno",gross:1195.6,delivery:"03. 11. 2026",source:"Ročno",reserved:"—"},
+{companyId:1,id:"NAR-2026-0005",partner:"Delta d.o.o.",status:"Fakturirano",gross:2196,delivery:"31. 10. 2026",source:"PON-2026-0038",reserved:"Da"},
+{companyId:2,id:"SYN-NAR-B01",partner:"Sintetični partner B",status:"V izvedbi",gross:85,delivery:"11. 11. 2026",source:"Ročno (demo)",reserved:"—"},
+{companyId:3,id:"SYN-NAR-C01",partner:"Sintetični partner C",status:"Pripravljeno",gross:150,delivery:"12. 11. 2026",source:"Ročno (demo)",reserved:"—"}
 ];
 export default function SalesOrdersWorkspace({context,companyId}){
  const section=context?.level2??"Pregled";
  const subView=context?.level3??"Vsa";
- const [q,setQ]=useState(""); const [filter,setFilter]=useState("Vsi"); const [sel,setSel]=useState(orders[0]);
- const rows=useMemo(()=>orders.filter(x=>{
+ const [q,setQ]=useState("");
+ const [filter,setFilter]=useState("Vsi");
+ const [sel,setSel]=useState(null);
+ const [cmsOrders,setCmsOrders]=useState([]);
+ const [cmsNotice,setCmsNotice]=useState("");
+ const allOrders=useMemo(()=>[...orders,...cmsOrders],[cmsOrders]);
+ const rows=useMemo(()=>allOrders.filter(x=>{
+   if(x.companyId!==companyId)return false;
    const sectionMatch=section==="Pregled"?(subView==="Nova"?false:subView==="Aktivna"?["V izvedbi","Pripravljeno"].includes(x.status):true)
      :section==="Izvedba"?(subView==="V delu"?x.status==="V izvedbi":subView==="Pripravljeno"?x.status==="Pripravljeno":false)
      :section==="Rezervacije"?(subView==="Pomanjkanje"?x.reserved==="Delno":subView==="Sproščene"?false:x.reserved!=="—")
@@ -19,12 +29,29 @@ export default function SalesOrdersWorkspace({context,companyId}){
      :section==="Fakturiranje"?(subView==="Za račun"?x.status==="Dostavljeno":subView==="Fakturirano"?x.status==="Fakturirano":false):true;
    return (!q||[x.id,x.partner,x.source].join(" ").toLowerCase().includes(q.toLowerCase()))
      &&(filter==="Vsi"||x.status===filter)&&sectionMatch;
- }),[q,filter,section,subView]);
+ }),[allOrders,companyId,q,filter,section,subView]);
+ const activeSel=rows.find(row=>row.id===sel?.id)??rows[0]??null;
  useEffect(()=>{
-   if(rows.length&&!rows.some(row=>row.id===sel.id)){
+   if(rows.length&&!rows.some(row=>row.id===sel?.id)){
      setSel(rows[0]);
    }
- },[rows,sel.id]);
+ },[rows,sel?.id]);
+ useEffect(()=>{
+   setSel(null);setQ("");setFilter("Vsi");setCmsNotice("");
+ },[companyId]);
+ const importCms=()=>{
+   try{
+     const result=importSyntheticCmsOrders(cmsOrders,DEMO_WOO_ORDERS,companyId);
+     setCmsOrders(result.orders);
+     setCmsNotice("Uvoženo: "+result.added+" · že obstoječih: "+result.duplicates+
+       ". To so samo testna naročila; zaloge in računovodstvo niso spremenjeni.");
+     setFilter("Vsi");setQ("");
+   }catch(error){setCmsNotice(error.message)}
+ };
+ const resetCms=()=>{
+   setCmsOrders(old=>old.filter(x=>x.companyId!==companyId));
+   setCmsNotice("CMS demonstracija ponastavljena samo za izbrano podjetje.");
+ };
 
  return <section className="so"><style>{`
  .sog{display:grid;grid-template-columns:minmax(0,1.45fr) 370px;gap:10px}.soc{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.soh{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.soh h3{margin:0;font-size:12px}.tools{display:flex;gap:7px;flex-wrap:wrap}.tools input,.tools select{border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;padding:8px 9px;font-size:9px}
@@ -34,6 +61,22 @@ export default function SalesOrdersWorkspace({context,companyId}){
  <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Naročila · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
  <div className="flow"><div className="on">Potrjeno</div><div className="on">Izvedba</div><div>Pripravljeno</div><div>Dobavnica</div><div>Račun</div><div>Zaključeno</div></div>
  <BusinessChainPanel companyId={companyId} moduleKey="orders"/>
- <div className="sog"><article className="soc"><div className="soh"><h3>Naročila kupcev · {section} / {subView}</h3><div className="tools"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Išči naročilo ali partnerja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>V izvedbi</option><option>Pripravljeno</option><option>Dostavljeno</option><option>Fakturirano</option></select><button className="primary">＋ Novo naročilo</button></div></div><div className="sor head"><span>Naročilo</span><span>Partner</span><span>Dostava</span><span>Vrednost</span><span>Status</span></div>{!rows.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>Ni naročil za izbrani podpogled.</p>}{rows.map(x=><button className="sor" key={x.id} onClick={()=>setSel(x)}><span><b>{x.id}</b><small>{x.source}</small></span><span><b>{x.partner}</b><small>Rezervacija: {x.reserved}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className="st">{x.status}</span></button>)}</article>
- {rows.length>0&&<aside className="soc detail"><span className="st">{sel.status}</span><h3>{sel.id}</h3><small>{sel.partner} · {sel.source}</small><div className="meta"><div><small>Vrednost</small><b>{sel.gross.toFixed(2)} €</b></div><div><small>Želeni datum</small><b>{sel.delivery}</b></div><div><small>Rezervacija</small><b>{sel.reserved}</b></div><div><small>Vir</small><b>{sel.source}</b></div></div><div className="sec"><h4>Postavke</h4><div className="line"><span>Reklamna tabla 100 × 70 cm</span><b>20 kos</b></div><div className="line"><span>Montaža na lokaciji</span><b>12 h</b></div></div><div className="sec"><h4>Naslednji koraki</h4><div style={{display:"grid",gap:7}}><button className="primary">Premakni v naslednjo fazo</button><button className="secondary">Odpri rezervacije</button><button className="secondary">Ustvari dobavnico</button><button className="secondary">Pripravi račun</button><button className="secondary">Prikaži audit sled</button></div></div></aside>}{rows.length===0&&<aside className="soc" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}</div></section>
+ <section aria-label="CMS integracija – demonstracija WooCommerce"
+   style={{border:"1px solid var(--line)",borderRadius:12,padding:12,marginBottom:10,background:"var(--panel)"}}>
+   <h3 style={{fontSize:13,margin:"0 0 7px"}}>CMS / WooCommerce – prikaz integracije naročil</h3>
+   <p style={{fontSize:10,color:"var(--muted)",lineHeight:1.5}}>
+     Sintetična naročila iz lokalnega vzorca. Brez povezave s trgovino, brez dostopa do uporabnikov, plačil,
+     zalog, računovodstva ali pošiljanja. Podjetje {companyId} je izolirano.
+   </p>
+   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+     <button type="button" className="primary" onClick={importCms}>Uvozi vzorčna CMS naročila</button>
+     <button type="button" className="secondary" onClick={resetCms}>Ponastavi CMS demo</button>
+   </div>
+   {cmsNotice&&<p role="status" style={{fontSize:10,margin:"8px 0 0"}}>{cmsNotice}</p>}
+ </section>
+ <AdaptivePaneGrid className="sog"><article className="soc"><div className="soh"><h3>Naročila kupcev · {section} / {subView}</h3><div className="tools"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Išči naročilo ali partnerja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>V izvedbi</option><option>Pripravljeno</option><option>Dostavljeno</option><option>Fakturirano</option><option>Za pregled</option></select><button className="primary" type="button" disabled title="Pravo ustvarjanje naročil še ni povezano">Novo naročilo (v pripravi)</button></div></div><div className="sor head"><span>Naročilo</span><span>Partner</span><span>Dostava</span><span>Vrednost</span><span>Status</span></div>{!rows.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>Ni naročil za izbrani podpogled.</p>}{rows.map(x=><button className="sor" key={x.id} onClick={()=>setSel(x)}><span><b>{x.id}</b><small>{x.source}</small></span><span><b>{x.partner}</b><small>Rezervacija: {x.reserved}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className="st">{x.status}</span></button>)}</article>
+ {rows.length>0&&<aside className="soc detail"><span className="st">{activeSel.status}</span><h3>{activeSel.id}</h3><small>{activeSel.partner} · {activeSel.source}</small><div className="meta"><div><small>Vrednost</small><b>{activeSel.gross.toFixed(2)} €</b></div><div><small>Želeni datum</small><b>{activeSel.delivery}</b></div><div><small>Rezervacija</small><b>{activeSel.reserved}</b></div><div><small>Vir</small><b>{activeSel.source}</b></div></div><div className="sec"><h4>Postavke</h4>{activeSel.lines?.length
+ ?activeSel.lines.map((line,i)=><div className="line" key={i}><span>{line.name}</span><b>{line.quantity} · {line.grossCents/100} €</b></div>)
+ :<><div className="line"><span>Reklamna tabla 100 × 70 cm</span><b>20 kos (demo)</b></div>
+   <div className="line"><span>Montaža na lokaciji</span><b>12 h (demo)</b></div></>}</div><div className="sec"><h4>Naslednji koraki</h4><div style={{display:"grid",gap:7}}><button className="primary" type="button" disabled>Premakni v naslednjo fazo (v pripravi)</button><button className="secondary" disabled>Rezervacije (v pripravi)</button><button className="secondary" disabled>Dobavnica (v pripravi)</button><button className="secondary" disabled>Račun (v pripravi)</button><button className="secondary" disabled>Revizija (v pripravi)</button></div></div></aside>}{rows.length===0&&<aside className="soc" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}</AdaptivePaneGrid></section>
 }
