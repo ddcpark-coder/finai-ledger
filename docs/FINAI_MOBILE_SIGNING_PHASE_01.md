@@ -11,10 +11,19 @@ Cilj: mobilni uporabnik ali prejemnik s prstom/pisalom zajame podpis k sintetič
 - Podjetja imajo ločene sintetične dobavnice, menjava podjetja ponastavi lokalni podpis in dokazilo.
 
 ### Še ni izvedeno (produkcijski pogoji)
-- Dejanski PDF z dokumentom in podpisom (ter PDF-A/PAdES, če zahtevano).
+- Produkcijski podpisani PDF z verodostojno identiteto, revizijo, ustreznim PDF-A/PAdES, če zahtevano. Demonstracijski *nepodpisani* PDF s sliko ročnega podpisa je na voljo za lokalni prenos, ni pa produkcijsko dokazilo.
 - Pravno ustrezna identifikacija podpisnika, varovan časovni žig, revizija, podpisne izjave.
 - Offline šifrirana trajna mobilna hramba in varna sinhronizacija.
 - Elektronsko pošiljanje kopije in mobilno podpisovanje s povezavo za zunanjega prejemnika.
 - Izoliran FinAI strežnik / zasebna hramba / obnovitev / pravni QA in ponudnik kvalificiranih storitev zaupanja.
 
 Uporabljajo se samo sintetični podatki, brez posegov v Laškoteko, STNG in skupne cPanel/SSH nastavitve.
+
+## Nadaljevanje — DEL-PDF-DEMO-02 (namizje + mobilno)
+
+- Po uspešnem zaključku demonstracijskega prevzema lahko uporabnik prenese **nepodpisani demonstracijski PDF** s podatki sintetične dobavnice, risano sliko podpisa, zabeleženim časom in hash vrednostmi dokaznega JSON.
+- PDF nastane **lokalno v brskalniku** s knjižnico `pdf-lib@1.17.1`; pred generiranjem se znova preveri podjetje in nespremenjenost dokazila. Prenos ni strežniški API, v javni ali zunanji shrambi ne ostane nobena kopija.
+- Opozorilo: slika podpisa v PDF ni digitalni podpis, PDF ni kvalificiran ali časovno overjen. PDF in JSON se lahko po prenosu spreminjata, zato dokazni paket in vsebina potrebujeta prihodnje varno podpisovanje, revizijo ter hrambo.
+- V prvi demonstracijski izdaji so posebni slovenski znaki v osnovnih PDF pisavah poenostavljeni v ASCII zaradi omejitve vgrajene Helvetica pisave. Pred realno uporabo obvezna vdelana licenčno urejena Unicode pisava.
+- Na mobilnih zaslonih so pomembna polja/gumbi podpisnega obrazca povečani; na namizju ostane isti postopek in prilagodljiva dvookenska razporeditev.
+- Ciljni QA: štirje testi dokazila, dva PDF testa, namizni/mobilni prenos datoteke ter preverba, da ni POST/PUT/PATCH/DELETE omrežnih zahtevkov.
