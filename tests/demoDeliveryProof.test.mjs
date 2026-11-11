@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../app/documents/demoDeliveryProof.mjs";
-const image="data:image/png;base64,"+"A".repeat(128);
+const image="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+Xz9sAAAAASUVORK5CYII=";
 const options={document:deliverySample(1),companyId:1,signer:"Vzorčni podpisnik",
  signature:image,accepted:true,signedAt:new Date("2026-11-11T10:00:00Z")};
 test("creates verifiable company-scoped evidence with hashes, consent and timestamp",async()=>{
