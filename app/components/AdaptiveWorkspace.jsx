@@ -18,7 +18,7 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
  const help=getModuleGuidance(moduleKey);
  const showHelp=view.level==="simple"||helpOpen;
  const set=(key,value)=>setView(prev=>updateViewField(prev,key,value));
- return <section className="finaiAdaptive" data-level={view.level} data-arrangement={view.arrangement}
+ return <section className="finaiAdaptive" data-level={view.level} data-arrangement={view.arrangement} data-pane-order={view.paneOrder}
    style={{"--finai-detail-width":view.detailWidth+"px","--finai-text-zoom":view.textScale/100}}>
    <style>{`
      .finaiAdaptive{min-width:0;container-type:inline-size}
@@ -44,6 +44,9 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
      }
      .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(2),
      .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(1){display:none!important}
+     /* The pair can be reordered without DOM mutations or moving form state. */
+     .finaiAdaptive[data-pane-order="detail-first"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid)>:first-child{order:2}
+     .finaiAdaptive[data-pane-order="detail-first"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid)>:nth-child(2){order:1}
      .finaiAdaptive[data-level="simple"] :is(.flow,.statusStrip,.confidenceRow,.aiExplain,.anomaly,.sepaBox,.accountStrip){display:none!important}
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow)>:nth-child(4),
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow).head>:nth-child(4){display:none}
@@ -67,6 +70,13 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
        <select id={helpId+"-layout"} value={view.arrangement} disabled={!ready}
          onChange={e=>set("arrangement",e.target.value)}>
          {MODES.map(([key,label])=><option key={key} value={key}>{label}</option>)}
+       </select>
+     </label>
+     <label htmlFor={helpId+"-order"}>Vrstni red oken
+       <select id={helpId+"-order"} value={view.paneOrder} disabled={!ready||["list","detail"].includes(view.arrangement)}
+         onChange={e=>set("paneOrder",e.target.value)}>
+         <option value="list-first">Seznam najprej</option>
+         <option value="detail-first">Podrobnosti najprej</option>
        </select>
      </label>
      <label htmlFor={helpId+"-scale"}>Velikost prikaza
