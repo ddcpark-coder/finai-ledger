@@ -28,6 +28,14 @@ test("mobile delivery receipt: consent, drawn signature, SHA-256 evidence, isola
  await expect(page.getByText("Lokalno dokazilo izračunano")).toBeVisible();
  await expect(page.locator(".proof")).toContainText(/SHA-256 dokazila: [a-f0-9]{64}/);
  await expect(page.getByRole("button",{name:"Izvozi demo dokazilo (.json)"})).toBeEnabled();
+ const [download]=await Promise.all([
+   page.waitForEvent("download"),
+   page.getByRole("button",{name:"Prenesi demo PDF s sliko podpisa"}).click()
+ ]);
+ expect(download.suggestedFilename()).toMatch(/SYNTH-DOB-2026-0048.*\.pdf$/);
+ const bytes=require("node:fs").readFileSync(await download.path());
+ expect(bytes.subarray(0,5).toString("ascii")).toBe("%PDF-");
+ expect(bytes.length).toBeGreaterThan(1000);
  await expect(page.getByRole("button",{name:"Pošlji kopijo (v pripravi)"})).toBeDisabled();
  await expect(page.getByRole("button",{name:"Kvalificiran podpis (v pripravi)"})).toBeDisabled();
  await company.selectOption("2");
