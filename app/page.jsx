@@ -15,6 +15,7 @@ const BankingWorkspace=dynamic(()=>import("./banking/BankingWorkspace"),{loading
 const VatWorkspace=dynamic(()=>import("./vat/VatWorkspace"),{loading});
 const EdavkiWorkspace=dynamic(()=>import("./edavki/EdavkiWorkspace"),{loading});
 const DocumentsWorkspace=dynamic(()=>import("./documents/DocumentsWorkspace"),{loading});
+const TaskCenter=dynamic(()=>import("./tasks/TaskCenter"),{loading});
 const CatalogWorkspace=dynamic(()=>import("./catalog/CatalogWorkspace"),{loading});
 const CrmWorkspace=dynamic(()=>import("./crm/CrmWorkspace"),{loading});
 const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
@@ -502,7 +503,9 @@ export default function Page(){
        {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
-       {section==="Nadzorna plošča"&&!dashboardOverview&&<article className="panel" style={{marginBottom:10}}>
+        {dashboardOverview&&<TaskCenter companyId={company} compact/>}
+        {section==="Nadzorna plošča"&&contextLevel2==="Moje naloge"&&<TaskCenter companyId={company} initialScope={contextLevel3==="Danes"?"today":contextLevel3==="Ta teden"?"week":contextLevel3==="Zamujeno"?"overdue":"all"}/>}
+       {section==="Nadzorna plošča"&&!dashboardOverview&&contextLevel2!=="Moje naloge"&&<article className="panel" style={{marginBottom:10}}>
          <div className="panelHead"><h3>{contextLevel2} · {contextLevel3}</h3><span>Demo prikaz · {dashboardRows.length} opravil</span></div>
          {contextLevel2==="Analitika"?<div className="kpis" style={{padding:12}}>{current.stats.filter(([a])=>
            contextLevel3==="Finance"?/Bančne|Roki/.test(a):
