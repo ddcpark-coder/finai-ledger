@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
 const submissions=[
@@ -69,7 +70,7 @@ export default function EdavkiWorkspace({context}){
        <div className="certBox" style={{marginTop:12}}><b>Konfiguracija digitalnega potrdila</b><small>Predogled nastavitve. Dejanski certifikat in zasebni ključ tukaj nista povezana ali preverjena.</small></div>
      :submissions.map(x=><div className="check" key={x.id}><span>{x.doc} · {x.env}</span><b>{x.status} · {x.attempts} poskus(i)</b></div>)}
    </article>:
-   <div className="edGrid">
+   <AdaptivePaneGrid className="edGrid">
      <article className="edCard">
        <div className="edHead"><h3>eDavki / FURS · {section} / {subView}</h3><div className="edTools">{!(section==="Oddaje"&&["TEST","PROD"].includes(subView))&&<div className="envSwitch"><button className={activeEnv==="TEST"?"on":""} onClick={()=>setEnv("TEST")}>TEST</button><button className={activeEnv==="PROD"?"on":""} onClick={()=>setEnv("PROD")}>PROD</button></div>}<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči dokument ali FURS ID ..."/><button className="primary">＋ Nova oddaja</button></div></div>
        <div className="edRow head"><span>ID</span><span>Dokument</span><span>Status</span><span>FURS ID</span><span>Poskusi</span></div>
@@ -100,6 +101,6 @@ export default function EdavkiWorkspace({context}){
 
        <div className="edSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!validated||!signed||selected.status==="Zavrnjeno"} onClick={()=>setSubmitted(true)}>{submitted?"Oddano":"Oddaj v "+selected.env}</button><button className="secondary">Osveži FURS status</button><button className="secondary">Prikaži XML validacijo</button><button className="secondary">Prikaži audit sled</button></div></div>
      </aside>}{filtered.length===0&&<aside className="edCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
-   </div>}
+   </AdaptivePaneGrid>}
  </section>
 }
