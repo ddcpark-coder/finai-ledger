@@ -50,6 +50,7 @@ jobs:
       - name: One install/offline shell test on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
+          NEXT_PUBLIC_FINAI_DEMO_PWA_ENABLED: "true"
         run: npx playwright test tests/e2e/demo-pwa-shell.spec.cjs
       - name: Failure traces only
         if: failure()
