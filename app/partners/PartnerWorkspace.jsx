@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
 const partners=[
@@ -49,7 +50,7 @@ export default function PartnerWorkspace({context}){
    @media(max-width:1100px){.partnerGrid{grid-template-columns:1fr}}@media(max-width:760px){.partnerRow{grid-template-columns:1.4fr .8fr .7fr}.partnerRow>*:nth-child(2),.partnerRow>*:nth-child(5){display:none}.partnerTools{flex-wrap:wrap}.partnerTools input{width:100%}.partnerMeta{grid-template-columns:1fr}}
    `}</style>
    <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · prikazni partnerji</div>
-   <div className="partnerGrid">
+   <AdaptivePaneGrid className="partnerGrid">
      <article className="partnerCard">
        <div className="partnerHead">
          <h3>Partnerji · {section} / {subView}</h3>
@@ -80,6 +81,6 @@ export default function PartnerWorkspace({context}){
        <div className="partnerSection"><h4>Saldakonti</h4><div className="partnerStat"><span>Terjatve</span><b>{selected.balance}</b></div><div className="partnerStat"><span>Obveznosti</span><b>0,00 €</b></div><div className="partnerStat"><span>Zapadlo</span><b style={{color:"var(--warn)"}}>{selected.risk==="Opozorilo"?"915,00 €":"0,00 €"}</b></div></div>
        <div className="partnerSection"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Odpri partnerja</button><button className="secondary">Preveri VAT / register</button><button className="secondary">Pokaži odprte postavke</button></div></div>
      </aside>}{list.length===0&&<aside className="partnerCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
-   </div>
+   </AdaptivePaneGrid>
  </section>
 }
