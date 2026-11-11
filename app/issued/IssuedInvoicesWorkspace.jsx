@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 import DemoInvoiceCreator from "./DemoInvoiceCreator";
 import {issueDraft,simulateSending} from "./demoInvoice.mjs";
@@ -101,7 +102,7 @@ export default function IssuedInvoicesWorkspace({context,companyId,supplierName,
 
    <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Izbran pogled: <b style={{color:"var(--text)"}}>{section} / {subView}</b> · podjetje je ločeno · demo brez shranjevanja, knjiženja ali pošiljanja</div>
    {notice&&<div role="status" style={{padding:"9px 12px",marginBottom:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11,color:"var(--text)"}}>{notice}</div>}
-   <div className="issuedGrid">
+   <AdaptivePaneGrid className="issuedGrid">
      <article className="issuedCard">
        <div className="issuedHead"><h3>Izdani računi · {section} / {subView}</h3><div className="issuedTools"><input aria-label="Išči izdane račune" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči kupca ali račun ..."/><select aria-label="Filter statusa računa" value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Izdano</option><option>Poslano</option><option>Plačano</option><option>Zapadlo</option></select><button type="button" className="primary" onClick={()=>setCreatorOpen(true)}>＋ Nov račun</button><button type="button" className="secondary" onClick={resetDemo}>Ponastavi demo</button></div></div>
        <div className="flow"><div className="on">Osnutek</div><div className="on">Izdano</div><div className="on">Poslano</div><div>Plačilo</div><div>Zaključeno</div></div>
@@ -172,7 +173,7 @@ export default function IssuedInvoicesWorkspace({context,companyId,supplierName,
        </div>}
        </div>
      </aside>}{list.length===0&&<aside className="issuedCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
-   </div>
+   </AdaptivePaneGrid>
    {creatorOpen&&<DemoInvoiceCreator records={companyRecords} companyId={companyId} onCancel={()=>setCreatorOpen(false)} onCreate={createDraft}/>} 
  </section>
 }

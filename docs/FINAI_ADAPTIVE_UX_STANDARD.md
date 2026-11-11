@@ -46,3 +46,13 @@ Za prepoznane glavne dvookenske delovne prostore je dodana možnost **»Seznam n
 **Znana meja:** prvi korak uporablja vizualni CSS vrstni red v standardnih dvookenskih strukturah; DOM vrstni red in zaporedje tabulatorja ostaneta prvotna. To **še ni popolna dostopna reorganizacija notranjih oken**. Pred javno produkcijo je potreben namenski prehod na semantično pravilno spremembo DOM/keyboard zaporedja v posameznih modulih in ciljni pregled s tipkovnico/bralnikom zaslona. Prav tako ostanejo nezajete posebne notranje kartice, dialogi in tridelni zasloni.
 
 Kritični zneski, pravice, odobritve in računovodska pravila se z vrstnim redom ne spreminjajo.
+
+## A11Y-PANE-DOM-01 — prava semantična razporeditev (razvoj)
+
+Za naslednjih deset modulov je vizualni CSS vrstni red **nadomeščen z dejanskim vrstnim redom elementov React/DOM**:
+`incomingGrid`, `issuedGrid`, `bankGrid`, `quotesGrid`, `docsGrid`,
+`partnerGrid`, `edGrid`, `catalogGrid`, `crmGrid`, `procGrid`.
+
+Skupni `AdaptivePaneGrid` ob spremembi nastavitev prestavi prvi (seznam) in drugi (podrobnosti) element v dejanskem DOM. Tako bralniki zaslona in tabulator sledijo prikazanemu vrstnemu redu. V načinu »Samo seznam« oziroma »Samo podrobnosti« se vedno skrije pravo semantično okno, ne zgolj »prvi« ali »drugi« element. Kjer par oken ni zaznan, komponenta ne ugiba o vlogi oken in ne spreminja zaporedja.
+
+**Omejitev:** posebni pogledi (npr. DDV in nekatere računovodske/identitetne kompozicije), več kot dve okni ter modalni obrazci še nimajo univerzalnega semantičnega premikanja. Dinamično preurejanje lahko pri posameznem podoknu ponovno ustvari DOM; nadaljnji cilj je ohranitev fokusa in stanja notranjih obrazcev. Ločen ciljni pregled s tipkovnico in bralnikom zaslona je še potreben za produkcijski WCAG QA.

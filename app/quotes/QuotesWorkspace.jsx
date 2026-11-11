@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
 const quotes=[
@@ -47,7 +48,7 @@ export default function QuotesWorkspace({context}){
   <span className="qstate ok">Sprejete: {quotes.filter(q=>q.status==="Sprejeto").length}</span>
   <span className="qstate draft">Osnutki: {quotes.filter(q=>q.status==="Osnutek").length}</span>
  </div>}
- <div className="quotesGrid">
+ <AdaptivePaneGrid className="quotesGrid">
   <article className="quoteCard">
    <div className="quoteHead"><h3>Ponudbe · {section} / {subView}</h3><div className="quoteTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči ponudbo, partnerja, priložnost ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Sprejeto</option><option>Zavrnjeno</option></select><button className="primary">＋ Nova ponudba</button></div></div>
    <div className="quoteRow head"><span>Ponudba</span><span>Partner</span><span>Verzija</span><span>Vrednost</span><span>Status</span></div>
@@ -64,6 +65,6 @@ export default function QuotesWorkspace({context}){
    <div className="quoteSec"><h4>Verzija in sledljivost</h4><div className="quoteMeta"><div><small>Trenutna verzija</small><b>v{selected.version}</b></div><div><small>Cenovni snapshot</small><b>Zaklenjen ob pošiljanju</b></div></div></div>
    <div className="quoteSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>{selected.status==="Osnutek"&&!sent&&<button className="primary" onClick={()=>setSent(true)}>Pošlji ponudbo</button>}<button className="secondary">Predogled PDF</button><button className="secondary">Ustvari novo verzijo</button>{(status==="Poslano"||status==="Sprejeto")&&<button className="secondary" onClick={()=>setAccepted(true)}>Simuliraj sprejem prek povezave</button>}{status==="Sprejeto"&&<button className="primary">Pretvori v naročilo</button>}</div></div>
   </aside>}{list.length===0&&<aside className="quoteCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
- </div>
+ </AdaptivePaneGrid>
  </section>
 }
