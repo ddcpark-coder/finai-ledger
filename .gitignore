@@ -40,3 +40,6 @@ coverage/
 *.crt
 secrets/
 certificates/
+
+# Generated from npm OFL font package during prebuild; never commit binaries.
+/public/fonts/

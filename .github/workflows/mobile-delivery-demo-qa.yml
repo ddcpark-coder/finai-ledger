@@ -3,9 +3,12 @@ on:
   pull_request:
     paths:
       - "app/documents/**"
+      - "ops/prepare-pdf-fonts.mjs"
+      - "package.json"
       - "tests/demoDeliveryProof.test.mjs"
       - "tests/demoDeliveryPdf.test.mjs"
       - "tests/mobileProofVault.test.mjs"
+      - "tests/signatureProviderAdapter.test.mjs"
       - "tests/e2e/mobile-delivery-proof.spec.cjs"
       - ".github/workflows/mobile-delivery-demo-qa.yml"
 permissions:
@@ -24,7 +27,7 @@ jobs:
       - name: Install dependencies for targeted PDF unit test
         run: npm install --no-audit --no-fund --package-lock=false
       - name: Verify local evidence hashes and demonstrational PDF generation
-        run: node --test tests/demoDeliveryProof.test.mjs tests/demoDeliveryPdf.test.mjs tests/mobileProofVault.test.mjs
+        run: node --test tests/demoDeliveryProof.test.mjs tests/demoDeliveryPdf.test.mjs tests/mobileProofVault.test.mjs tests/signatureProviderAdapter.test.mjs
       - name: Build synthetic mobile web application
         env:
           NEXT_TELEMETRY_DISABLED: "1"
