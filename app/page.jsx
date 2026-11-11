@@ -522,11 +522,11 @@ export default function Page(){
        {section==="Banka"&&<BankingWorkspace context={activeContext} companyId={company}/>}
        {section==="DDV in poročila"&&<VatWorkspace context={activeContext}/>}
        {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
-       {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext}/>}
+       {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext} companyId={company}/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
        {section==="CRM"&&<CrmWorkspace context={activeContext}/>}
-       {section==="Ponudbe"&&<QuotesWorkspace context={activeContext}/>}
-       {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext}/>}
+       {section==="Ponudbe"&&<QuotesWorkspace context={activeContext} companyId={company}/>}
+       {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext} companyId={company}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
