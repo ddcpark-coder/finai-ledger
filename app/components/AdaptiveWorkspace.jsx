@@ -43,14 +43,14 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
      .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.partnerGrid,.vatGrid,.edGrid,.docsGrid,.catalogGrid,.crmGrid,.quotesGrid,.procGrid,.accountingGrid,.identityGrid,.workspace){
        grid-template-columns:minmax(0,1fr)!important
      }
-     .finaiAdaptive[data-arrangement="list"] :is(.partnerGrid,.vatGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(2),
-     .finaiAdaptive[data-arrangement="detail"] :is(.partnerGrid,.vatGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(1){display:none!important}
+     .finaiAdaptive[data-arrangement="list"] :is(.vatGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(2),
+     .finaiAdaptive[data-arrangement="detail"] :is(.vatGrid,.accountingGrid,.identityGrid,.workspace)>:nth-child(1){display:none!important}
      /* The pair can be reordered without DOM mutations or moving form state. */
-     .finaiAdaptive[data-pane-order="detail-first"] :is(.partnerGrid,.vatGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.accountingGrid,.identityGrid)>:first-child{order:2}
-     .finaiAdaptive[data-pane-order="detail-first"] :is(.partnerGrid,.vatGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid,.accountingGrid,.identityGrid)>:nth-child(2){order:1}
+     .finaiAdaptive[data-pane-order="detail-first"] :is(.vatGrid,.accountingGrid,.identityGrid)>:first-child{order:2}
+     .finaiAdaptive[data-pane-order="detail-first"] :is(.vatGrid,.accountingGrid,.identityGrid)>:nth-child(2){order:1}
      /* Accessible panes are reordered in actual React DOM, not by CSS visual order. */
-     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid)>[data-finai-pane="detail"]{display:none!important}
-     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid)>[data-finai-pane="list"]{display:none!important}
+     .finaiAdaptive[data-arrangement="list"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid)>[data-finai-pane="detail"]{display:none!important}
+     .finaiAdaptive[data-arrangement="detail"] :is(.incomingGrid,.issuedGrid,.bankGrid,.quotesGrid,.docsGrid,.partnerGrid,.edGrid,.catalogGrid,.crmGrid,.procGrid)>[data-finai-pane="list"]{display:none!important}
      .finaiAdaptive[data-level="simple"] :is(.flow,.statusStrip,.confidenceRow,.aiExplain,.anomaly,.sepaBox,.accountStrip){display:none!important}
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow)>:nth-child(4),
      .finaiAdaptive[data-level="simple"] :is(.invoiceRow,.invoiceRow2,.bankRow,.partnerRow,.crmRow).head>:nth-child(4){display:none}
