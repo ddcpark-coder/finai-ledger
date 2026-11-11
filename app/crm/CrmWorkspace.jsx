@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useMemo,useState} from "react";
 
 const deals=[
@@ -55,7 +56,7 @@ export default function CrmWorkspace({context}){
 
 
 
-  {view==="Pipeline"&&<div className="crmGrid">
+  {view==="Pipeline"&&<AdaptivePaneGrid className="crmGrid">
    <article className="crmCard">
     <div className="crmHead"><h3>Prodajni lijak</h3><div style={{display:"flex",gap:7,flexWrap:"wrap"}}><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči priložnost ali partnerja ..."/><button className="primary">＋ Nova priložnost</button></div></div>
     <div className="pipeline">{stageOrder.map(stage=><section className="stage" key={stage}><div className="stageHead"><b>{stage}</b><span>{filtered.filter(d=>d.stage===stage).length}</span></div>{filtered.filter(d=>d.stage===stage).map(d=><div className="deal" key={d.id} onClick={()=>setSelected(d)}><b>{d.name}</b><small>{d.partner}</small><div className="dealFoot"><span>{d.value.toLocaleString("sl-SI")} €</span><span className="prob">{d.prob} %</span></div></div>)}</section>)}</div>
@@ -68,7 +69,7 @@ export default function CrmWorkspace({context}){
     <div className="crmSec"><h4>Zgodovina komunikacije</h4><div className="timeline">{communications.map((a,i)=><div className="event" key={i}><b>{a.channel} · {a.when}</b><small>{a.text}</small></div>)}</div></div>
     <div className="crmSec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Pripravi ponudbo</button><button className="secondary">Dodaj aktivnost</button><button className="secondary">Zapiši komunikacijo</button></div></div>
    </aside>
-  </div>}
+  </AdaptivePaneGrid>}
 
   {view==="Leadi"&&<article className="crmCard"><div className="crmHead"><h3>Lead-i · {subView}</h3><button className="primary">＋ Nov lead</button></div><div className="listRow head"><span>Lead</span><span>Vir</span><span>Vrednost</span><span>Score</span></div><div className="listRow"><b>Hotel Panorama</b><span>Priporočilo</span><span>8.000 €</span><span className="score">84</span></div><div className="listRow"><b>Nova trgovina Center</b><span>Splet</span><span>5.500 €</span><span className="score">72</span></div><div className="listRow"><b>Občina Projekt X</b><span>Dogodek</span><span>18.000 €</span><span className="score">91</span></div></article>}
 
