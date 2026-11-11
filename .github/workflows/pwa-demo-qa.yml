@@ -4,7 +4,7 @@ on:
     paths:
       - "app/layout.tsx"
       - "app/components/DemoPwaSetup.jsx"
-      - "public/manifest.webmanifest"
+      - "app/manifest.js"
       - "public/sw-finai-demo.js"
       - "public/finai-192.png"
       - "public/finai-512.png"
