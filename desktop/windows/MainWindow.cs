@@ -22,6 +22,13 @@ internal sealed class MainWindow : Form
 
     private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
     private readonly LocalDraftStore drafts = new();
+    private double displayZoom = 1.0;
+    private readonly Button zoomReset = new()
+    {
+        Text = "100 %", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+        BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White,
+        AccessibleName = "Ponastavi povečavo na 100 odstotkov"
+    };
     private readonly Label status = new()
     {
         Dock = DockStyle.Fill,
@@ -41,12 +48,15 @@ internal sealed class MainWindow : Form
         BackColor = Color.FromArgb(7, 17, 29);
         ForeColor = Color.White;
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 5, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 8, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 72f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 72f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 78f));
         var brand = new Label { Dock = DockStyle.Fill, Text = "e-integrator  /  FinAI", TextAlign = ContentAlignment.MiddleLeft,
             Font = new Font("Segoe UI", 12f, FontStyle.Bold), ForeColor = Color.FromArgb(122, 236, 216) };
         var refresh = new Button { Text = "Osveži", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
@@ -64,11 +74,29 @@ internal sealed class MainWindow : Form
         };
         export.Click += (_, _) => ExportDrafts();
         restore.Click += (_, _) => RestoreDrafts();
+        var zoomOut = new Button
+        {
+            Text = "−", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White,
+            AccessibleName = "Zmanjšaj velikost prikaza"
+        };
+        var zoomIn = new Button
+        {
+            Text = "+", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White,
+            AccessibleName = "Povečaj velikost prikaza"
+        };
+        zoomOut.Click += (_, _) => SetDisplayZoom(displayZoom - 0.1);
+        zoomIn.Click += (_, _) => SetDisplayZoom(displayZoom + 0.1);
+        zoomReset.Click += (_, _) => SetDisplayZoom(1.0);
         top.Controls.Add(brand, 0, 0);
         top.Controls.Add(status, 1, 0);
         top.Controls.Add(export, 2, 0);
         top.Controls.Add(restore, 3, 0);
         top.Controls.Add(refresh, 4, 0);
+        top.Controls.Add(zoomOut, 5, 0);
+        top.Controls.Add(zoomReset, 6, 0);
+        top.Controls.Add(zoomIn, 7, 0);
 
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
@@ -77,6 +105,16 @@ internal sealed class MainWindow : Form
         layout.Controls.Add(browser, 0, 1);
         Controls.Add(layout);
         Shown += async (_, _) => await InitializeAsync();
+    }
+
+    private void SetDisplayZoom(double requested)
+    {
+        // Native viewing preference only: never modifies accounting values,
+        // OS display settings, stored data or any other project.
+        displayZoom = Math.Round(Math.Clamp(requested, 0.8, 1.6), 1);
+        zoomReset.Text = $"{(int)Math.Round(displayZoom * 100)} %";
+        if (browser.CoreWebView2 is not null)
+            browser.ZoomFactor = displayZoom;
     }
 
     // Native-only operations: the passphrase and filesystem picker are never
@@ -202,6 +240,7 @@ internal sealed class MainWindow : Form
             Directory.CreateDirectory(userData);
             var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userData);
             await browser.EnsureCoreWebView2Async(environment);
+            SetDisplayZoom(displayZoom);
 
             var core = browser.CoreWebView2;
             core.SetVirtualHostNameToFolderMapping(LocalHost, wwwroot,

@@ -42,3 +42,9 @@ Za GUI zaženi `dist/windows/EIntegrator.Desktop.exe`. Lokalni test deluje brez 
 Workflow `FinAI Hiper M web + Windows desktop build` v GitHub Actions zgradi `eintegrator-win-x64-offline-installer-unsigned-review`. Paket vključuje lastno aplikacijo, statične UI datoteke, .NET self-contained runtime in Microsoftov polni WebView2 offline installer. Installer je **nepodpisan** in primeren samo za notranji QA, ne za končne uporabnike.
 
 Vsaka izdaja zahteva: verzioniranje, podpis kode, nadgradnjo brez izgube lokalnih podatkov, varno obnovo, preizkus brez aktivne internetne povezave ter ERP domain tests.
+
+## Izboljšava DESKTOP-ZOOM-01 (namizna uporabnost)
+
+Windows aplikacija ima v zgornji orodni vrstici tri dostopne gumbe **− / 100 % / +**, ki neodvisno od spletnega CSS nadzorujejo lokalno povečavo vmesnika WebView2 od **80 do 160 %** v korakih po 10 %. Sprememba je omejena na trenutno sejo aplikacije in ne vpliva na računovodske podatke, shrambo, operacijski sistem ali strežnik. Gumbi imajo dostopna slovenska imena za bralnike zaslona. Povečava v namizju je dodatna k prilagoditvam posameznih poslovnih podpogledov.
+
+Omejitve: ni individualnega shranjevanja namizne povečave med zagoni, ni univerzalnega preurejanja vseh notranjih oken ali končnega preverjenega WCAG AA; ciljni test je sestava Windows aplikacije in obstoječi offline/šifrirani ledger self-testi. Ni prisilne posodobitve obstoječe namestitve.
