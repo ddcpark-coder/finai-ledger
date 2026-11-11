@@ -2,17 +2,21 @@
 import BusinessChainPanel from "../business/BusinessChainPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
+import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "./demoDeliveryProof.mjs";
 
 const docs=[
- {type:"Dobavnica",title:"DOB-2026-0048",link:"ABC d.o.o.",status:"Za podpis",date:"03. 11. 2026"},
- {type:"Prejeti račun",title:"PR-2026-0188",link:"Merkur d.o.o.",status:"Final",date:"02. 11. 2026"},
- {type:"Izdani račun",title:"2026-0054",link:"ABC d.o.o.",status:"Final",date:"02. 11. 2026"},
- {type:"DDV",title:"DDV-O 11/2026",link:"Davčno obdobje",status:"Osnutek",date:"03. 11. 2026"}
+ {companyId:1,type:"Dobavnica",title:"DOB-2026-0048",link:"ABC d.o.o.",status:"Za podpis",date:"03. 11. 2026"},
+ {companyId:1,type:"Prejeti račun",title:"PR-2026-0188",link:"Merkur d.o.o.",status:"Final",date:"02. 11. 2026"},
+ {companyId:1,type:"Izdani račun",title:"2026-0054",link:"ABC d.o.o.",status:"Final",date:"02. 11. 2026"},
+ {companyId:1,type:"DDV",title:"DDV-O 11/2026",link:"Davčno obdobje",status:"Osnutek",date:"03. 11. 2026"},
+ {companyId:2,type:"Dobavnica",title:"SYNTH-DOB-B001",link:"Sintetični kupec Beta",status:"Za podpis",date:"11. 11. 2026"},
+ {companyId:3,type:"Dobavnica",title:"SYNTH-DOB-C001",link:"Sintetični kupec Gama",status:"Za podpis",date:"11. 11. 2026"}
 ];
 
-function SignaturePad({onChange}){
+function SignaturePad({onChange,disabled=false}){
  const ref=useRef(null);
  const drawing=useRef(false);
+ const hasInk=useRef(false);
  useEffect(()=>{
    const canvas=ref.current;
    const ctx=canvas.getContext("2d");
@@ -35,37 +39,72 @@ function SignaturePad({onChange}){
    const rect=ref.current.getBoundingClientRect();
    return {x:e.clientX-rect.left,y:e.clientY-rect.top};
  };
- const down=e=>{e.preventDefault();drawing.current=true;const p=point(e);const ctx=ref.current.getContext("2d");ctx.beginPath();ctx.moveTo(p.x,p.y);ref.current.setPointerCapture?.(e.pointerId)};
- const move=e=>{if(!drawing.current)return;e.preventDefault();const p=point(e);const ctx=ref.current.getContext("2d");ctx.lineTo(p.x,p.y);ctx.stroke();onChange(ref.current.toDataURL("image/png"))};
- const up=e=>{if(!drawing.current)return;drawing.current=false;onChange(ref.current.toDataURL("image/png"));ref.current.releasePointerCapture?.(e.pointerId)};
- const clear=()=>{const canvas=ref.current;canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);onChange("")};
- return <div><canvas ref={ref} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{width:"100%",height:180,touchAction:"none",border:"1px dashed var(--line)",borderRadius:12,background:"var(--bg2)"}}/><button className="secondary" style={{marginTop:7}} onClick={clear}>Počisti podpis</button></div>
+ const down=e=>{if(disabled)return;e.preventDefault();drawing.current=true;hasInk.current=false;const p=point(e);const ctx=ref.current.getContext("2d");ctx.beginPath();ctx.moveTo(p.x,p.y);ref.current.setPointerCapture?.(e.pointerId)};
+ const move=e=>{if(!drawing.current||disabled)return;hasInk.current=true;e.preventDefault();const p=point(e);const ctx=ref.current.getContext("2d");ctx.lineTo(p.x,p.y);ctx.stroke();onChange(ref.current.toDataURL("image/png"))};
+ const up=e=>{if(!drawing.current)return;drawing.current=false;if(hasInk.current&&!disabled)onChange(ref.current.toDataURL("image/png"));ref.current.releasePointerCapture?.(e.pointerId)};
+ const clear=()=>{if(disabled)return;const canvas=ref.current;canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);hasInk.current=false;onChange("")};
+ return <div><canvas ref={ref} aria-label="Površina za risanje demonstracijskega podpisa" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{width:"100%",height:180,touchAction:"none",border:"1px dashed var(--line)",borderRadius:12,background:"var(--bg2)"}}/><button type="button" className="secondary" disabled={disabled} style={{marginTop:7}} onClick={clear}>Počisti podpis</button></div>
 }
 
 export default function DocumentsWorkspace({context,companyId}){
  const section=context?.level2??"Vsi dokumenti";
  const subView=context?.level3??"Nedavno";
  const [selected,setSelected]=useState(docs[0]);
- const [signer,setSigner]=useState("Janez Novak");
- const [email,setEmail]=useState("janez@example.si");
+ const [signer,setSigner]=useState("Sintetični prejemnik");
+ const [email,setEmail]=useState("demo@example.test");
  const [signature,setSignature]=useState("");
  const [completed,setCompleted]=useState(false);
  const [sent,setSent]=useState(false);
- const [photo,setPhoto]=useState(false);
+ const [proof,setProof]=useState(null);
+ const [proofBusy,setProofBusy]=useState(false);
+ const [proofError,setProofError]=useState("");
+ const [accepted,setAccepted]=useState(false);
+ useEffect(()=>{
+   setSelected(docs.find(d=>d.companyId===companyId)??null);
+   setSigner("Sintetični prejemnik");setEmail("demo@example.test");
+   setSignature("");setCompleted(false);setSent(false);
+   setProof(null);setProofError("");setAccepted(false);
+ },[companyId]);
+ const finish=async()=>{
+   if(proofBusy||completed)return;
+   setProofBusy(true);setProofError("");
+   try{
+     const evidence=await finalizeDemoDelivery({
+       companyId,document:deliverySample(companyId),
+       signer,signature,accepted
+     });
+     if(!(await verifyDemoDelivery(evidence,companyId)))
+       throw new Error("Celovitosti demonstracijskega dokazila ni bilo mogoče potrditi.");
+     setProof(evidence);setCompleted(true);
+   }catch(error){setProofError(error.message||"Zaključevanje ni uspelo.");}
+   finally{setProofBusy(false);}
+ };
+ const exportProof=()=>{
+   if(!completed||!proof)return;
+   const blob=new Blob([JSON.stringify(proof,null,2)],{type:"application/json"});
+   const url=URL.createObjectURL(blob);
+   const link=document.createElement("a");
+   link.href=url;link.download=proof.documentId+"-demo-podpis.json";
+   document.body.appendChild(link);link.click();link.remove();
+   URL.revokeObjectURL(url);
+ };
  const visibleDocs=docs.filter(d=>{
+   if(d.companyId!==companyId)return false;
    if(section==="Vsi dokumenti")return subView==="Arhiv"?d.status==="Final":subView==="Za pregled"?d.status!=="Final":true;
    if(section==="Računi")return subView==="Prejeti"?d.type==="Prejeti račun":subView==="Izdani"?d.type==="Izdani račun":false;
    if(section==="Dobavnice")return d.type==="Dobavnica"&&(subView==="Za podpis"?d.status==="Za podpis":false);
    if(section==="Podpisi")return subView==="Na zaslonu"&&d.type==="Dobavnica"&&d.status==="Za podpis";
    return false;
  });
- const showSignature=(section==="Dobavnice"||section==="Podpisi"&&subView==="Na zaslonu")&&selected.type==="Dobavnica";
+ const activeSelected=visibleDocs.find(d=>d.title===selected?.title)??visibleDocs[0]??null;
+ const showSignature=(section==="Dobavnice"||(section==="Podpisi"&&subView==="Na zaslonu"))&&activeSelected?.type==="Dobavnica";
 
  useEffect(()=>{
-   if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected.title)){
+   if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected?.title)){
      setSelected(visibleDocs[0]);setCompleted(false);setSent(false);
+     setSignature("");setProof(null);setAccepted(false);setProofError("");
    }
- },[visibleDocs,selected.title]);
+ },[section,subView,companyId,selected?.title]);
 
  return <section className="docsWorkspace">
   <style>{`
@@ -77,30 +116,46 @@ export default function DocumentsWorkspace({context,companyId}){
   <BusinessChainPanel companyId={companyId} moduleKey="documents"/>
  <AdaptivePaneGrid className="docsGrid">
    <article className="docCard">
-    <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary">＋ Nov dokument</button></div>
-    <div className="pwaBox"><b>Mobilna dobavnica · načrtovani PWA potek</b><small>Android / iPhone / iPad · podpis s prstom ali pisalom · kamera · e-mail kopija · brez papirja.</small></div>
+    <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary" type="button" disabled title="Prava dokumentna hramba še ni vključena">＋ Nov dokument (v pripravi)</button></div>
+    <div className="pwaBox"><b>Mobilna dobavnica · demonstracija</b><small>Podpis z miško, prstom ali pisalom in lokalni SHA-256 dokazni paket. Ni končnega PDF, e-pošte, certificiranega podpisa ali strežniške shrambe.</small></div>
     <div className="docRow head"><span>Tip</span><span>Dokument</span><span>Povezava</span><span>Status</span></div>
     {!visibleDocs.length&&<p style={{fontSize:10,color:"var(--muted)",padding:12}}>Za izbrani podpogled še ni dokumentov v demonstracijskem naboru.</p>}
-    {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false)}}>
+    {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false);setSignature("");setProof(null);setAccepted(false);setProofError("")}}>
       <span><b>{d.type}</b><small>{d.date}</small></span><span><b>{d.title}</b></span><span>{d.link}</span><span className={"docStatus "+(d.status==="Final"?"ok":"warn")}>{d.status}</span>
     </button>)}
    </article>
 
    {!visibleDocs.length?<aside className="docCard delivery" style={{padding:14,color:"var(--muted)"}}>Za izbrani podpogled ni ustreznega dokumenta.</aside>:showSignature?<aside className="docCard delivery">
     <span className={"docStatus "+(completed?"ok":"warn")}>{completed?"Zaključena":"Za podpis"}</span>
-    <h3>DOB-2026-0048</h3><small>ABC d.o.o. · 03. 11. 2026</small>
+    <h3>{deliverySample(companyId).id}</h3><small>{deliverySample(companyId).recipient} · sintetična dobavnica</small>
     <div className="deliveryMeta"><div><small>Prejemnik</small><b>{signer||"—"}</b></div><div><small>E-pošta</small><b>{email||"—"}</b></div><div><small>Lokacija</small><b>Opcijsko</b></div><div><small>Način podpisa</small><b>Podpis na zaslonu</b></div></div>
 
-    <div className="deliverySec"><h4>Prevzeto blago</h4><div className="deliveryLine"><span>Reklamna tabla 100 × 70 cm</span><b>2</b><span>kos</span></div><div className="deliveryLine"><span>Samolepilna folija</span><b>5</b><span>m²</span></div></div>
+    <div className="deliverySec"><h4>Prevzeto blago</h4>{deliverySample(companyId).lines.map((line,i)=><div className="deliveryLine" key={i}><span>{line.description}</span><b>{line.quantity}</b><span>{line.unit}</span></div>)}</div>
 
-    <div className="deliverySec"><h4>Podpisnik</h4><input className="field" value={signer} onChange={e=>setSigner(e.target.value)} placeholder="Ime in priimek"/><input className="field" value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-pošta za kopijo"/></div>
+    <div className="deliverySec"><h4>Podpisnik</h4><input className="field" value={signer} disabled={completed} aria-label="Podpisnik dobavnice" onChange={e=>setSigner(e.target.value)} placeholder="Ime in priimek"/><input className="field" value={email} disabled={completed} type="email" aria-label="E-pošta za demonstracijo" onChange={e=>setEmail(e.target.value)} placeholder="E-pošta za kopijo"/></div>
 
-    <div className="deliverySec"><h4>Podpis na zaslonu</h4><SignaturePad onChange={setSignature}/></div>
+    <div className="deliverySec"><h4>Podpis na zaslonu</h4><SignaturePad key={companyId+"-"+activeSelected.title+"-"+(completed?"done":"open")} onChange={setSignature} disabled={completed}/></div>
 
-    <div className="deliverySec"><h4>Dokaz prevzema</h4><div className="proof"><b>{signature?"✓ Podpis zajet":"Podpis še ni zajet"}</b><small>Ob zaključku se zapišejo čas, SHA-256, naprava/IP ter po potrebi lokacija. Podpis na zaslonu ni avtomatično kvalificirani e-podpis.</small></div><button className="secondary" style={{width:"100%",marginTop:7}} onClick={()=>setPhoto(v=>!v)}>{photo?"✓ Fotografija dodana":"＋ Dodaj fotografijo dostave"}</button></div>
+    <div className="deliverySec"><h4>Preverjanje demonstracijskega prevzema</h4>
+      <div className="proof"><b>{proof?"Lokalno dokazilo izračunano":signature?"Podpis zajet (še nepotrjen)":"Podpis še ni zajet"}</b>
+        <small>Ob zaključku izračunamo SHA-256 dobavnice, podpisa in dokaznega zapisa ter zabeležimo čas. Ne beležimo IP ali lokacije. To ni kvalificirani e-podpis, pravno preverjeno dokazilo ali končni PDF.</small>
+        {proof&&<><small>Čas: {proof.signedAt}</small><small>SHA-256 dokazila: {proof.evidenceSha256}</small></>}
+      </div>
+      <label style={{display:"flex",gap:8,alignItems:"start",marginTop:9,fontSize:11,lineHeight:1.4}}>
+        <input type="checkbox" checked={accepted} disabled={completed} onChange={e=>setAccepted(e.target.checked)}/>
+        Potrjujem, da je podpisnik v tej demonstraciji pregledal navedeno dobavnico.
+      </label>
+      <button type="button" className="secondary" disabled title="Pravi zajem fotografij še ni povezan" style={{width:"100%",marginTop:7}}>Dodaj fotografijo (v pripravi)</button>
+    </div>
 
-    <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}><button className="primary" disabled={!signature||!signer||!email||completed} onClick={()=>setCompleted(true)}>{completed?"Dobavnica zaključena (demo)":"Simuliraj zaključek dobavnice"}</button><button className="secondary" disabled={!completed||sent} onClick={()=>setSent(true)}>{sent?"✓ Simulirano pošiljanje":"Simuliraj pošiljanje kopije"}</button><button className="secondary">Uporabi kvalificiran SI-PASS podpis</button></div></div>
-   </aside>:<aside className="docCard delivery"><h3>{selected.title}</h3><small>{selected.type} · {selected.status}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
+    <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}>
+      <button type="button" className="primary" disabled={!signature||!signer.trim()||!accepted||completed||proofBusy} onClick={finish}>{completed?"Demo dobavnica potrjena":proofBusy?"Preverjam celovitost …":"Zaključi in preveri demo dokazilo"}</button>
+      {proofError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{proofError}</p>}
+      <button type="button" className="secondary" disabled={!completed||!proof} onClick={exportProof}>Izvozi demo dokazilo (.json)</button>
+      <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
+      <button type="button" className="secondary" disabled title="Integracija s kvalificiranim podpisom še ni na voljo">Kvalificiran podpis (v pripravi)</button>
+    </div></div>
+   </aside>:<aside className="docCard delivery"><h3>{activeSelected?.title??"—"}</h3><small>{activeSelected?.type??"Dokument"} · {activeSelected?.status??"—"}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
   </AdaptivePaneGrid>
  </section>
 }
