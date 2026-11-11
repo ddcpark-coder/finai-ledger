@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\WorkspacePreferencesController;
+use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,15 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::put('/companies/{companyId}/my/workspace-preferences',
         [WorkspacePreferencesController::class, 'update'])
         ->whereNumber('companyId');
+    // Authenticated, tenant-scoped, optimistic-concurrency adaptive view preferences.
+    // View is the URL query parameter, and the user ID comes only from the session.
+    Route::get('/companies/{companyId}/my/adaptive-views/{moduleKey}',
+        [AdaptiveWindowPreferencesController::class, 'show'])
+        ->whereNumber('companyId')->where('moduleKey', '[a-z_]+');
+    Route::put('/companies/{companyId}/my/adaptive-views/{moduleKey}',
+        [AdaptiveWindowPreferencesController::class, 'update'])
+        ->whereNumber('companyId')->where('moduleKey', '[a-z_]+');
+
     // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
     Route::get('/companies/{companyId}/demo/incoming-invoices',
         [DemoIncomingInvoicesController::class, 'index'])->whereNumber('companyId');
