@@ -38,6 +38,17 @@ test("mobile delivery receipt: consent, drawn signature, SHA-256 evidence, isola
  expect(bytes.length).toBeGreaterThan(1000);
  await expect(page.getByRole("button",{name:"Pošlji kopijo (v pripravi)"})).toBeDisabled();
  await expect(page.getByRole("button",{name:"Kvalificiran podpis (v pripravi)"})).toBeDisabled();
+ const password=page.getByLabel("Geslo šifriranega demo dokazila");
+ await password.fill("synthetic-local-secret-2026");
+ await page.getByRole("button",{name:"Shrani šifrirano demo kopijo"}).click();
+ await expect(page.getByText("Šifrirana kopija je prisotna na napravi.")).toBeVisible();
+ await page.reload();
+ await page.locator(".topbarMain select.companySwitch").selectOption("1");
+ await page.getByLabel("Geslo šifriranega demo dokazila")
+   .fill("synthetic-local-secret-2026");
+ await page.getByRole("button",{name:"Obnovi šifrirano demo kopijo"}).click();
+ await expect(page.getByText("Sintetično dokazilo je uspešno dešifrirano in ponovno preverjeno.")).toBeVisible();
+ await expect(page.getByRole("button",{name:"Prenesi demo PDF s sliko podpisa"})).toBeEnabled();
  await company.selectOption("2");
  await expect(page.getByRole("heading",{name:"SYNTH-DOB-2026-B001"})).toBeVisible();
  await expect(page.getByText("Lokalno dokazilo izračunano")).toHaveCount(0);
