@@ -45,3 +45,16 @@ Hvala.
 - `.github/workflows/finai-isolated-deploy.yml` preveri manifest in ga priloži preverjenemu arhivu izdaje. **Transport na Hiper M ostaja ločeno zaščiten in izključen**.
 
 **Stanje:** tehnična priprava napreduje; samodejni prenos na Hiper M še ni aktiven. Laškoteka, STNG in njihove nastavitve ostanejo nedotaknjeni.
+
+## Dejanski odgovor ponudnika — 11. 11. 2026 (zahtevek DMC-GPK-JLNNL-155)
+
+Podpora Domenca/Hiper M je po posvetu s tehniki pisno potrdila:
+
+- **Ločenega okolja za datoteke ni mogoče urediti znotraj enega cPanel računa.** Paketna linija Hiper omogoča en cPanel račun.
+- Dostop do FTP iz neslovenskih IP je omejen; začasno dovoljenje je mogoče v cPanel **FTP Allow**.
+- SSH/SFTP je tehnično mogoč z avtoriziranim ključem v cPanelu. To je možnost prenosa, **ne dokaz izolirane OS pisalne identitete**; FinAI ne sme dodajati ključev ali širiti pravic na skupnem `laskot48`.
+- Ponudnik ni potrdil lastnega učinkovitega FinAI UID ali druge izključne pisalne identitete znotraj obstoječega Hiper računa. Natančen document root in atomarno objavljanje prav tako nista bila potrjena.
+
+**Odločitev:** obstoječi skupni račun ostaja FinAI read-only, samodejne strežniške objave **OFF**. Nadaljujejo GitHub koda, sintetični lokalni QA, priprava neodvisnega namestitvenega paketa in predogled. Pred FinAI produkcijo urediti lasten dokazljivo izoliran OS/cPanel račun (lahko na istem fizičnem ponudniku), dokumentirati strošek in varno migracijo samo FinAI; nobenega nakupa ali spremembe cPanel v okviru tega dela.
+
+Uporabnik je ponudniku odgovoril z zahvalo, dodatno sporočilo ni potrebno.

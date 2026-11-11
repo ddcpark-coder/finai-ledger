@@ -12,7 +12,7 @@ const MODES=[
 ];
 
 export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}){
- const {view,setView,ready}=useAdaptiveWorkspace(companyId,moduleKey,viewKey);
+ const {view,setView,ready,syncStatus,syncMessage}=useAdaptiveWorkspace(companyId,moduleKey,viewKey);
  const helpId=useId();
  const [helpOpen,setHelpOpen]=useState(false);
  const help=getModuleGuidance(moduleKey);
@@ -88,7 +88,18 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
        onClick={()=>setHelpOpen(v=>!v)} disabled={!ready||view.level==="simple"}>
        {showHelp?"Pomoč je prikazana":"Pomoč pri tem pogledu"}
      </button>
-     <span className="finaiAdaptiveCaption" role="note">Nastavitve veljajo za ta podpogled in izbrano podjetje; shranjene so lokalno v brskalniku. Skrita polja ne spreminjajo podatkov ali uporabniških dovoljenj.</span>
+     <span className="finaiAdaptiveCaption" role="status">
+       Nastavitve za izbrano podjetje in podpogled: {" "}
+       {syncStatus==="local"?"shranjeno lokalno v brskalniku":
+        syncStatus==="synced"?"sinhronizirano v prijavljen uporabniški profil":
+        syncStatus==="connecting"?"povezovanje s profilom":
+        syncStatus==="saving"?"shranjujem v profil":
+        syncStatus==="blocked"?"zahtevana prijava – samo lokalno":
+        syncStatus==="conflict"?"konflikt druge seje – samo lokalno":
+        "strežnik nedosegljiv – samo lokalno"}.
+       {" "}Skrita polja ne spreminjajo podatkov ali pravic.
+       {syncMessage&&<span> {syncMessage}</span>}
+     </span>
    </div>
    {showHelp&&<aside id={helpId+"-guide"} role="region" aria-label="Pojasnila trenutnega modula" className="finaiWorkspaceGuide">
      <h3>{help.title}</h3>
