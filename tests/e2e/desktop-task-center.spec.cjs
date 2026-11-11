@@ -20,7 +20,7 @@ test("desktop and mobile demo task inbox filters, state and company isolation",a
  await taskCenter.getByLabel("Filter opravil").selectOption("done");
  await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toBeVisible();
  await company.selectOption("2");
- await expect(taskCenter).toContainText("podjetje 2");
+ await expect(taskCenter).toContainText("Podjetje 2");
  await expect(taskCenter.getByText("Preglej prejeti vzorčni račun")).toHaveCount(0);
  await taskCenter.getByLabel("Filter opravil").selectOption("all");
  await expect(taskCenter.getByText("Podpiši dobavnico podjetja B")).toBeVisible();
