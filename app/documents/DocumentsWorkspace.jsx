@@ -3,6 +3,7 @@ import BusinessChainPanel from "../business/BusinessChainPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "./demoDeliveryProof.mjs";
+import {createDemoDeliveryPdf} from "./demoDeliveryPdf.mjs";
 
 const docs=[
  {companyId:1,type:"Dobavnica",title:"DOB-2026-0048",link:"ABC d.o.o.",status:"Za podpis",date:"03. 11. 2026"},
@@ -58,12 +59,14 @@ export default function DocumentsWorkspace({context,companyId}){
  const [proof,setProof]=useState(null);
  const [proofBusy,setProofBusy]=useState(false);
  const [proofError,setProofError]=useState("");
+ const [pdfBusy,setPdfBusy]=useState(false);
+ const [pdfError,setPdfError]=useState("");
  const [accepted,setAccepted]=useState(false);
  useEffect(()=>{
    setSelected(docs.find(d=>d.companyId===companyId)??null);
    setSigner("Sintetični prejemnik");setEmail("demo@example.test");
    setSignature("");setCompleted(false);setSent(false);
-   setProof(null);setProofError("");setAccepted(false);
+   setProof(null);setProofError("");setPdfError("");setAccepted(false);
  },[companyId]);
  const finish=async()=>{
    if(proofBusy||completed)return;
@@ -78,6 +81,20 @@ export default function DocumentsWorkspace({context,companyId}){
      setProof(evidence);setCompleted(true);
    }catch(error){setProofError(error.message||"Zaključevanje ni uspelo.");}
    finally{setProofBusy(false);}
+ };
+ const exportPdf=async()=>{
+   if(!completed||!proof||pdfBusy)return;
+   setPdfBusy(true);setPdfError("");
+   try{
+     const bytes=await createDemoDeliveryPdf(proof,companyId);
+     const blob=new Blob([bytes],{type:"application/pdf"});
+     const url=URL.createObjectURL(blob);
+     const anchor=document.createElement("a");
+     anchor.href=url;anchor.download=proof.documentId+"-demo-nepodpisan.pdf";
+     document.body.appendChild(anchor);anchor.click();anchor.remove();
+     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   }catch(error){setPdfError(error.message||"PDF ni bil ustvarjen.");}
+   finally{setPdfBusy(false);}
  };
  const exportProof=()=>{
    if(!completed||!proof)return;
@@ -102,14 +119,23 @@ export default function DocumentsWorkspace({context,companyId}){
  useEffect(()=>{
    if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected?.title)){
      setSelected(visibleDocs[0]);setCompleted(false);setSent(false);
-     setSignature("");setProof(null);setAccepted(false);setProofError("");
+     setSignature("");setProof(null);setAccepted(false);setProofError("");setPdfError("");
    }
  },[section,subView,companyId,selected?.title]);
 
  return <section className="docsWorkspace">
   <style>{`
-  .docsWorkspace{margin-top:10px}.docsGrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:10px}.docCard{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.docHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.docHead h3{margin:0;font-size:12px}.docRow{display:grid;grid-template-columns:.8fr 1.2fr 1fr .8fr;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);width:100%;background:transparent;color:var(--text);border-left:0;border-right:0;border-top:0;text-align:left}.docRow.head{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--panel)}.docRow:not(.head):hover{background:color-mix(in srgb,var(--accent) 5%,transparent)}.docRow b{font-size:10px}.docRow small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.docStatus{width:max-content;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:8px}.docStatus.ok{color:var(--ok)}.docStatus.warn{color:var(--warn)}.delivery{padding:14px}.delivery h3{margin:8px 0 2px;font-size:17px}.delivery>small{color:var(--muted);font-size:9px}.deliveryMeta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.deliveryMeta div{border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--bg2)}.deliveryMeta small,.deliveryMeta b{display:block}.deliveryMeta small{font-size:8px;color:var(--muted)}.deliveryMeta b{font-size:10px;margin-top:3px}.deliverySec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.deliverySec h4{margin:0 0 8px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.deliveryLine{display:grid;grid-template-columns:1.3fr .5fr .5fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:9px}.field{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;padding:9px;font-size:9px;margin-bottom:7px}.proof{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--accent) 5%,var(--panel))}.proof b,.proof small{display:block}.proof small{font-size:8px;color:var(--muted);margin-top:3px}.pwaBox{margin:12px;border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:11px;background:color-mix(in srgb,var(--violet) 5%,var(--panel))}.pwaBox b,.pwaBox small{display:block}.pwaBox small{font-size:8px;color:var(--muted);margin-top:3px}
-  @media(max-width:1100px){.docsGrid{grid-template-columns:1fr}}@media(max-width:760px){.docRow{grid-template-columns:1fr .9fr .7fr}.docRow>*:nth-child(3){display:none}.deliveryMeta{grid-template-columns:1fr}}
+  .docsWorkspace{margin-top:10px}
+  .docsWorkspace :is(button,input){min-height:36px}
+  .docsWorkspace button:focus-visible,.docsWorkspace input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .docsGrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:10px}.docCard{border:1px solid var(--line);background:linear-gradient(155deg,var(--panel),var(--panel2));border-radius:15px;overflow:hidden}.docHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}.docHead h3{margin:0;font-size:12px}.docRow{display:grid;grid-template-columns:.8fr 1.2fr 1fr .8fr;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);width:100%;background:transparent;color:var(--text);border-left:0;border-right:0;border-top:0;text-align:left}.docRow.head{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--panel)}.docRow:not(.head):hover{background:color-mix(in srgb,var(--accent) 5%,transparent)}.docRow b{font-size:10px}.docRow small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.docStatus{width:max-content;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:8px}.docStatus.ok{color:var(--ok)}.docStatus.warn{color:var(--warn)}.delivery{padding:14px}.delivery h3{margin:8px 0 2px;font-size:17px}.delivery>small{color:var(--muted);font-size:9px}.deliveryMeta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.deliveryMeta div{border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--bg2)}.deliveryMeta small,.deliveryMeta b{display:block}.deliveryMeta small{font-size:8px;color:var(--muted)}.deliveryMeta b{font-size:10px;margin-top:3px}.deliverySec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.deliverySec h4{margin:0 0 8px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.deliveryLine{display:grid;grid-template-columns:1.3fr .5fr .5fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:9px}.field{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg2);color:var(--text);border-radius:9px;padding:9px;font-size:9px;margin-bottom:7px}.proof{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--accent) 5%,var(--panel))}.proof b,.proof small{display:block}.proof small{font-size:8px;color:var(--muted);margin-top:3px}.pwaBox{margin:12px;border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:11px;background:color-mix(in srgb,var(--violet) 5%,var(--panel))}.pwaBox b,.pwaBox small{display:block}.pwaBox small{font-size:8px;color:var(--muted);margin-top:3px}
+  @media(max-width:1100px){.docsGrid{grid-template-columns:1fr}}
+  @media(max-width:760px){.docRow{grid-template-columns:1fr .9fr .7fr}.docRow>*:nth-child(3){display:none}.deliveryMeta{grid-template-columns:1fr}
+    .delivery{padding:12px}.deliverySec h4{font-size:11px}.deliveryLine{font-size:11px}.field{font-size:14px;min-height:44px}
+    .deliverySec button{min-height:44px;font-size:12px}
+    .deliveryMeta b{font-size:12px}.deliveryMeta small,.proof small{font-size:11px}
+    .docsWorkspace{overflow-wrap:anywhere}
+  }
   `}</style>
 
   <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Dokumenti · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
@@ -117,7 +143,7 @@ export default function DocumentsWorkspace({context,companyId}){
  <AdaptivePaneGrid className="docsGrid">
    <article className="docCard">
     <div className="docHead"><h3>Dokumenti · {section} / {subView}</h3><button className="primary" type="button" disabled title="Prava dokumentna hramba še ni vključena">＋ Nov dokument (v pripravi)</button></div>
-    <div className="pwaBox"><b>Mobilna dobavnica · demonstracija</b><small>Podpis z miško, prstom ali pisalom in lokalni SHA-256 dokazni paket. Ni končnega PDF, e-pošte, certificiranega podpisa ali strežniške shrambe.</small></div>
+    <div className="pwaBox"><b>Mobilna dobavnica · demonstracija</b><small>Podpis z miško, prstom ali pisalom in lokalni SHA-256 dokazni paket. Na voljo je lokalni demonstracijski PDF s sliko podpisa; ni certificiranega elektronskega podpisa, e-pošte ali strežniške shrambe.</small></div>
     <div className="docRow head"><span>Tip</span><span>Dokument</span><span>Povezava</span><span>Status</span></div>
     {!visibleDocs.length&&<p style={{fontSize:10,color:"var(--muted)",padding:12}}>Za izbrani podpogled še ni dokumentov v demonstracijskem naboru.</p>}
     {visibleDocs.map(d=><button className="docRow" key={d.title} onClick={()=>{setSelected(d);setCompleted(false);setSent(false);setSignature("");setProof(null);setAccepted(false);setProofError("")}}>
@@ -151,6 +177,10 @@ export default function DocumentsWorkspace({context,companyId}){
     <div className="deliverySec"><h4>Zaključek</h4><div style={{display:"grid",gap:7}}>
       <button type="button" className="primary" disabled={!signature||!signer.trim()||!accepted||completed||proofBusy} onClick={finish}>{completed?"Demo dobavnica potrjena":proofBusy?"Preverjam celovitost …":"Zaključi in preveri demo dokazilo"}</button>
       {proofError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{proofError}</p>}
+      <button type="button" className="secondary" disabled={!completed||!proof||pdfBusy} onClick={exportPdf}>
+        {pdfBusy?"Pripravljam PDF …":"Prenesi demo PDF s sliko podpisa"}
+      </button>
+      {pdfError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{pdfError}</p>}
       <button type="button" className="secondary" disabled={!completed||!proof} onClick={exportProof}>Izvozi demo dokazilo (.json)</button>
       <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
       <button type="button" className="secondary" disabled title="Integracija s kvalificiranim podpisom še ni na voljo">Kvalificiran podpis (v pripravi)</button>
