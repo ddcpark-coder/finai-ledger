@@ -59,7 +59,8 @@ export function importSyntheticCmsOrders(existing,rawOrders,companyId,shopId="de
   const match=next.find(row=>row.externalKey===incoming.externalKey);
   if(match){
    if(match.companyId!==companyId||match.grossCents!==incoming.grossCents||
-      match.partner!==incoming.partner)
+      match.partner!==incoming.partner||match.originalCmsStatus!==incoming.originalCmsStatus||
+      JSON.stringify(match.lines)!==JSON.stringify(incoming.lines))
     throw new Error("CMS naročilo je bilo spremenjeno; potreben je ročni pregled.");
    duplicates++;continue;
   }
