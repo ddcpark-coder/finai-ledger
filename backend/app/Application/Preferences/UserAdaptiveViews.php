@@ -74,6 +74,7 @@ final class UserAdaptiveViews
                     'layout_json'=>json_encode([
                         'level'=>$input['level'],
                         'arrangement'=>$input['arrangement'],
+                        'paneOrder'=>$input['paneOrder'],
                         'detailWidth'=>$input['detailWidth'],
                         'textScale'=>$input['textScale'],
                     ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),

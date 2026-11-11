@@ -37,6 +37,7 @@ final class AdaptiveWindowPreferencesController extends Controller
             'expected_version'=>['required','integer','min:0','max:2147483646'],
             'level'=>['required', Rule::in(['simple','standard','expert'])],
             'arrangement'=>['required', Rule::in(['split','stacked','list','detail'])],
+            'paneOrder'=>['required', Rule::in(['list-first','detail-first'])],
             'detailWidth'=>['required','integer','between:260,700'],
             'textScale'=>['required','integer', Rule::in([100,115,130])],
         ]);

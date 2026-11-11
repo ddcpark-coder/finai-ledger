@@ -38,3 +38,11 @@ Pripravljena je prva implementacija **za prihodnji izolirani FinAI backend**:
 - Profilni API še ni objavljen, zato mednapravne sinhronizacije na `e-integrator.si` **ni dovoljeno označiti za aktivno**.
 
 Povezava s prijavljeno sejo v produkciji je pogojena z ločenim FinAI gostovanjem, HTTPS, pravilnimi Sanctum first-party domenami, ustreznimi migracijami in ciljnim CSRF/2FA QA. Delno prilagajanje posameznih notranjih podoken je ločen prihodnji razvojni korak.
+
+## Dodatno prilagajanje dvookenskih pogledov — PANEL-ORDER-01
+
+Za prepoznane glavne dvookenske delovne prostore je dodana možnost **»Seznam najprej / Podrobnosti najprej«**. Deluje ob postavitvi v dva stolpca ali navpičnem prikazu; v načinu »Samo seznam« in »Samo podrobnosti« ni uporabna in je izbira onemogočena. Nastavitev `paneOrder` se shranjuje v isti profil uporabnik/podjetje/modul/podpogled, lokalno ali prek pripravljene zaščitene API poti.
+
+**Znana meja:** prvi korak uporablja vizualni CSS vrstni red v standardnih dvookenskih strukturah; DOM vrstni red in zaporedje tabulatorja ostaneta prvotna. To **še ni popolna dostopna reorganizacija notranjih oken**. Pred javno produkcijo je potreben namenski prehod na semantično pravilno spremembo DOM/keyboard zaporedja v posameznih modulih in ciljni pregled s tipkovnico/bralnikom zaslona. Prav tako ostanejo nezajete posebne notranje kartice, dialogi in tridelni zasloni.
+
+Kritični zneski, pravice, odobritve in računovodska pravila se z vrstnim redom ne spreminjajo.
