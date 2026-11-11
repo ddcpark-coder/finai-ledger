@@ -1,4 +1,5 @@
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useMemo,useState} from "react";
 
 const pos=[
@@ -42,7 +43,7 @@ export default function ProcurementWorkspace({context}){
 
   {(tab==="Pregled"||tab==="Naročilnice")&&<>
    <div className="flow"><div className="on">Potreba</div><div className="on">Povpraševanje</div><div className="on">Naročilo</div><div>Prevzem</div><div>Račun</div><div>3-way match</div></div>
-   <div className="procGrid">
+   <AdaptivePaneGrid className="procGrid">
     <article className="pcard"><div className="phead"><h3>{tab==="Naročilnice"?"Naročilnice · "+subView:"Nabava · pregled naročilnic"}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči naročilnico, dobavitelja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Naročeno</option><option>Delno prevzeto</option><option>Prejeto</option><option>Odstopanje</option></select><button className="primary">＋ Nova naročilnica</button></div></div>
     <div className="prow head"><span>Naročilo</span><span>Dobavitelj</span><span>Dobava</span><span>Vrednost</span><span>Kontrola</span></div>
     {list.map(x=><button className="prow" key={x.id} onClick={()=>setSelected(x)}><span><b>{x.id}</b><small>{x.sales}</small></span><span><b>{x.supplier}</b><small>{x.status}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className={"state "+(x.match==="Ujemanje OK"?"ok":x.status==="Odstopanje"?"bad":"warn")}>{x.match}</span></button>)}
@@ -52,7 +53,7 @@ export default function ProcurementWorkspace({context}){
     <div className="sec"><h4>Postavke</h4><div className="line"><span>Pogonski modul PM-200</span><b>12 kos</b></div><div className="line"><span>Krmilnik KC-100</span><b>20 kos</b></div></div>
     <div className="sec"><h4>Kontrola naročilo / prevzem / račun</h4><div className="line"><span>Naročeno</span><b>32 kos</b></div><div className="line"><span>Prevzeto</span><b>{selected.status==="Naročeno"?"0":"30"} kos</b></div><div className="line"><span>Cenovno odstopanje</span><b>{selected.status==="Odstopanje"?"+640,00 €":"0,00 €"}</b></div></div>
     <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Evidentiraj prevzem</button><button className="secondary">Primerjaj z računom</button><button className="secondary">Odpri dobavitelja</button><button className="secondary">Prikaži audit sled</button></div></div></aside>
-   </div></>}
+   </AdaptivePaneGrid></>}
 
   {(tab==="Povpraševanja"||tab==="Ponudbe dobaviteljev")&&<div className="offerGrid">{offers.filter(o=>subView!=="Izbrano"||o.score==="Najboljša cena").map(o=><article className="offer" key={o.supplier}><h3>{o.supplier}</h3><small>Ponudba za PM-200 · 12 kos</small><strong>{o.price}</strong><small>Dobavni rok: {o.lead}</small><span className="badge">{o.score}</span><button className="secondary" style={{width:"100%",marginTop:10}}>Izberi ponudbo</button></article>)}</div>}
 
