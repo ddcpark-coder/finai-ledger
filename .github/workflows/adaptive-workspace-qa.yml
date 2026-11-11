@@ -5,6 +5,8 @@ on:
       - "app/components/AdaptiveWorkspace.jsx"
       - "app/hooks/useAdaptiveWorkspace.js"
       - "app/lib/workspacePersonalization.mjs"
+      - "app/lib/adaptiveViewGateway.js"
+      - "tests/adaptiveViewGateway.test.mjs"
       - "app/page.jsx"
       - "tests/workspacePersonalization.test.mjs"
       - "app/lib/moduleGuidance.mjs"
@@ -26,7 +28,7 @@ jobs:
         with:
           node-version: "22"
       - name: Focused view preference unit tests
-        run: node --test tests/workspacePersonalization.test.mjs tests/moduleGuidance.test.mjs
+        run: node --test tests/workspacePersonalization.test.mjs tests/moduleGuidance.test.mjs tests/adaptiveViewGateway.test.mjs
       - name: Install app and pinned test runner
         run: |
           npm install --no-audit --no-fund --package-lock=false
