@@ -1,5 +1,5 @@
-import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 import {euro} from "../issued/demoInvoice.mjs";
 import CashflowScenarioPanel from "./CashflowScenarioPanel";
