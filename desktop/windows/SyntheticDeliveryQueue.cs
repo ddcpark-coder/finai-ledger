@@ -102,14 +102,15 @@ internal sealed class SyntheticDeliveryQueue
             FROM synthetic_delivery_queue WHERE company_id=$company;
             """;
         existing.Parameters.AddWithValue("$company", companyId);
+        Entry? previous = null;
         using (var reader = existing.ExecuteReader())
         {
-            if (reader.Read())
-            {
-                var stored = Restore(reader);
-                transaction.Commit();
-                return stored; // idempotent: no duplicate and no implicit overwrite
-            }
+            if (reader.Read()) previous = Restore(reader);
+        }
+        if (previous is not null)
+        {
+            transaction.Commit();
+            return previous; // idempotent: no duplicate and no implicit overwrite
         }
 
         var item = new Entry(Guid.NewGuid().ToString("D"), companyId, document,
