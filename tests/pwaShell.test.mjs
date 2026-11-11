@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import createManifest from "../app/manifest.js";
 
-const manifest=JSON.parse(readFileSync("public/manifest.webmanifest","utf8"));
+const manifest=createManifest();
 const worker=readFileSync("public/sw-finai-demo.js","utf8");
 test("PWA manifest names synthetic demo only and includes icons",()=>{
  assert.equal(manifest.display,"standalone");
