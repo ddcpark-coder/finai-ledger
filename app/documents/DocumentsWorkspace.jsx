@@ -1,5 +1,5 @@
-import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 "use client";
+import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 
 const docs=[
