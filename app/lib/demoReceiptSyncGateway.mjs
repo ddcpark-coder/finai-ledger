@@ -50,10 +50,8 @@ export async function sendDemoOutbox(record,companyId,{
 }={}){
  assertDemoPending(record,companyId);
  const endpoint=syntheticSyncEndpoint(companyId,href);
- const status=await fetchDemoSyncStatus(companyId,{fetcher,href});
- // Version mismatch is visible and never automatically rewritten or retried.
- if(status.version!==record.expectedVersion)
-  return {kind:"conflict",record:markSyncConflict(record,companyId,status.version)};
+ // POST first with the immutable UUID: Laravel can acknowledge a prior delivery
+ // whose response was lost. Pre-checking versions here would break idempotent retry.
  const origin=new URL(endpoint).origin;
  const csrf=await fetcher(origin+"/sanctum/csrf-cookie",{
   method:"GET",credentials:"include",cache:"no-store",redirect:"error",
