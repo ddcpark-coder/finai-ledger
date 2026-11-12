@@ -4,6 +4,7 @@ import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../documents/demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "../documents/demoDeliveryPdf.mjs";
+import {createUnsignedPdfManifest,verifyUnsignedPdfManifest} from "../documents/signatureProviderAdapter.mjs";
 import {
  encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
  readEncryptedDemoProof,deleteEncryptedDemoProof
@@ -63,7 +64,8 @@ function DrawSignature({onChange,locked}){
   moving.current=true;moved.current=false;
   const p=xy(event),ctx=canvasRef.current.getContext("2d");
   ctx.beginPath();ctx.moveTo(p.x,p.y);
-  canvasRef.current.setPointerCapture?.(event.pointerId);
+  try{canvasRef.current.setPointerCapture?.(event.pointerId)}
+  catch{/* Touch emulators and older browsers may not support capture. */}
  };
  const move=event=>{
   if(!moving.current||locked)return;
@@ -74,11 +76,27 @@ function DrawSignature({onChange,locked}){
  const up=()=>{
   if(moving.current&&moved.current&&!locked)
    onChange(canvasRef.current.toDataURL("image/png"));
-  moving.current=false;
+  moving.current=false;moved.current=false;
+ };
+ const cancel=()=>{moving.current=false;moved.current=false};
+ // Some iOS/touch emulations do not dispatch PointerMove after PointerDown.
+ // Native touch handlers provide a second path with the same canvas strokes.
+ const touchStart=e=>{
+  if(locked||moving.current||!e.touches?.length)return;
+  moving.current=true;moved.current=false;
+  const p=xy(e.touches[0]),ctx=canvasRef.current.getContext("2d");
+  ctx.beginPath();ctx.moveTo(p.x,p.y);
+ };
+ const touchMove=e=>{
+  if(locked||!e.touches?.length)return;
+  if(!moving.current)touchStart(e);
+  const p=xy(e.touches[0]),ctx=canvasRef.current.getContext("2d");
+  ctx.lineTo(p.x,p.y);ctx.stroke();moved.current=true;
  };
  return <div>
   <canvas ref={canvasRef} className="sign" aria-label="Površina za demonstracijski podpis"
-   onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/>
+   onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
+   onTouchStart={touchStart} onTouchMove={touchMove} onTouchEnd={up} onTouchCancel={cancel}/>
   <button className="secondary" type="button" disabled={locked}
    onClick={()=>{
     const canvas=canvasRef.current;
@@ -106,6 +124,7 @@ export default function FieldDemo(){
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(true);
  const [install,setInstall]=useState(null);
+ const [pdfBundle,setPdfBundle]=useState(null);
  const [syncState,setSyncState]=useState("local-only");
  const [syncVersion,setSyncVersion]=useState(null);
  const [syncMessage,setSyncMessage]=useState("");
@@ -146,6 +165,7 @@ export default function FieldDemo(){
  const changeCompany=value=>{
   setCompanyId(value);setSigner("Sintetični prejemnik");setSignature("");
   setConsent(false);setProof(null);setPassword("");setHasLocalCopy(false);setStatus("");
+  setPdfBundle(null);
   setSyncState("local-only");setSyncVersion(null);setSyncMessage("");
  };
  const perform=async(fn)=>{
@@ -157,7 +177,7 @@ export default function FieldDemo(){
  const finalize=()=>perform(async()=>{
   const result=await finalizeDemoDelivery({document,companyId,signer,signature,accepted:consent});
   if(!await verifyDemoDelivery(result,companyId))throw new Error("Dokazila ni mogoče preveriti.");
-  setProof(result);setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
+  setProof(result);setPdfBundle(null);setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
  });
  const save=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej zaključi demonstracijski podpis.");
@@ -169,7 +189,7 @@ export default function FieldDemo(){
  const restore=()=>perform(async()=>{
   const envelope=await readEncryptedDemoProof(companyId);
   const restored=await decryptDemoProof(envelope,companyId,password);
-  setProof(restored);setSignature(restored.signatureDataUrl);
+  setProof(restored);setPdfBundle(null);setSignature(restored.signatureDataUrl);
   setSigner(restored.signer);setConsent(true);setPassword("");
   setStatus("Lokalno dokazilo je dešifrirano in preverjeno.");
  });
@@ -245,7 +265,7 @@ export default function FieldDemo(){
    localStorage.setItem(syncMetaKey(companyId),JSON.stringify({
      hash,ackVersion:latest.version
    }));
-   setHasLocalCopy(true);setProof(decoded);
+   setHasLocalCopy(true);setProof(decoded);setPdfBundle(null);
    setSigner(decoded.signer);setSignature(decoded.signatureDataUrl);
    setConsent(true);setPassword("");setSyncState("synced");
    setSyncVersion(latest.version);
@@ -254,8 +274,23 @@ export default function FieldDemo(){
  const pdf=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej preveri dokazilo.");
   const bytes=await createDemoDeliveryPdf(proof,companyId);
+  const manifest=await createUnsignedPdfManifest(proof,bytes,companyId);
+  await verifyUnsignedPdfManifest(manifest,bytes,proof,companyId);
+  setPdfBundle({bytes,manifest,companyId,evidenceSha256:proof.evidenceSha256});
   download(bytes,proof.documentId+"-sinteticno-nepodpisan.pdf","application/pdf");
-  setStatus("Shranjen je lokalni DEMO PDF s sliko podpisa, brez digitalnega podpisa.");
+  setStatus("DEMO PDF je lokalno ustvarjen in SHA-256 preverjen. Pripravi lahko njegov manifest; PDF ni digitalno podpisan.");
+ });
+ const exportManifest=()=>perform(async()=>{
+  if(!proof||!pdfBundle||pdfBundle.companyId!==companyId||
+    pdfBundle.evidenceSha256!==proof.evidenceSha256)
+   throw new Error("Najprej prenesi izvirni PDF trenutne sintetične dobavnice.");
+  const check=await verifyUnsignedPdfManifest(
+   pdfBundle.manifest,pdfBundle.bytes,proof,companyId
+  );
+  if(!check.valid)throw new Error("PDF ne ustreza manifestu.");
+  download(JSON.stringify(pdfBundle.manifest,null,2),
+   proof.documentId+"-sha256-manifest.json","application/json");
+  setStatus("Manifest je izvožen za točno ta lokalni PDF. Potrjuje celovitost SHA-256, ne pa kvalificiranega podpisa.");
  });
  const json=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej preveri dokazilo.");
@@ -299,7 +334,7 @@ export default function FieldDemo(){
     <button type="button" onClick={finalize}
      disabled={busy||Boolean(proof)||!signature||!consent}>Zaključi demo prevzem</button>
     {proof&&<button className="secondary" type="button" onClick={()=>{
-     setProof(null);setSignature("");setConsent(false);setStatus("");
+     setProof(null);setSignature("");setConsent(false);setStatus("");setPdfBundle(null);
     }}>Nov lokalni podpis</button>}
    </div>
    {proof&&<p className="small">SHA-256 dokazila: {proof.evidenceSha256}</p>}
@@ -319,6 +354,9 @@ export default function FieldDemo(){
    <div className="row">
     <button className="secondary" type="button" disabled={!proof||busy} onClick={pdf}>Prenesi demo PDF</button>
     <button className="secondary" type="button" disabled={!proof||busy} onClick={json}>Izvozi dokazilo JSON</button>
+     <button className="secondary" type="button" disabled={!pdfBundle||busy} onClick={exportManifest}>
+      Izvozi SHA-256 manifest PDF
+     </button>
    </div>
    {status&&<p className="message" role="status">{status}</p>}
   </section>
