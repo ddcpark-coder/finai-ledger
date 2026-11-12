@@ -60,6 +60,7 @@ test("offline synthetic outbox persists encrypted request without sending it",as
  await context.setOffline(false);
 });
 test("409 conflict stops upload, preserves encrypted local proof and requires manual review",async({page,context})=>{
+ test.skip(process.env.FINAI_TEST_SYNC_E2E!=="1","Requires the explicitly configured loopback-only synthetic API build.");
  await context.addCookies([{name:"XSRF-TOKEN",value:"synthetic-test-csrf",url:"http://127.0.0.1:3000"}]);
  let posts=0;
  await page.route("**/sanctum/csrf-cookie",async route=>{
@@ -101,6 +102,7 @@ test("409 conflict stops upload, preserves encrypted local proof and requires ma
  await expect(page.getByText("Šifrirana kopija obstaja na tej napravi.")).toBeVisible();
 });
 test("same immutable event succeeds only when server returns explicit demo-only acknowledgment",async({page,context})=>{
+ test.skip(process.env.FINAI_TEST_SYNC_E2E!=="1","Requires the explicitly configured loopback-only synthetic API build.");
  await context.addCookies([{name:"XSRF-TOKEN",value:"synthetic-test-csrf",url:"http://127.0.0.1:3000"}]);
  let posts=0;
  await page.route("**/sanctum/csrf-cookie",async route=>route.fulfill({status:204,body:""}));
