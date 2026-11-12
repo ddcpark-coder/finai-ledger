@@ -11,10 +11,27 @@ test("mobile/desktop: PDF and manifest refer to the exact same unsigned syntheti
  const canvas=page.getByLabel("Površina za demonstracijski podpis");
  const box=await canvas.boundingBox();
  expect(box).toBeTruthy();
- await page.mouse.move(box.x+20,box.y+40);
- await page.mouse.down();
- await page.mouse.move(box.x+95,box.y+70,{steps:8});
- await page.mouse.up();
+ const start={x:Math.round(box.x+20),y:Math.round(box.y+40),id:1};
+ const end={x:Math.round(box.x+95),y:Math.round(box.y+70),id:1};
+ if(page.viewportSize().width<=480){
+  const cdp=await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[start]});
+  for(let i=1;i<=8;i++){
+   const t=i/8;
+   await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{
+    x:Math.round(start.x+(end.x-start.x)*t),
+    y:Math.round(start.y+(end.y-start.y)*t),id:1
+   }]});
+  }
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  await cdp.detach();
+ }else{
+  await page.mouse.move(start.x,start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x,end.y,{steps:8});
+  await page.mouse.up();
+ }
+ await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("checkbox",{name:/Potrjujem, da sem pregledal/}).check();
  await page.getByRole("button",{name:"Zaključi demo prevzem"}).click();
  const pdfButton=page.getByRole("button",{name:"Prenesi demo PDF"});
