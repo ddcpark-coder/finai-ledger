@@ -4,6 +4,7 @@ import {getModuleGuidance} from "../lib/moduleGuidance.mjs";
 import useAdaptiveWorkspace from "../hooks/useAdaptiveWorkspace";
 import {AdaptivePaneOrderContext} from "./AdaptivePaneGrid";
 import {DEFAULT_VIEW,updateViewField} from "../lib/workspacePersonalization.mjs";
+import {WORKSPACE_PRESET_LABELS,applyWorkspacePreset,identifyWorkspacePreset} from "../lib/workspacePresets.mjs";
 
 const MODES=[
  ["split","Dve okni"],
@@ -72,6 +73,14 @@ export default function AdaptiveWorkspace({companyId,moduleKey,viewKey,children}
      }
    `}</style>
    <div className="finaiAdaptiveBar" aria-label="Prilagajanje delovnih oken">
+     <label htmlFor={helpId+"-preset"}>Hitri profil
+       <select id={helpId+"-preset"} value={identifyWorkspacePreset(view)} disabled={!ready}
+         onChange={e=>{if(e.target.value!=="custom")setView(applyWorkspacePreset(e.target.value))}}>
+         {Object.entries(WORKSPACE_PRESET_LABELS).map(([id,label])=>
+           <option key={id} value={id}>{label}</option>)}
+         <option value="custom">Moja prilagoditev</option>
+       </select>
+     </label>
      <label htmlFor={helpId+"-level"}>Zahtevnost
        <select id={helpId+"-level"} value={view.level} disabled={!ready}
          onChange={e=>set("level",e.target.value)}>
