@@ -5,6 +5,10 @@ import Link from "next/link";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../documents/demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "../documents/demoDeliveryPdf.mjs";
 import {
+ queueEncryptedDemoProof,readDemoOutbox,discardDemoOutbox,updateDemoOutbox
+} from "../documents/demoReceiptOutbox.mjs";
+import {testSyncConfigured,sendDemoOutbox} from "../lib/demoReceiptSyncGateway.mjs";
+import {
  encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
  readEncryptedDemoProof,deleteEncryptedDemoProof
 } from "../documents/mobileProofVault.mjs";
@@ -103,6 +107,9 @@ export default function FieldDemo(){
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(true);
  const [install,setInstall]=useState(null);
+ const [pending,setPending]=useState(null);
+ const [syncMessage,setSyncMessage]=useState("");
+ const syncAvailable=typeof window!=="undefined"&&testSyncConfigured(window.location.href);
  const document=deliverySample(companyId);
 
  useEffect(()=>{
@@ -121,14 +128,23 @@ export default function FieldDemo(){
  },[]);
  useEffect(()=>{
   let active=true;
+  readDemoOutbox(companyId).then(value=>{
+   if(active)setPending(value);
+  }).catch(()=>{if(active)setPending(null)});
+  return()=>{active=false};
+ },[companyId]);
+ useEffect(()=>{
+  let active=true;
   readEncryptedDemoProof(companyId).then(value=>{
    if(active)setHasLocalCopy(Boolean(value));
   }).catch(()=>{if(active)setHasLocalCopy(false)});
   return()=>{active=false};
  },[companyId]);
  const changeCompany=value=>{
+  if(busy)return;
   setCompanyId(value);setSigner("Sintetični prejemnik");setSignature("");
   setConsent(false);setProof(null);setPassword("");setHasLocalCopy(false);setStatus("");
+  setPending(null);setSyncMessage("");
  };
  const perform=async(fn)=>{
   if(busy)return;
@@ -170,6 +186,39 @@ export default function FieldDemo(){
   if(!proof)throw new Error("Najprej preveri dokazilo.");
   download(JSON.stringify(proof,null,2),proof.documentId+"-demo-dokazilo.json","application/json");
  });
+ const enqueue=()=>perform(async()=>{
+  const encrypted=await readEncryptedDemoProof(companyId);
+  if(!encrypted)throw new Error("Najprej shrani šifrirano demo dokazilo.");
+  const record=await queueEncryptedDemoProof(encrypted,companyId);
+  setPending(record);
+  setSyncMessage("Sintetični šifrirani paket je v lokalni čakalni vrsti. Ni bil prenesen.");
+ });
+ const sendTest=()=>perform(async()=>{
+  if(!pending||!syncAvailable)throw new Error("Testni strežnik ni na voljo.");
+  const current=await readDemoOutbox(companyId);
+  if(!current||current.clientEventId!==pending.clientEventId)
+   throw new Error("Lokalni zahtevek se je spremenil; osveži pogled.");
+  const result=await sendDemoOutbox(current,companyId);
+  await updateDemoOutbox(result.record,companyId);
+  setPending(result.record);
+  setSyncMessage(result.kind==="conflict"
+   ?"KONFLIKT: na strežniku je že verzija "+result.record.serverVersion+
+    ". Lokalni šifrirani paket ni prepisan. Izvozi ga za ročni pregled ali odstrani samo zahtevek."
+   :"TEST: strežnik je potrdil prejem šifriranega demo paketa, verzija "+
+    result.record.serverVersion+". Ni ustvarjenega poslovnega dokumenta.");
+ });
+ const exportQueue=()=>{
+  if(!pending)return;
+  download(JSON.stringify({
+   format:"finai-manual-synthetic-outbox-export-v1",...pending
+  },null,2),pending.documentId+"-sifriran-demo-zahtevek.json","application/json");
+ };
+ const clearQueue=()=>perform(async()=>{
+  if(!pending)return;
+  if(!window.confirm("Odstranim samo ta lokalni zahtevek za prenos? Šifrirana dobavnica ostane shranjena."))return;
+  await discardDemoOutbox(companyId,pending.clientEventId);
+  setPending(null);setSyncMessage("Odstranjen je samo lokalni zahtevek, šifrirana dobavnica ostaja.");
+ });
  const installApp=async()=>{
   if(!install)return;
   await install.prompt();setInstall(null);
@@ -186,7 +235,7 @@ export default function FieldDemo(){
   <section className="card">
    <h2>1. Izberi podjetje in preveri dobavnico</h2>
    <label htmlFor="field-company">Podjetje</label>
-   <select id="field-company" value={companyId} onChange={e=>changeCompany(Number(e.target.value))}>
+   <select id="field-company" value={companyId} disabled={busy} onChange={e=>changeCompany(Number(e.target.value))}>
     {companyOptions.map(id=><option value={id} key={id}>Sintetično podjetje {id}</option>)}
    </select>
    <p><b>{document.id}</b> · {document.recipient}</p>
@@ -230,6 +279,38 @@ export default function FieldDemo(){
     <button className="secondary" type="button" disabled={!proof||busy} onClick={json}>Izvozi dokazilo JSON</button>
    </div>
    {status&&<p className="message" role="status">{status}</p>}
+  </section>
+  <section className="card" aria-label="Ročna čakalna vrsta testne sinhronizacije">
+   <h2>4. Čakalna vrsta in konfliktnost</h2>
+   <p className="small">Po shranitvi šifriranega sintetičnega dokazila lahko pripraviš zahtevek. Prenos je možen
+    samo ročno, na <b>lokalnem testnem strežniku</b> z veljavno prijavo in dovoljenji. 
+    Resnična sinhronizacija ni aktivna.</p>
+   <div className="row">
+    <button className="secondary" type="button" onClick={enqueue}
+     disabled={!hasLocalCopy||busy}>Pripravi lokalni demo zahtevek</button>
+   </div>
+   {pending&&<div className="small">
+    <p>Dogodek: <code>{pending.clientEventId}</code></p>
+    <p>Stanje: <b>{pending.state==="queued"?"Pripravljen za ročno preverbo":
+     pending.state==="conflict"?"KONFLIKT – ročni pregled":
+     "Testno potrjen"}</b>
+     {pending.serverVersion!==null?" · Verzija strežnika: "+pending.serverVersion:""}</p>
+   </div>}
+   <div className="row">
+    <button type="button" onClick={sendTest}
+     disabled={!syncAvailable||!online||!pending||pending.state!=="queued"||busy}>
+     Ročno pošlji v lokalni testni API
+    </button>
+    <button className="secondary" type="button" disabled={!pending} onClick={exportQueue}>
+     Izvozi šifriran zahtevek
+    </button>
+    <button className="secondary" type="button" disabled={!pending||busy} onClick={clearQueue}>
+     Odstrani samo zahtevek
+    </button>
+   </div>
+   <p className="small">{syncAvailable?"Lokalna testna integracija je konfigurirana.":
+    "Strežniški prenos je izključen. Lokalna vrsta lahko deluje brez interneta."}</p>
+   {syncMessage&&<p role="status" className="message">{syncMessage}</p>}
   </section>
   <p className="small">Ni dejanskega prevzema, kvalificiranega podpisa, avtomatske sinhronizacije, bančnih ali računovodskih knjižb. Brskalnik lahko lokalne podatke izbriše; to ni produkcijska hramba.</p>
   <Link href="/">Nazaj v FinAI</Link>
