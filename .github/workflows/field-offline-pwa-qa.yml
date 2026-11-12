@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - "app/field/**"
+      - "app/documents/syntheticSyncClient.mjs"
+      - "tests/syntheticSyncClient.test.mjs"
       - "app/manifest.js"
       - "app/layout.tsx"
       - "app/page.jsx"
@@ -29,6 +31,8 @@ jobs:
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
           npx playwright install chromium
+      - name: Verify manual sync protocol and conflict behavior
+        run: node --test tests/syntheticSyncClient.test.mjs
       - name: Build standalone field PWA with pre-cache and PNG icons
         run: npm run build
         env:
