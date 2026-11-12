@@ -52,6 +52,9 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::get('/companies/{companyId}/demo/sync-receipts/{documentId}',
         [SyntheticReceiptSyncController::class, 'show'])
         ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
+    Route::get('/companies/{companyId}/demo/sync-receipts/{documentId}/latest',
+        [SyntheticReceiptSyncController::class, 'latest'])
+        ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
     Route::post('/companies/{companyId}/demo/sync-receipts/{documentId}',
         [SyntheticReceiptSyncController::class, 'store'])
         ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
