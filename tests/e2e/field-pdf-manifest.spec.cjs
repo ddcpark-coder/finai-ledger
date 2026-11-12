@@ -31,8 +31,8 @@ test("mobile/desktop: PDF and manifest refer to the exact same unsigned syntheti
   await page.mouse.move(end.x,end.y,{steps:8});
   await page.mouse.up();
  }
- await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("checkbox",{name:/Potrjujem, da sem pregledal/}).check();
+ await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("button",{name:"Zaključi demo prevzem"}).click();
  const pdfButton=page.getByRole("button",{name:"Prenesi demo PDF"});
  const manifestButton=page.getByRole("button",{name:"Izvozi SHA-256 manifest PDF"});
