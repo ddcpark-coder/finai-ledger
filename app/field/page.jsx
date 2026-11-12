@@ -106,6 +106,13 @@ export default function FieldDemo(){
  const document=deliverySample(companyId);
 
  useEffect(()=>{
+  if("serviceWorker" in navigator &&
+    (location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
+    navigator.serviceWorker.register("/sw.js",{scope:"/field/"})
+      .catch(()=>setStatus("Offline namestitev ni uspela; stran deluje le ob povezavi."));
+  }
+ },[]);
+ useEffect(()=>{
   const update=()=>setOnline(navigator.onLine);
   update();window.addEventListener("online",update);window.addEventListener("offline",update);
   const onInstall=e=>{e.preventDefault();setInstall(e)};
@@ -170,7 +177,8 @@ export default function FieldDemo(){
  return <main className="fieldDemo"><style>{css}</style><div className="shell">
   <div className="pill">FinAI · terenski mobilni prototip · samo sintetični podatki</div>
   <h1>Dobavnica na terenu</h1>
-  <p>Podpis, šifrirana lokalna hramba in PDF brez strežniškega prenosa. Ta zaslon je zasnovan za uporabo tudi brez povezave po uspešni prvi namestitvi in predpomnjenju.</p>
+  <p>Podpis, šifrirana lokalna hramba in PDF brez strežniškega prenosa. Po prvi uspešni namestitvi in predpomnjenju se sintetični terenski zaslon lahko zažene tudi brez omrežja.</p>
+  <p className="small">Na iPhonu lahko namestiš prek Safari → Deli → Dodaj na domači zaslon. Na Androidu uporabi možnost namestitve v brskalniku, če je na voljo.</p>
   <div className="row">
    {install&&<button type="button" onClick={installApp}>Namesti mobilno aplikacijo</button>}
    <div className="pill" role="status">Omrežje: {online?"naprava poroča povezavo":"naprava je brez povezave"}</div>
