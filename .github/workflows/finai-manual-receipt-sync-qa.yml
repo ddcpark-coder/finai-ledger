@@ -1,0 +1,57 @@
+name: FinAI synthetic manual receipt sync UX
+on:
+  pull_request:
+    paths:
+      - "app/field/**"
+      - "app/documents/demoReceiptOutbox.mjs"
+      - "app/lib/demoReceiptSyncGateway.mjs"
+      - "tests/demoReceiptSyncGateway.test.mjs"
+      - "tests/e2e/manual-receipt-sync.spec.cjs"
+      - ".github/workflows/finai-manual-receipt-sync-qa.yml"
+permissions:
+  contents: read
+jobs:
+  demo-sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify fail-closed synthetic sync protocol
+        env:
+          NEXT_PUBLIC_FINAI_SYNTHETIC_SYNC_TEST_API_BASE: /api
+        run: node --test tests/demoReceiptSyncGateway.test.mjs
+      - name: Install pinned app and browser QA
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install chromium
+      - name: Build local-only synthetic field app
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_FINAI_SYNTHETIC_SYNC_TEST_API_BASE: /api
+        run: npm run build
+      - name: Serve isolated static synthetic build
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-manual-sync.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/field/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Desktop and mobile synthetic outbox conflict QA
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/manual-receipt-sync.spec.cjs
+      - name: Only failed traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-next03-manual-sync-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
