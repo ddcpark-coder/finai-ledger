@@ -72,3 +72,29 @@ test("per-company and per-module complexity/layout survive reload and cannot ble
   await page.getByRole("button",{name:"Pomoč pri tem pogledu"}).click();
   await expect(page.getByRole("region",{name:"Pojasnila trenutnega modula"})).toBeVisible();
 });
+
+test("beginner and professional presets apply per view, with subsequent manual controls",async({page})=>{
+ await page.goto("/?module=incoming_invoices&view=Pregled&subview=Vsi");
+ const shell=page.locator(".finaiAdaptive");
+ const select=page.getByLabel("Hitri profil");
+ await expect(select).toHaveValue("balanced");
+ await select.selectOption("beginner");
+ await expect(shell).toHaveAttribute("data-level","simple");
+ await expect(shell).toHaveAttribute("data-arrangement","stacked");
+ await expect(shell).toHaveAttribute("data-form-density","comfortable");
+ await page.getByLabel("Velikost prikaza").selectOption("115");
+ await expect(select).toHaveValue("custom");
+ await select.selectOption("professional");
+ await expect(shell).toHaveAttribute("data-level","expert");
+ await expect(shell).toHaveAttribute("data-form-density","compact");
+ await page.reload();
+ await expect(select).toHaveValue("professional");
+ await page.locator(".topbarMain select.companySwitch").selectOption("2");
+ await expect(select).toHaveValue("balanced");
+ await select.selectOption("field");
+ await expect(shell).toHaveAttribute("data-arrangement","stacked");
+ await page.locator(".topbarMain select.companySwitch").selectOption("1");
+ await expect(select).toHaveValue("professional");
+ await page.getByRole("button",{name:"Ponastavi pogled"}).click();
+ await expect(select).toHaveValue("balanced");
+});

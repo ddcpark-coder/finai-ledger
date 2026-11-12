@@ -40,3 +40,22 @@ test("updates preserve independent user preferences and block unknown fields",()
  assert.equal(updateViewField(v,"formDensity","compact").formDensity,"compact");
  assert.equal(updateViewField(v,"formDensity","malicious").formDensity,"comfortable");
 });
+
+test("quick presets are complete, deterministic and never accept an unknown profile",async()=>{
+ const {WORKSPACE_PRESETS,applyWorkspacePreset,identifyWorkspacePreset}=
+   await import("../app/lib/workspacePresets.mjs");
+ assert.equal(Object.keys(WORKSPACE_PRESETS).length,4);
+ for(const id of Object.keys(WORKSPACE_PRESETS)){
+  const prefs=applyWorkspacePreset(id);
+  assert.deepEqual(prefs,WORKSPACE_PRESETS[id]);
+  assert.equal(identifyWorkspacePreset(prefs),id);
+ }
+ const professional=applyWorkspacePreset("professional");
+ assert.equal(professional.level,"expert");
+ assert.equal(professional.formDensity,"compact");
+ assert.equal(updateViewField(professional,"textScale",130).formDensity,"compact");
+ assert.equal(identifyWorkspacePreset(updateViewField(professional,"textScale",130)),"custom");
+ assert.equal(identifyWorkspacePreset(DEFAULT_VIEW),"balanced");
+ assert.throws(()=>applyWorkspacePreset("admin"),/Neznan/);
+ assert.throws(()=>applyWorkspacePreset("__proto__"),/Neznan/);
+});

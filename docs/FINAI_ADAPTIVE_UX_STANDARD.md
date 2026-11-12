@@ -67,3 +67,15 @@ Vsako podjetje/modul/podpogled lahko v skupnem meniju **Gostota obrazca** izbere
 Na mobilnih napravah in zaslonih z grobim kazalcem imajo interaktivna vnosna polja in gumbi **najmanj 44 px**, tudi če je izbran zgoščen način. Izbira je predstavitvena nastavitev, ne spreminja polj, validacije, označb, dovoljenj ali računovodskih pravil. Nastavitve se shranjujejo lokalno oziroma v obstoječem uporabniškem profilu FinAI (če je avtenticirani API dejansko dostopen); stare nastavitve brez polja `formDensity` se dopolnijo z `comfortable`.
 
 **Še odprto:** individualne predloge vsakega obrazca, premikanje posameznih polj in dokumentnih blokov, napredna prilagoditev po vlogah ter WCAG QA za vsak specializiran dialog.
+
+## NEXT-02: štirje hitri uporabniški profili
+
+V razdelku »Hitri profil« lahko uporabnik z enim izborom nastavi:
+- **Začetnik – vodeno:** osnovni pogled, navpična okna, večji napisi in udobni obrazci.
+- **Običajno – uravnoteženo:** standardni prikaz (privzete nastavitve).
+- **Profesionalec – več podatkov:** napredni pogled z dvema oknoma in zgoščenimi polji.
+- **Terensko – večja polja:** osnovni pogled z navpično razporeditvijo in večjimi elementi.
+
+Uporabnik lahko po uporabi profila **vsako nastavitev še ročno spremeni**; takrat se profil označi kot »Moja prilagoditev«. Profil se hrani po uporabniku/podjetju/modulu/podogledu prek že obstoječega sistemskega mehanizma, ne spreminja pa avtorizacije, davčnih pravil ali pravic.
+
+Ti profili niso sistemske vloge niti ločene ravni dostopa. Skrivanje dekorativnih prikazov ne sme nadomestiti preverjanja pravic na strežniku. PWA terenski zaslon in namizni Windows UI ostajata funkcionalno ločena od uporabniških profilov za računovodske podatke.
