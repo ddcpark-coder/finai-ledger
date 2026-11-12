@@ -27,8 +27,8 @@ async function prepareDemoEnvelope(page){
   await page.mouse.move(end.x,end.y,{steps:7});
   await page.mouse.up();
  }
- await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("checkbox",{name:/Potrjujem, da sem pregledal/}).check();
+ await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("button",{name:"Zaključi demo prevzem"}).click();
  await expect(page.getByText("SHA-256 dokazila:")).toBeVisible();
  await page.getByLabel("Lokalno testno geslo").fill("synthetic-outbox-passphrase-123");
