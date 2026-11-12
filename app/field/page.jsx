@@ -4,6 +4,7 @@ import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../documents/demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "../documents/demoDeliveryPdf.mjs";
+import {createUnsignedPdfManifest,verifyUnsignedPdfManifest} from "../documents/signatureProviderAdapter.mjs";
 import {
  encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
  readEncryptedDemoProof,deleteEncryptedDemoProof
@@ -103,6 +104,7 @@ export default function FieldDemo(){
  const [busy,setBusy]=useState(false);
  const [online,setOnline]=useState(true);
  const [install,setInstall]=useState(null);
+ const [pdfBundle,setPdfBundle]=useState(null);
  const document=deliverySample(companyId);
 
  useEffect(()=>{
@@ -129,6 +131,7 @@ export default function FieldDemo(){
  const changeCompany=value=>{
   setCompanyId(value);setSigner("Sintetični prejemnik");setSignature("");
   setConsent(false);setProof(null);setPassword("");setHasLocalCopy(false);setStatus("");
+  setPdfBundle(null);
  };
  const perform=async(fn)=>{
   if(busy)return;
@@ -139,7 +142,8 @@ export default function FieldDemo(){
  const finalize=()=>perform(async()=>{
   const result=await finalizeDemoDelivery({document,companyId,signer,signature,accepted:consent});
   if(!await verifyDemoDelivery(result,companyId))throw new Error("Dokazila ni mogoče preveriti.");
-  setProof(result);setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
+  setProof(result);setPdfBundle(null);
+  setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
  });
  const save=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej zaključi demonstracijski podpis.");
@@ -151,7 +155,7 @@ export default function FieldDemo(){
  const restore=()=>perform(async()=>{
   const envelope=await readEncryptedDemoProof(companyId);
   const restored=await decryptDemoProof(envelope,companyId,password);
-  setProof(restored);setSignature(restored.signatureDataUrl);
+  setProof(restored);setPdfBundle(null);setSignature(restored.signatureDataUrl);
   setSigner(restored.signer);setConsent(true);setPassword("");
   setStatus("Lokalno dokazilo je dešifrirano in preverjeno.");
  });
@@ -163,8 +167,23 @@ export default function FieldDemo(){
  const pdf=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej preveri dokazilo.");
   const bytes=await createDemoDeliveryPdf(proof,companyId);
+  const manifest=await createUnsignedPdfManifest(proof,bytes,companyId);
+  await verifyUnsignedPdfManifest(manifest,bytes,proof,companyId);
+  setPdfBundle({bytes,manifest,companyId,evidenceSha256:proof.evidenceSha256});
   download(bytes,proof.documentId+"-sinteticno-nepodpisan.pdf","application/pdf");
-  setStatus("Shranjen je lokalni DEMO PDF s sliko podpisa, brez digitalnega podpisa.");
+  setStatus("DEMO PDF je lokalno ustvarjen in SHA-256 preverjen. Pripravi lahko njegov manifest; PDF ni digitalno podpisan.");
+ });
+ const exportManifest=()=>perform(async()=>{
+  if(!proof||!pdfBundle||pdfBundle.companyId!==companyId||
+    pdfBundle.evidenceSha256!==proof.evidenceSha256)
+   throw new Error("Najprej prenesi izvirni PDF trenutne sintetične dobavnice.");
+  const check=await verifyUnsignedPdfManifest(
+   pdfBundle.manifest,pdfBundle.bytes,proof,companyId
+  );
+  if(!check.valid)throw new Error("PDF ne ustreza manifestu.");
+  download(JSON.stringify(pdfBundle.manifest,null,2),
+   proof.documentId+"-sha256-manifest.json","application/json");
+  setStatus("Manifest je izvožen za točno ta lokalni PDF. Potrjuje celovitost SHA-256, ne pa kvalificiranega podpisa.");
  });
  const json=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej preveri dokazilo.");
@@ -208,7 +227,7 @@ export default function FieldDemo(){
     <button type="button" onClick={finalize}
      disabled={busy||Boolean(proof)||!signature||!consent}>Zaključi demo prevzem</button>
     {proof&&<button className="secondary" type="button" onClick={()=>{
-     setProof(null);setSignature("");setConsent(false);setStatus("");
+     setProof(null);setSignature("");setConsent(false);setStatus("");setPdfBundle(null);
     }}>Nov lokalni podpis</button>}
    </div>
    {proof&&<p className="small">SHA-256 dokazila: {proof.evidenceSha256}</p>}
@@ -228,6 +247,9 @@ export default function FieldDemo(){
    <div className="row">
     <button className="secondary" type="button" disabled={!proof||busy} onClick={pdf}>Prenesi demo PDF</button>
     <button className="secondary" type="button" disabled={!proof||busy} onClick={json}>Izvozi dokazilo JSON</button>
+    <button className="secondary" type="button" disabled={!pdfBundle||busy} onClick={exportManifest}>
+     Izvozi SHA-256 manifest PDF
+    </button>
    </div>
    {status&&<p className="message" role="status">{status}</p>}
   </section>
