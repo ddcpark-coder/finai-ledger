@@ -3,6 +3,50 @@
 import {readFile,writeFile,readdir,stat} from "node:fs/promises";
 import {join,relative,resolve,sep} from "node:path";
 import {createHash} from "node:crypto";
+import {deflateSync} from "node:zlib";
+
+// Generate two simple first-party PWA icon PNGs without remote assets or
+// new runtime dependencies; preserve transparent-free opaque image pixels.
+function crc32(data){
+ let crc=0xffffffff;
+ for(const byte of data){crc^=byte;for(let k=0;k<8;k++)
+   crc=crc&1?(crc>>>1)^0xedb88320:crc>>>1;}
+ return (crc^0xffffffff)>>>0;
+}
+function chunk(type,data){
+ const tag=Buffer.from(type);
+ const len=Buffer.alloc(4);len.writeUInt32BE(data.length);
+ const sum=Buffer.alloc(4);sum.writeUInt32BE(crc32(Buffer.concat([tag,data])));
+ return Buffer.concat([len,tag,data,sum]);
+}
+function icon(size){
+ const rowBytes=size*4+1,raw=Buffer.alloc(rowBytes*size);
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+  const center=size/2,dx=x-center,dy=y-center;
+  const border=32/192*size,rad=20/192*size;
+  const inPaper=x>border&&x<size-border&&y>border&&y<size-border;
+  const round=(Math.max(border+rad-x,0)**2+Math.max(border+rad-y,0)**2<=rad**2)&&
+      (Math.max(x-(size-border-rad),0)**2+Math.max(border+rad-y,0)**2<=rad**2)&&
+      (Math.max(border+rad-x,0)**2+Math.max(y-(size-border-rad),0)**2<=rad**2)&&
+      (Math.max(x-(size-border-rad),0)**2+Math.max(y-(size-border-rad),0)**2<=rad**2);
+  const page=inPaper&&round;
+  const line1=page&&y>size*.38&&y<size*.43&&x>size*.32&&x<size*.67;
+  const line2=page&&y>size*.53&&y<size*.58&&x>size*.32&&x<size*.57;
+  const mark=(dx-size*.19)**2+(dy-size*.20)**2<(size*.13)**2;
+  const check=mark&&((x-y>size*.02&&x-y<size*.07)||(x+y>size*1.31&&x+y<size*1.36));
+  const color=check?[7,32,45]:mark?[117,226,203]:(line1||line2)?[240,250,247]:page?[24,67,87]:[9,32,52];
+  const offset=y*rowBytes+1+x*4;
+  raw[offset]=color[0];raw[offset+1]=color[1];raw[offset+2]=color[2];raw[offset+3]=255;
+ }
+ const header=Buffer.alloc(13);
+ header.writeUInt32BE(size,0);header.writeUInt32BE(size,4);
+ header[8]=8;header[9]=6; // RGBA
+ return Buffer.concat([
+  Buffer.from([137,80,78,71,13,10,26,10]),
+  chunk("IHDR",header),chunk("IDAT",deflateSync(raw)),chunk("IEND",Buffer.alloc(0))
+ ]);
+}
+
 
 const root=resolve(process.cwd()),out=join(root,"out");
 const manifest=await readFile(join(out,"manifest.webmanifest"),"utf8");
@@ -10,7 +54,11 @@ const parsed=JSON.parse(manifest);
 if(parsed.start_url!=="/field/")throw Error("Offline PWA must start only in the synthetic field route.");
 const fieldHtml=await readFile(join(out,"field","index.html"),"utf8");
 if(!fieldHtml.includes("Dobavnica na terenu"))throw Error("Missing synthetic field shell.");
-const assets=["/field/","/manifest.webmanifest","/finai-icon.svg"];
+for(const size of [192,512]){
+ await writeFile(join(out,"finai-pwa-"+size+".png"),icon(size));
+}
+const assets=["/field/","/manifest.webmanifest","/finai-icon.svg",
+ "/finai-pwa-192.png","/finai-pwa-512.png"];
 async function walk(path){
  const files=[];
  for(const item of await readdir(path,{withFileTypes:true})){
