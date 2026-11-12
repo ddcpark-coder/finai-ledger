@@ -14,17 +14,27 @@ test("mobile/desktop: PDF and manifest refer to the exact same unsigned syntheti
  const start={x:Math.round(box.x+20),y:Math.round(box.y+40),id:1};
  const end={x:Math.round(box.x+95),y:Math.round(box.y+70),id:1};
  if(page.viewportSize().width<=480){
-  const cdp=await page.context().newCDPSession(page);
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[start]});
-  for(let i=1;i<=8;i++){
-   const t=i/8;
-   await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{
-    x:Math.round(start.x+(end.x-start.x)*t),
-    y:Math.round(start.y+(end.y-start.y)*t),id:1
-   }]});
-  }
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
-  await cdp.detach();
+  // The mobile workflow uses actual browser TouchEvent handlers. Playwright
+  // CDP touch injection does not consistently produce pointer movement in
+  // iPhone viewport emulation across Chromium runner revisions.
+  await canvas.evaluate(el=>{
+   const rect=el.getBoundingClientRect();
+   const point=(x,y)=>new Touch({identifier:1,target:el,
+    clientX:rect.left+x,clientY:rect.top+y,
+    pageX:rect.left+x,pageY:rect.top+y,
+    screenX:rect.left+x,screenY:rect.top+y});
+   const emit=(type,touch,active)=>{
+    el.dispatchEvent(new TouchEvent(type,{
+     bubbles:true,cancelable:true,
+     touches:active?[touch]:[],
+     targetTouches:active?[touch]:[],
+     changedTouches:[touch]
+    }));
+   };
+   emit("touchstart",point(20,40),true);
+   for(let i=1;i<=8;i++)emit("touchmove",point(20+i*10,40+i*4),true);
+   emit("touchend",point(100,72),false);
+  });
  }else{
   await page.mouse.move(start.x,start.y);
   await page.mouse.down();
