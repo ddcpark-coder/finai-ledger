@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "app/field/**"
+      - "app/documents/signatureProviderAdapter.mjs"
       - "app/manifest.js"
       - "app/layout.tsx"
       - "app/page.jsx"
@@ -10,6 +11,8 @@ on:
       - "public/finai-icon.svg"
       - "package.json"
       - "tests/e2e/field-offline-pwa.spec.cjs"
+      - "tests/e2e/field-pdf-manifest.spec.cjs"
+      - "tests/signatureProviderAdapter.test.mjs"
       - ".github/workflows/field-offline-pwa-qa.yml"
 permissions:
   contents: read
@@ -29,6 +32,8 @@ jobs:
           npm install --no-audit --no-fund --package-lock=false
           npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
           npx playwright install chromium
+      - name: Check exact PDF and manifest integrity
+        run: node --test tests/signatureProviderAdapter.test.mjs
       - name: Build standalone field PWA with pre-cache and PNG icons
         run: npm run build
         env:
@@ -52,7 +57,7 @@ jobs:
       - name: Verify installed shell works offline on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs
+        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs
       - name: Failure artifacts only
         if: failure()
         uses: actions/upload-artifact@v4
