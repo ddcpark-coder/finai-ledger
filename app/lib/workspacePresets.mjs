@@ -31,6 +31,6 @@ export function applyWorkspacePreset(id){
 export function identifyWorkspacePreset(view){
  const normalized=normalizeView(view);
  return Object.keys(WORKSPACE_PRESETS).find(id=>
-  JSON.stringify(normalized)===JSON.stringify(WORKSPACE_PRESETS[id])
+  Object.keys(normalized).every(field=>normalized[field]===WORKSPACE_PRESETS[id][field])
  )??"custom";
 }
