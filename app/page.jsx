@@ -475,7 +475,7 @@ export default function Page(){
        </div>
        <div className="hero">
          <div><small>FINAI WORKSPACE · 01. NOV 2026</small><h2>{section==="Nadzorna plošča"?"Finančni pregled brez šuma":contextLevel2??"Delovni prostor"}</h2><p>{section==="Nadzorna plošča"?"Ključne informacije so takoj vidne; podrobnosti ostanejo en klik stran.":`${section} / ${contextLevel2 ?? "Pregled"}${contextLevel3?" / "+contextLevel3:""}`}</p></div>
-         <div className="heroActions">{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button>{current.rows.length>0&&<button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button>}</div>
+         <div className="heroActions"><a href="/field/" aria-label="Odpri mobilni terenski način" style={{padding:"10px 14px",border:"1px solid var(--line)",borderRadius:10,color:"var(--accent)",fontSize:12}}>Terenski način</a>{section==="Nadzorna plošča"&&<button className="secondary" onClick={()=>setCustomizer(true)}>⚙ Uredi pogled</button>}<button className="secondary" onClick={()=>setCommand(true)}>⌘ Ukazi</button>{current.rows.length>0&&<button className="primary" onClick={()=>setDrawer(current.rows[0])}>＋ Novo dejanje</button>}</div>
        </div>
 
        <div className="contextQuickAccess" aria-label="Hitri dostop do podpogledov">
