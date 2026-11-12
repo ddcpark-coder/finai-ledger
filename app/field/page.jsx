@@ -272,7 +272,7 @@ export default function FieldDemo(){
   <p className="small">Na iPhonu lahko namestiš prek Safari → Deli → Dodaj na domači zaslon. Na Androidu uporabi možnost namestitve v brskalniku, če je na voljo.</p>
   <div className="row">
    {install&&<button type="button" onClick={installApp}>Namesti mobilno aplikacijo</button>}
-   <div className="pill" role="status">Omrežje: {online?"naprava poroča povezavo":"naprava je brez povezave"}</div>
+   <div className="pill" role="status" aria-label="Stanje omrežja">Omrežje: {online?"naprava poroča povezavo":"naprava je brez povezave"}</div>
   </div>
   <section className="card">
    <h2>1. Izberi podjetje in preveri dobavnico</h2>
