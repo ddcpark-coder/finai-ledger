@@ -109,7 +109,8 @@ export default function FieldDemo(){
  const [install,setInstall]=useState(null);
  const [pending,setPending]=useState(null);
  const [syncMessage,setSyncMessage]=useState("");
- const syncAvailable=typeof window!=="undefined"&&testSyncConfigured(window.location.href);
+ const [syncAvailable,setSyncAvailable]=useState(false);
+ useEffect(()=>setSyncAvailable(testSyncConfigured(window.location.href)),[]);
  const document=deliverySample(companyId);
 
  useEffect(()=>{
