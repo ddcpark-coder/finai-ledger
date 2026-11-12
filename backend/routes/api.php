@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\WorkspacePreferencesController;
 use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
+use App\Http\Controllers\Api\SyntheticReceiptSyncController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,6 +46,15 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::put('/companies/{companyId}/my/adaptive-views/{moduleKey}',
         [AdaptiveWindowPreferencesController::class, 'update'])
         ->whereNumber('companyId')->where('moduleKey', '[a-z_]+');
+
+    // Proof-of-concept only: test/local + explicit flag + session+2FA+verified
+    // + company Gate, encrypted synthetic envelope, no real financial side effects.
+    Route::get('/companies/{companyId}/demo/sync-receipts/{documentId}',
+        [SyntheticReceiptSyncController::class, 'show'])
+        ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
+    Route::post('/companies/{companyId}/demo/sync-receipts/{documentId}',
+        [SyntheticReceiptSyncController::class, 'store'])
+        ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
 
     // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
     Route::get('/companies/{companyId}/demo/incoming-invoices',
