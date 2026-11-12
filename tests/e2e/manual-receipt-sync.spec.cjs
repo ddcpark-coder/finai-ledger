@@ -5,10 +5,29 @@ async function prepareDemoEnvelope(page){
  const canvas=page.getByLabel("Površina za demonstracijski podpis");
  const rect=await canvas.boundingBox();
  expect(rect).toBeTruthy();
- await page.mouse.move(rect.x+20,rect.y+40);
- await page.mouse.down();
- await page.mouse.move(rect.x+110,rect.y+70,{steps:7});
- await page.mouse.up();
+ const start={x:Math.round(rect.x+20),y:Math.round(rect.y+40),id:1};
+ const end={x:Math.round(rect.x+110),y:Math.round(rect.y+70),id:1};
+ if(page.viewportSize().width<=480){
+  // Mobile Chromium requires real touch input; mouse events may never trigger
+  // the PointerEvent capture path used for finger signing.
+  const cdp=await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[start]});
+  for(let step=1;step<=7;step++){
+   const t=step/7;
+   await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{
+    x:Math.round(start.x+(end.x-start.x)*t),
+    y:Math.round(start.y+(end.y-start.y)*t),id:1
+   }]});
+  }
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+  await cdp.detach();
+ }else{
+  await page.mouse.move(start.x,start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x,end.y,{steps:7});
+  await page.mouse.up();
+ }
+ await expect(page.getByRole("button",{name:"Zaključi demo prevzem"})).toBeEnabled();
  await page.getByRole("checkbox",{name:/Potrjujem, da sem pregledal/}).check();
  await page.getByRole("button",{name:"Zaključi demo prevzem"}).click();
  await expect(page.getByText("SHA-256 dokazila:")).toBeVisible();
