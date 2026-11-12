@@ -61,7 +61,8 @@ function DrawSignature({onChange,locked}){
   moving.current=true;moved.current=false;
   const p=xy(event),ctx=canvasRef.current.getContext("2d");
   ctx.beginPath();ctx.moveTo(p.x,p.y);
-  canvasRef.current.setPointerCapture?.(event.pointerId);
+  try{canvasRef.current.setPointerCapture?.(event.pointerId)}
+  catch{/* Touch emulators and older browsers may not support capture. */}
  };
  const move=event=>{
   if(!moving.current||locked)return;
@@ -72,11 +73,27 @@ function DrawSignature({onChange,locked}){
  const up=()=>{
   if(moving.current&&moved.current&&!locked)
    onChange(canvasRef.current.toDataURL("image/png"));
-  moving.current=false;
+  moving.current=false;moved.current=false;
+ };
+ const cancel=()=>{moving.current=false;moved.current=false};
+ // Some iOS/touch emulations do not dispatch PointerMove after PointerDown.
+ // Native touch handlers provide a second path with the same canvas strokes.
+ const touchStart=e=>{
+  if(locked||moving.current||!e.touches?.length)return;
+  moving.current=true;moved.current=false;
+  const p=xy(e.touches[0]),ctx=canvasRef.current.getContext("2d");
+  ctx.beginPath();ctx.moveTo(p.x,p.y);
+ };
+ const touchMove=e=>{
+  if(locked||!e.touches?.length)return;
+  if(!moving.current)touchStart(e);
+  const p=xy(e.touches[0]),ctx=canvasRef.current.getContext("2d");
+  ctx.lineTo(p.x,p.y);ctx.stroke();moved.current=true;
  };
  return <div>
   <canvas ref={canvasRef} className="sign" aria-label="Površina za demonstracijski podpis"
-   onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/>
+   onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
+   onTouchStart={touchStart} onTouchMove={touchMove} onTouchEnd={up} onTouchCancel={cancel}/>
   <button className="secondary" type="button" disabled={locked}
    onClick={()=>{
     const canvas=canvasRef.current;
