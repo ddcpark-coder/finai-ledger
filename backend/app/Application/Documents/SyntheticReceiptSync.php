@@ -40,6 +40,37 @@ final class SyntheticReceiptSync
         ];
     }
 
+    /**
+     * Returns only the latest *client-encrypted* envelope to the same authenticated
+     * user/company. Never exposes the Laravel-encrypted DB value or plaintext.
+     * The client must still supply its private passphrase to decrypt locally.
+     */
+    public function latest(int $userId, int $companyId, string $documentId): array
+    {
+        $this->authorize($userId, $companyId, $documentId);
+        $row = DB::table('synthetic_receipt_sync_events')
+            ->where('user_id', $userId)->where('company_id', $companyId)
+            ->where('document_id', $documentId)
+            ->orderByDesc('version')->first();
+        if (!$row) {
+            return [
+                'company_id' => $companyId, 'document_id' => $documentId,
+                'version' => 0, 'envelope' => null,
+                'demo_only' => true, 'real_sync_enabled' => false,
+            ];
+        }
+        $envelope = json_decode(
+            Crypt::decryptString($row->encrypted_envelope), true, 512,
+            JSON_THROW_ON_ERROR
+        );
+        return [
+            'company_id' => $companyId, 'document_id' => $documentId,
+            'version' => (int) $row->version,
+            'envelope' => $envelope, // already client-encrypted, not plaintext
+            'demo_only' => true, 'real_sync_enabled' => false,
+        ];
+    }
+
     public function accept(
         int $userId, int $companyId, string $documentId,
         string $eventId, int $expectedVersion, array $envelope
