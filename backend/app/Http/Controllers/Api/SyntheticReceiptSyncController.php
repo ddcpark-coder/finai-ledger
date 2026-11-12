@@ -18,6 +18,14 @@ final class SyntheticReceiptSyncController extends Controller
         )])->header('Cache-Control', 'private, no-store');
     }
 
+    public function latest(Request $request, int $companyId, string $documentId,
+        SyntheticReceiptSync $sync): JsonResponse
+    {
+        return response()->json(['data' => $sync->latest(
+            (int) $request->user()->id, $companyId, $documentId
+        )])->header('Cache-Control', 'private, no-store');
+    }
+
     public function store(Request $request, int $companyId, string $documentId,
         SyntheticReceiptSync $sync): JsonResponse
     {
