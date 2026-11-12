@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {PDFDocument} from "pdf-lib";
+import {readFile} from "node:fs/promises";
+import {createDemoDeliveryPdf} from "../app/documents/demoDeliveryPdf.mjs";
+const fontLoader=async subset=>readFile(new URL(
+ "../node_modules/@fontsource/noto-sans/files/noto-sans-"+
+ (subset==="extended"?"latin-ext":"latin")+"-400-normal.woff",import.meta.url
+));
 import {deliverySample,finalizeDemoDelivery} from "../app/documents/demoDeliveryProof.mjs";
 import {
  createUnsignedPdfManifest,verifyUnsignedPdfManifest,
@@ -13,11 +19,9 @@ const sample=async()=>finalizeDemoDelivery({
  signature,accepted:true,signedAt:new Date("2026-11-12T09:00:00Z")
 });
 async function fakeDemoPdf(proof){
- const pdf=await PDFDocument.create();
- pdf.addPage([595,842]);
- pdf.setSubject("Synthetic sample with visible signature image, NOT a digitally signed PDF");
- pdf.setKeywords(["finai-demo","template=v2","proof="+proof.evidenceSha256]);
- return pdf.save();
+ // Use the real one-page synthetic template instead of a skeletal PDF below
+ // FinAI's minimum supported size: this tests the actual generated artifact.
+ return createDemoDeliveryPdf(proof,1,{fontLoader});
 }
 test("unsigned local PDF is tenant-bound and has a truthful, valid SHA256 manifest",async()=>{
  const proof=await sample();
