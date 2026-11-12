@@ -146,6 +146,55 @@ final class SyntheticReceiptSyncTest extends TestCase
         $this->assertDatabaseCount('synthetic_receipt_sync_events', 2);
     }
 
+    public function test_second_device_can_read_only_latest_client_encrypted_envelope_without_plaintext(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $a = $this->company('A');
+        $b = $this->company('B');
+        $alice = $this->member($a, 'Alice');
+        $bob = $this->member($a, 'Bob');
+        $other = $this->member($b, 'Charlie');
+        $url = $this->uri($a) . '/latest';
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs($alice);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.version', 0)
+            ->assertJsonPath('data.envelope', null)
+            ->assertJsonMissingPath('data.encrypted_envelope');
+
+        $first = $this->payload($a->id);
+        $this->postJson($this->uri($a), $first)->assertOk();
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.version', 1)
+            ->assertJsonPath('data.envelope', $first['envelope'])
+            ->assertJsonMissingPath('data.encrypted_envelope');
+
+        $second = $first;
+        $second['client_event_id'] = '1069a8cb-93c6-4a6f-8a8c-5fb138f7a803';
+        $second['expected_version'] = 1;
+        $second['envelope']['ciphertext'] = base64_encode(str_repeat('new-version', 32));
+        $this->postJson($this->uri($a), $second)->assertOk();
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.version', 2)
+            ->assertJsonPath('data.envelope', $second['envelope']);
+
+        $this->actingAs($bob);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.version', 0)
+            ->assertJsonPath('data.envelope', null);
+
+        $this->actingAs($other);
+        $this->getJson($url)->assertForbidden();
+
+        $this->actingAs($alice);
+        $this->getJson($this->uri($b, 'SYNTH-DOB-2026-B001') . '/latest')
+            ->assertForbidden();
+        $this->getJson($this->uri($a, 'REAL-DOC-1') . '/latest')
+            ->assertNotFound();
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 2);
+    }
+
     public function test_unknown_document_bad_envelope_and_suspended_member_are_rejected(): void
     {
         config()->set('finai.synthetic_receipt_sync_enabled', true);

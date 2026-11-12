@@ -3,6 +3,10 @@ const {test,expect}=require("@playwright/test");
 test("field app shell works without network after first visit and isolates synthetic tenants",async({page,context})=>{
  await page.goto("/field/");
  await expect(page.getByRole("heading",{name:"Dobavnica na terenu"})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Preveri testno različico"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Ročno pošlji šifriran demo"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Ročno obnovi iz testnega API-ja"})).toBeDisabled();
+ await expect(page.getByText("Sinhronizacija je varnostno izključena.",{exact:false})).toBeVisible();
  await expect(page).toHaveTitle(/FinAI/i);
  await page.waitForFunction(async()=>{
    if(!("serviceWorker" in navigator))return false;
@@ -19,7 +23,7 @@ test("field app shell works without network after first visit and isolates synth
  await context.setOffline(true);
  await page.goto("/field/");
  await expect(page.getByRole("heading",{name:"Dobavnica na terenu"})).toBeVisible();
- await expect(page.getByRole("status")).toContainText("brez povezave");
+ await expect(page.getByRole("status",{name:"Stanje omrežja"})).toContainText("brez povezave");
  await expect(page.getByLabel("Podjetje")).toHaveValue("1");
  await page.getByLabel("Podjetje").selectOption("3");
  await expect(page.getByText("SYNTH-DOB-2026-C001")).toBeVisible();
