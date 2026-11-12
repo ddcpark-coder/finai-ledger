@@ -1,0 +1,63 @@
+name: FinAI isolated mobile field PWA QA
+on:
+  pull_request:
+    paths:
+      - "app/field/**"
+      - "app/manifest.js"
+      - "app/layout.tsx"
+      - "app/page.jsx"
+      - "ops/build-field-pwa.mjs"
+      - "public/finai-icon.svg"
+      - "package.json"
+      - "tests/e2e/field-offline-pwa.spec.cjs"
+      - ".github/workflows/field-offline-pwa-qa.yml"
+permissions:
+  contents: read
+jobs:
+  mobile-pwa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install app and pinned Playwright test runner
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install chromium
+      - name: Build standalone field PWA with pre-cache and PNG icons
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Check install manifest and offline service worker
+        run: |
+          test -s out/field/index.html
+          test -s out/sw.js
+          test -s out/manifest.webmanifest
+          test -s out/finai-pwa-192.png
+          test -s out/finai-pwa-512.png
+          grep -q 'finai-field-demo-' out/sw.js
+      - name: Serve isolated static synthetic build
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-field-pwa.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/field/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify installed shell works offline on desktop and mobile
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs
+      - name: Failure artifacts only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-field-offline-pwa-failures
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
