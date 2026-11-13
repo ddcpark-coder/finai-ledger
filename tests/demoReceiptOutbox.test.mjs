@@ -26,7 +26,7 @@ test("queue preserves encrypted company-bound original and validates event revis
  assert.notEqual(p.envelope,envelope);
  assert.throws(()=>assertDemoPending(p,2),/podjetju/);
  assert.throws(()=>createDemoPending({...envelope,companyId:2},1),/podjetje/);
- assert.throws(()=>createDemoPending({...envelope,plaintext:"secret"},1),/šifrirani/);
+ assert.throws(()=>createDemoPending({...envelope,plaintext:"secret"},1),/šifrirani/i);
  assert.throws(()=>createDemoPending(envelope,1,{uuid:"invalid"}),/ID/);
  assert.throws(()=>createDemoPending(envelope,1,{expectedVersion:-1}),/verzija/);
 });
