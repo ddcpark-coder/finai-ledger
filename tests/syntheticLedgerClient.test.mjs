@@ -47,7 +47,7 @@ test("GET reads only, manual POST requires same-origin CSRF and UUID",async()=>{
  });
  assert.throws(()=>client.advance(1,{action:"invalid",eventId:uuid,expectedVersion:0}),/Neveljaven/);
  assert.throws(()=>client.advance(1,{action:"reserve",eventId:"fake",expectedVersion:0}),/Neveljaven/);
- assert.throws(()=>client.read(0),/Neveljavno/);
+ await assert.rejects(client.read(0),/Neveljavno/);
 });
 test("foreign-company or real-posting responses fail closed",async()=>{
  for(const invalid of [snapshot(2),{...snapshot(),demo_only:false},
