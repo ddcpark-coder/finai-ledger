@@ -5,6 +5,7 @@ import {
  DEMO_FLOW_STAGES,createDemoCommercialFlow,demoFlowKey,
  restoreDemoCommercialFlow,transitionDemoCommercialFlow,upcomingFlowAction,demoInventoryTrace
 } from "./demoCommercialFlow.mjs";
+import SyntheticLedgerBackendPanel from "./SyntheticLedgerBackendPanel.jsx";
 
 const modules={
  quotes:"Ponudbe",orders:"Naročila",documents:"Dokumenti / dobavnice",
@@ -96,5 +97,6 @@ export default function BusinessChainPanel({companyId,moduleKey}){
      {!active&&<span style={{fontSize:10}}>Nalagam demonstracijski poslovni tok …</span>}
    </div>
    {notice&&<p role="status" style={{fontSize:10,color:"var(--muted)",margin:"10px 0 0"}}>{notice}</p>}
+   <SyntheticLedgerBackendPanel companyId={companyId}/>
  </section>;
 }
