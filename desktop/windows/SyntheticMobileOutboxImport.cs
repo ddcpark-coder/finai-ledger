@@ -150,21 +150,21 @@ internal sealed class SyntheticMobileOutboxImport
         var hash = Convert.ToHexString(SHA256.HashData(raw)).ToLowerInvariant();
         using var conn = Open();
         using var tx = conn.BeginTransaction();
+        string? oldEvent = null, oldHash = null;
         using (var find = conn.CreateCommand())
         {
             find.Transaction = tx;
             find.CommandText = "SELECT event_id,payload_sha256 FROM encrypted_mobile_imports WHERE company_id=$company;";
             find.Parameters.AddWithValue("$company", companyId);
             using var reader = find.ExecuteReader();
-            if (reader.Read())
-            {
-                var same = reader.GetString(0) == summary.EventId &&
-                    reader.GetString(1) == hash;
-                if (!same)
-                    throw new InvalidDataException("Existing synthetic import cannot be silently overwritten.");
-                tx.Commit();
-                return summary; // idempotent exact same file
-            }
+            if (reader.Read()) { oldEvent = reader.GetString(0); oldHash = reader.GetString(1); }
+        }
+        if (oldEvent is not null)
+        {
+            if (oldEvent != summary.EventId || oldHash != hash)
+                throw new InvalidDataException("Existing synthetic import cannot be silently overwritten.");
+            tx.Commit();
+            return summary; // idempotent exact same file
         }
         var protectedPayload = ProtectedData.Protect(raw, Entropy, DataProtectionScope.CurrentUser);
         try
