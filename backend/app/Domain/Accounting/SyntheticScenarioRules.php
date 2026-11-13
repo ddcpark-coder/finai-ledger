@@ -88,6 +88,22 @@ final class SyntheticScenarioRules
                 throw new \DomainException('Invalid synthetic stock state.');
             }
         }
+        $expected = [
+            'draft' => ['version'=>0, 'on_hand'=>12, 'reserved'=>0, 'dispatched'=>0],
+            'reserved' => ['version'=>1, 'on_hand'=>12, 'reserved'=>3, 'dispatched'=>0],
+            'delivered' => ['version'=>2, 'on_hand'=>9, 'reserved'=>0, 'dispatched'=>3],
+            'invoiced' => ['version'=>3, 'on_hand'=>9, 'reserved'=>0, 'dispatched'=>3],
+            'invoice_reversed' => ['version'=>4, 'on_hand'=>9, 'reserved'=>0, 'dispatched'=>3],
+        ];
+        $stateKey = $state['state'] ?? '';
+        if (! isset($expected[$stateKey])) {
+            throw new \DomainException('Unknown synthetic scenario state.');
+        }
+        foreach ($expected[$stateKey] as $field => $value) {
+            if ($state[$field] !== $value) {
+                throw new \DomainException('Synthetic scenario state and stock disagree.');
+            }
+        }
         if ($state['reserved'] > $state['on_hand']
             || $state['on_hand'] + $state['dispatched'] !== self::STOCK_START
             || $state['reserved'] > self::ORDER_QUANTITY

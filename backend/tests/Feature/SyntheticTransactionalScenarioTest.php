@@ -218,7 +218,7 @@ final class SyntheticTransactionalScenarioTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 1);
     }
 
-    public function test_money_precision_rejects_unbalanced_and_three_decimal_entries(): void
+    public function test_money_precision_rejects_unbalanced_entries(): void
     {
         $this->expectException(\DomainException::class);
         BalanceCalculator::assertBalanced([
@@ -226,4 +226,25 @@ final class SyntheticTransactionalScenarioTest extends TestCase
             ['debit'=>'0.00','credit'=>'121.99'],
         ]);
     }
+    public function test_amount_precision_rejects_more_than_two_decimal_places(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        BalanceCalculator::toCents('122.001');
+    }
+
+    public function test_corrupted_synthetic_stock_is_never_accepted(): void
+    {
+        config()->set('finai.synthetic_ledger_scenario_enabled', true);
+        $company = $this->company('Company A');
+        $this->actingAs($this->member($company, 'Alice'));
+        $url = $this->url($company);
+        $this->postJson($url.'/events',
+            $this->payload('reserve', 0, $this->event(1)))->assertOk();
+        DB::table('synthetic_ledger_scenarios')
+            ->where('company_id', $company->id)->update(['stock_reserved' => 1]);
+        $this->getJson($url)->assertStatus(500);
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseCount('synthetic_ledger_events', 1);
+    }
+
 }
