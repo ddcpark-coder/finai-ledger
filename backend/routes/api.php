@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\WorkspacePreferencesController;
 use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
 use App\Http\Controllers\Api\SyntheticReceiptSyncController;
+use App\Http\Controllers\Api\SyntheticLedgerScenarioController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,6 +59,13 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::post('/companies/{companyId}/demo/sync-receipts/{documentId}',
         [SyntheticReceiptSyncController::class, 'store'])
         ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
+
+    // Local/testing ONLY: isolated synthetic ledger and inventory transaction scenario.
+    // No production journal/inventory writes and no real posting endpoints.
+    Route::get('/companies/{companyId}/demo/ledger-scenario',
+        [SyntheticLedgerScenarioController::class, 'show'])->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/ledger-scenario/events',
+        [SyntheticLedgerScenarioController::class, 'advance'])->whereNumber('companyId');
 
     // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
     Route::get('/companies/{companyId}/demo/incoming-invoices',
