@@ -74,6 +74,12 @@ internal static class Program
             catch (Exception) { return 12; } // Never expose encrypted payloads.
         }
 
+        if (args.Length == 1 && args[0] == "--mobile-import-self-test")
+        {
+            try { return SyntheticMobileOutboxImport.SelfTest() ? 0 : 13; }
+            catch (Exception) { return 14; } // No disclosure of imported encrypted bytes.
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
