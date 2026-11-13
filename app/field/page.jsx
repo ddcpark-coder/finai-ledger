@@ -211,10 +211,44 @@ export default function FieldDemo(){
   await deleteEncryptedDemoProof(companyId);
   setHasLocalCopy(false);setStatus("Lokalna šifrirana kopija izbrisana.");
  });
+ const queueProof=()=>perform(async()=>{
+   const envelope=await readEncryptedDemoProof(companyId);
+   if(!envelope)throw new Error("Najprej shrani lokalno šifrirano demo dokazilo.");
+   const meta=syncMeta(companyId);
+   const version=Number.isSafeInteger(meta.ackVersion)&&meta.ackVersion>=0?meta.ackVersion:0;
+   const result=await queueEncryptedDemoProof(envelope,companyId,version);
+   setQueued(result);setSyncState("ready");
+   setSyncMessage("Demo šifrirana kopija je v trajni lokalni vrsti. Nič ni poslano.");
+ });
+ const exportQueue=()=>perform(async()=>{
+   const current=await readDemoOutbox(companyId);
+   if(!current)throw new Error("Vrsta je prazna.");
+   download(JSON.stringify(current,null,2),current.documentId+"-encrypted-demo-queue.json","application/json");
+   setSyncMessage("Izvožen je šifriran sintetični dogodek brez gesel ali čistega podpisa.");
+ });
+ const removeQueue=()=>perform(async()=>{
+   const current=await readDemoOutbox(companyId);
+   if(!current)return;
+   if(!window.confirm("Odstranim samo šifrirani dogodek iz vrste? Lokalna kopija ostane."))return;
+   await discardDemoOutbox(companyId,current.clientEventId);
+   setQueued(null);setSyncState("local-only");
+   setSyncMessage("Dogodek je odstranjen iz vrste. Šifrirana lokalna kopija ostaja.");
+ });
  const checkRemote=()=>perform(async()=>{
    if(!syncEnabled)throw new Error("Testna sinhronizacija je izključena.");
    const result=await createSyntheticSyncClient().latest(companyId);
+   if(result.company_id!==companyId||result.document_id!==document.id)
+     throw new Error("Strežniški odgovor ne pripada izbranemu podjetju.");
    setSyncVersion(result.version);
+   const pending=await readDemoOutbox(companyId);
+   if(pending){
+     setQueued(pending);
+     setSyncState(pending.state===SYNC_STATE.conflict?"conflict":
+       pending.state===SYNC_STATE.acknowledged?"synced":"ready");
+     setSyncMessage("Vrsta: "+pending.state+"; strežniška verzija "+result.version+
+       ". Ponovni prenos zahteva izrecni klik; brez prepisovanja.");
+     return;
+   }
    const local=await readEncryptedDemoProof(companyId);
    const meta=syncMeta(companyId);
    const decision=planSyntheticUpload({
@@ -223,45 +257,27 @@ export default function FieldDemo(){
    });
    setSyncState(decision.state==="conflict"?"conflict":
      decision.state==="already-synced"?"synced":decision.state==="ready"?"ready":"local-only");
-   setSyncMessage("Testni strežnik: različica "+result.version+
+   setSyncMessage("Testni strežnik: verzija "+result.version+
      (decision.state==="conflict"?" · konflikt; brez samodejnega prepisovanja.":" · preverjeno."));
  });
  const pushEncrypted=()=>perform(async()=>{
-   if(!syncEnabled||!hasLocalCopy)throw new Error("Ni omogočene lokalne testne sinhronizacije.");
-   const client=createSyntheticSyncClient(),remote=await client.latest(companyId);
-   const local=await readEncryptedDemoProof(companyId);
-   const meta=syncMeta(companyId);
-   const localHash=await hashEnvelope(local);
-   let decision=planSyntheticUpload({
-    remoteVersion:remote.version,ackVersion:meta.ackVersion,
-    localEnvelope:local,remoteEnvelope:remote.envelope
-   });
-   const pending=meta.pending;
-   // Idempotent retry only when this same browser recorded the same event.
-   const retry=pending?.hash===localHash
-     &&pending?.expectedVersion+1===remote.version;
-   if(decision.state==="conflict"&&!retry){
-     setSyncState("conflict");setSyncVersion(remote.version);
-     setSyncMessage("Konflikt različic. Lokalna kopija ni spremenjena. Najprej preglej testno strežniško kopijo.");
-     return;
+   if(!syncEnabled||!online)throw new Error("Testna sinhronizacija ni omogočena.");
+   const pending=await readDemoOutbox(companyId);
+   if(!pending||pending.state!==SYNC_STATE.queued)
+     throw new Error("Najprej izrecno uvrsti šifriran demo v vrsto.");
+   // No GET before POST: preserves original UUID when an acknowledgment is lost.
+   const next=await transmitDemoOutbox(pending,companyId,createSyntheticSyncClient());
+   await updateDemoOutbox(next,companyId);
+   setQueued(next);setSyncVersion(next.serverVersion);
+   if(next.state===SYNC_STATE.conflict){
+     setSyncState("conflict");
+     setSyncMessage("Konflikt! Strežniška verzija "+next.serverVersion+
+       ". Lokalni šifrirani dogodek ostane nespremenjen; ročno ga izvozi ali odstrani.");
+   }else{
+     localStorage.setItem(syncMetaKey(companyId),JSON.stringify({ackVersion:next.serverVersion}));
+     setSyncState("synced");
+     setSyncMessage("Ročno potrjen sintetični dogodek. UUID in šifrirana ovojnica ostaneta v vrsti.");
    }
-   if(decision.state==="already-synced"){
-     setSyncState("synced");setSyncVersion(remote.version);
-     setSyncMessage("Enaka šifrirana kopija je že na testnem strežniku.");return;
-   }
-   const event=retry?pending:(pending?.hash===localHash&&
-     pending.expectedVersion===remote.version?pending:{
-       id:crypto.randomUUID(),hash:localHash,expectedVersion:remote.version
-     });
-   localStorage.setItem(syncMetaKey(companyId),JSON.stringify({...meta,pending:event}));
-   const result=await client.upload(companyId,{
-     eventId:event.id,expectedVersion:event.expectedVersion,envelope:local
-   });
-   localStorage.setItem(syncMetaKey(companyId),JSON.stringify({
-     hash:localHash,ackVersion:result.version
-   }));
-   setSyncVersion(result.version);setSyncState("synced");
-   setSyncMessage("Sintetična šifrirana ovojnica sprejeta v lokalnem testnem API-ju. Ni poslovne transakcije.");
  });
  const retrieveEncrypted=()=>perform(async()=>{
    if(!syncEnabled||password.length<12)throw new Error("Vnesi lokalno testno geslo.");
