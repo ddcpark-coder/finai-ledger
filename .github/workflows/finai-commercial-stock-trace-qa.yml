@@ -4,6 +4,7 @@ on:
     paths:
       - "app/business/**"
       - "tests/demoCommercialFlow.test.mjs"
+      - "tests/syntheticLedgerClient.test.mjs"
       - ".github/workflows/finai-commercial-stock-trace-qa.yml"
 permissions:
   contents: read
@@ -19,4 +20,4 @@ jobs:
         with:
           node-version: "22"
       - name: Verify synthetic reservations, dispatch and tenant separation
-        run: node --test tests/demoCommercialFlow.test.mjs
+        run: node --test tests/demoCommercialFlow.test.mjs tests/syntheticLedgerClient.test.mjs
