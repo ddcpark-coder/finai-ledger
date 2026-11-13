@@ -23,6 +23,7 @@ internal sealed class MainWindow : Form
     private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
     private readonly LocalDraftStore drafts = new();
     private readonly SyntheticDeliveryQueue deliveryQueue = new();
+    private readonly SyntheticMobileOutboxImport mobileImports = new();
     private double displayZoom = 1.0;
     private readonly Button zoomReset = new()
     {
@@ -335,6 +336,49 @@ internal sealed class MainWindow : Form
                     var deleteCompany = root.GetProperty("companyId").GetString() ?? "";
                     var deleteId = root.GetProperty("id").GetString() ?? "";
                     Respond(id, new { ok = true, deleted = deliveryQueue.Remove(deleteCompany, deleteId) });
+                    break;
+                case "queue.import-mobile":
+                    var importCompany = root.GetProperty("companyId").GetString() ?? "";
+                    using (var picker = new OpenFileDialog
+                    {
+                        Title = "Izberi šifriran sintetični mobilni dogodek FinAI",
+                        Filter = "FinAI šifriran demo JSON (*.json)|*.json",
+                        CheckFileExists = true, Multiselect = false
+                    })
+                    {
+                        if (picker.ShowDialog(this) != DialogResult.OK)
+                        {
+                            Respond(id, new { ok = true, cancelled = true });
+                            break;
+                        }
+                        try
+                        {
+                            var imported = mobileImports.ImportFile(picker.FileName, importCompany);
+                            Respond(id, new { ok = true, entry = imported });
+                        }
+                        catch (Exception)
+                        {
+                            // Browser never learns the path, file contents or private exceptions.
+                            Respond(id, new { ok = false, error = "Sintetični uvoz je zavrnjen." });
+                        }
+                    }
+                    break;
+                case "queue.imported-list":
+                    try
+                    {
+                        var importListCompany = root.GetProperty("companyId").GetString() ?? "";
+                        var summary = mobileImports.Read(importListCompany);
+                        Respond(id, new { ok = true, entry = summary });
+                    }
+                    catch (Exception)
+                    {
+                        Respond(id, new { ok = false, error = "Uvožene sintetične vrste ni mogoče preveriti." });
+                    }
+                    break;
+                case "queue.imported-delete":
+                    var importDeleteCompany = root.GetProperty("companyId").GetString() ?? "";
+                    var importEvent = root.GetProperty("eventId").GetString() ?? "";
+                    Respond(id, new { ok = true, deleted = mobileImports.Remove(importDeleteCompany, importEvent) });
                     break;
                 case "offline.status":
                     Respond(id, new { ok = true, local = true, database = "sqlite-dpapi", sync = "disabled" });

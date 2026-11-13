@@ -99,6 +99,9 @@ jobs:
           & dist/windows/EIntegrator.Desktop.exe --delivery-queue-self-test
           if ($LASTEXITCODE -ne 0) { throw "Synthetic delivery queue integrity test failed, code $LASTEXITCODE" }
           Write-Output 'FINAI_OFFLINE_SYNTHETIC_DELIVERY_QUEUE=PASS'
+          & dist/windows/EIntegrator.Desktop.exe --mobile-import-self-test
+          if ($LASTEXITCODE -ne 0) { throw "Encrypted synthetic mobile import validation failed, code $LASTEXITCODE" }
+          Write-Output 'FINAI_WINDOWS_MOBILE_SYNTHETIC_IMPORT=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
       - name: Acquire Microsoft offline WebView2 runtime and verify its signature

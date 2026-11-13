@@ -37,6 +37,7 @@ export default function OfflinePage() {
   const [queueItems,setQueueItems] = useState([]);
   const [queueBusy,setQueueBusy] = useState(false);
   const [queueMessage,setQueueMessage] = useState("");
+  const [importedMobile,setImportedMobile] = useState(null);
   const pending = useRef(new Map());
 
   function send(type, data = {}) {
@@ -69,6 +70,35 @@ export default function OfflinePage() {
       setQueueItems([]);
       setQueueMessage("Testna vrsta ni dosegljiva.");
     }
+  }
+  async function refreshImported(companyId){
+    try{
+      const result=await send("queue.imported-list",{companyId});
+      if(!result.ok)throw new Error("Import unreadable");
+      setImportedMobile(result.entry??null);
+    }catch{setImportedMobile(null);setQueueMessage("Uvožene mobilne kopije ni mogoče preveriti.");}
+  }
+  async function importEncryptedMobile(){
+    if(queueBusy)return;
+    setQueueBusy(true);setQueueMessage("");
+    try{
+      const result=await send("queue.import-mobile",{companyId:queueCompany});
+      if(!result.ok)throw new Error("Native import rejected");
+      if(!result.cancelled){
+        await refreshImported(queueCompany);
+        setQueueMessage("Šifrirana sintetična mobilna ovojnica je ročno uvožena in zaščitena z Windows DPAPI. Ni dešifrirana ali poslana v oblak.");
+      }
+    }catch{setQueueMessage("Uvoz je zavrnjen. Dovoljeni so samo pravilni šifrirani demo dogodki izbranega podjetja.");}
+    finally{setQueueBusy(false);}
+  }
+  async function removeImportedMobile(){
+    if(!importedMobile||!window.confirm("Odstranim samo Windows kopijo uvoženega šifriranega dogodka?"))return;
+    try{
+      const result=await send("queue.imported-delete",{companyId:queueCompany,eventId:importedMobile.EventId});
+      if(!result.ok||!result.deleted)throw new Error("Remove rejected");
+      await refreshImported(queueCompany);
+      setQueueMessage("Uvožena šifrirana mobilna kopija je odstranjena samo iz Windows shrambe.");
+    }catch{setQueueMessage("Uvožene kopije ni mogoče odstraniti.");}
   }
   async function addQueueItem(){
     if(queueBusy)return;
@@ -104,7 +134,7 @@ export default function OfflinePage() {
     bridge.addEventListener("message", onMessage);
     setConnected(true);
     send("offline.status").then((result) => {
-      if (result?.ok && result.local) return Promise.all([refresh(),refreshQueue("1")]);
+      if (result?.ok && result.local) return Promise.all([refresh(),refreshQueue("1"),refreshImported("1")]);
       setMessage("Lokalno shranjevanje ni pripravljeno.");
     }).catch(() => setMessage("Lokalno shranjevanje ni dosegljivo."));
     return () => {
@@ -190,8 +220,8 @@ export default function OfflinePage() {
             disabled={!connected||queueBusy}
             onChange={async e=>{
               const companyId=e.target.value;
-              setQueueCompany(companyId);setQueueItems([]);setQueueMessage("");
-              await refreshQueue(companyId);
+              setQueueCompany(companyId);setQueueItems([]);setImportedMobile(null);setQueueMessage("");
+              await Promise.all([refreshQueue(companyId),refreshImported(companyId)]);
             }} style={{padding:"12px",background:"#091725",color:"#edf8ff",border:"1px solid #375367",borderRadius:9,minWidth:180}}>
             <option value="1">Podjetje A</option>
             <option value="2">Podjetje B</option>
@@ -212,6 +242,16 @@ export default function OfflinePage() {
               <button type="button" className="ghost" onClick={()=>removeQueueItem(item.Id)}>Odstrani iz vrste</button>
             </div>
           </article>)}
+          <div style={{marginTop:22,paddingTop:18,borderTop:"1px solid #294b5b"}}>
+            <h3>Uvoz šifriranega mobilnega demo dogodka</h3>
+            <p className="muted">Prenesi šifrirano vrsto iz mobilnega /field/ in jo ročno izberi v Windows aplikaciji. Uvoz je omejen na sintetično podjetje; shramba je zaščitena z DPAPI. To ni preverjen elektronski podpis ali sinhronizacija.</p>
+            <button type="button" disabled={!connected||queueBusy} onClick={importEncryptedMobile}>Uvozi šifrirano mobilno vrsto (JSON)</button>
+            {importedMobile?<article className="draft">
+              <strong>{importedMobile.DocumentId}</strong>
+              <p>Uvoženo, a brez dešifriranja · {importedMobile.State} · UUID: {importedMobile.EventId}</p>
+              <button type="button" className="ghost" disabled={queueBusy} onClick={removeImportedMobile}>Odstrani uvoženi dogodek</button>
+            </article>:<p className="muted">Za izbrano podjetje ni uvoženega mobilnega dogodka.</p>}
+          </div>
         </section>
         <p className="footer">Offline-first zasnova · Testni osnutki se ne pošiljajo na strežnik · <Link href="/">Predogled ostalih FinAI modulov</Link> · Produkcijsko knjiženje še ni omogočeno.</p>
       </div>
