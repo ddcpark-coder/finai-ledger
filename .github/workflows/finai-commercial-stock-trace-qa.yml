@@ -1,0 +1,22 @@
+name: FinAI synthetic commercial stock trace QA
+on:
+  pull_request:
+    paths:
+      - "app/business/**"
+      - "tests/demoCommercialFlow.test.mjs"
+      - ".github/workflows/finai-commercial-stock-trace-qa.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-stock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify synthetic reservations, dispatch and tenant separation
+        run: node --test tests/demoCommercialFlow.test.mjs

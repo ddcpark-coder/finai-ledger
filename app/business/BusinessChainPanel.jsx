@@ -3,7 +3,7 @@
 import {useEffect,useState} from "react";
 import {
  DEMO_FLOW_STAGES,createDemoCommercialFlow,demoFlowKey,
- restoreDemoCommercialFlow,transitionDemoCommercialFlow,upcomingFlowAction
+ restoreDemoCommercialFlow,transitionDemoCommercialFlow,upcomingFlowAction,demoInventoryTrace
 } from "./demoCommercialFlow.mjs";
 
 const modules={
@@ -46,6 +46,18 @@ export default function BusinessChainPanel({companyId,moduleKey}){
    if(!active)return;
    setFlow(null);setNotice("Ponastavljen je samo demonstracijski poslovni tok izbranega podjetja.");
  };
+ const exportStockTrace=()=>{
+   if(!active||!flow)return;
+   try{
+     const trace=demoInventoryTrace(flow,companyId);
+     const blob=new Blob([JSON.stringify(trace,null,2)],{type:"application/json"});
+     const url=URL.createObjectURL(blob),link=document.createElement("a");
+     link.href=url;link.download="finai-sinteticna-zaloga-"+companyId+".json";
+     document.body.appendChild(link);link.click();link.remove();
+     window.setTimeout(()=>URL.revokeObjectURL(url),3000);
+     setNotice("Izvožena je le sintetična sled rezervacije in izdaje. Dejanske zaloge niso spremenjene.");
+   }catch(error){setNotice(error.message)}
+ };
  const stages=Object.entries(DEMO_FLOW_STAGES);
  const currentIdx=flow?stages.findIndex(([code])=>code===flow.stage):-1;
  return <section aria-label="Povezani demonstracijski poslovni tok"
@@ -56,6 +68,11 @@ export default function BusinessChainPanel({companyId,moduleKey}){
      knjiženja, dokumentov ali davčne potrditve. Shranjeno le v seji tega brskalnika.
    </p>
    {flow&&<p style={{fontSize:11,margin:"0 0 9px"}}><b>{flow.id}</b> · {flow.partner} · {format(flow.grossCents)} · {DEMO_FLOW_STAGES[flow.stage].label}</p>}
+   {flow?.inventory&&<p style={{fontSize:10,margin:"0 0 9px",color:"var(--muted)"}}>
+     Demo SKU: <b>{flow.inventory.sku}</b> · za naročilo {flow.inventory.required} kos
+     · na zalogi {flow.inventory.onHand} · rezervirano {flow.inventory.reserved}
+     · demo izdano {flow.inventory.dispatched}. Brez vpliva na modul Zaloge.
+   </p>}
    <ol aria-label="Koraki demonstracijskega poslovnega toka"
      style={{display:"flex",flexWrap:"wrap",gap:7,padding:0,margin:"0 0 11px",listStyle:"none"}}>
      {stages.map(([code,step],idx)=><li key={code}
@@ -69,6 +86,7 @@ export default function BusinessChainPanel({companyId,moduleKey}){
    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
      {canAdvance&&<button type="button" className="primary" onClick={advance}>{next.label}</button>}
      {active&&flow&&<button type="button" className="secondary" onClick={reset}>Ponastavi poslovni demo</button>}
+     {active&&flow&&<button type="button" className="secondary" onClick={exportStockTrace}>Izvozi demo sled zalog</button>}
      {active&&next&&next.module!==moduleKey&&<a
        href={"/?module="+encodeURIComponent(next.module)}
        style={{color:"var(--accent)",fontSize:11}}>
