@@ -12,6 +12,8 @@ import {
 import {
  createSyntheticSyncClient,syntheticSyncAvailable,planSyntheticUpload
 } from "../documents/syntheticSyncClient.mjs";
+import {SYNC_STATE,readDemoOutbox,queueEncryptedDemoProof,transmitDemoOutbox,
+ updateDemoOutbox,discardDemoOutbox} from "../documents/demoReceiptOutbox.mjs";
 
 // A deliberately separate synthetic-only mobile route. Never cache real data,
 // API responses or credentials. No network sync or certified signature.
@@ -128,6 +130,7 @@ export default function FieldDemo(){
  const [syncState,setSyncState]=useState("local-only");
  const [syncVersion,setSyncVersion]=useState(null);
  const [syncMessage,setSyncMessage]=useState("");
+ const [queued,setQueued]=useState(null);
  const syncEnabled=syntheticSyncAvailable();
  const syncMetaKey=id=>"finai:synthetic-sync-test:company-"+id;
  const syncMeta=id=>{
@@ -162,10 +165,16 @@ export default function FieldDemo(){
   }).catch(()=>{if(active)setHasLocalCopy(false)});
   return()=>{active=false};
  },[companyId]);
+ useEffect(()=>{
+  let active=true;
+  readDemoOutbox(companyId).then(value=>{if(active)setQueued(value)})
+   .catch(error=>{if(active){setQueued(null);setSyncMessage(error.message)}});
+  return()=>{active=false};
+ },[companyId]);
  const changeCompany=value=>{
   setCompanyId(value);setSigner("Sintetični prejemnik");setSignature("");
   setConsent(false);setProof(null);setPassword("");setHasLocalCopy(false);setStatus("");
-  setPdfBundle(null);
+  setPdfBundle(null);setQueued(null);
   setSyncState("local-only");setSyncVersion(null);setSyncMessage("");
  };
  const perform=async(fn)=>{
@@ -181,7 +190,9 @@ export default function FieldDemo(){
  });
  const save=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej zaključi demonstracijski podpis.");
-  const encrypted=await encryptDemoProof(proof,companyId,password);
+  if(await readDemoOutbox(companyId))
+    throw new Error("Najprej ročno razreši oziroma odstrani obstoječi dogodek iz vrste.");
+   const encrypted=await encryptDemoProof(proof,companyId,password);
   await storeEncryptedDemoProof(encrypted,companyId);
   setPassword("");setHasLocalCopy(true);
   setStatus("Šifrirana kopija je shranjena na tej napravi; nič ni poslano na strežnik.");
@@ -194,7 +205,9 @@ export default function FieldDemo(){
   setStatus("Lokalno dokazilo je dešifrirano in preverjeno.");
  });
  const remove=()=>perform(async()=>{
-  if(!window.confirm("Izbrišem samo lokalno šifrirano demo kopijo?"))return;
+  if(await readDemoOutbox(companyId))
+    throw new Error("Pred brisanjem kopije ročno odstrani dogodek iz vrste.");
+   if(!window.confirm("Izbrišem samo lokalno šifrirano demo kopijo?"))return;
   await deleteEncryptedDemoProof(companyId);
   setHasLocalCopy(false);setStatus("Lokalna šifrirana kopija izbrisana.");
  });
@@ -252,6 +265,8 @@ export default function FieldDemo(){
  });
  const retrieveEncrypted=()=>perform(async()=>{
    if(!syncEnabled||password.length<12)throw new Error("Vnesi lokalno testno geslo.");
+   if(await readDemoOutbox(companyId))
+    throw new Error("Pred obnovo najprej razreši ali odstrani obstoječi dogodek iz vrste.");
    const latest=await createSyntheticSyncClient().latest(companyId);
    if(!latest.envelope)throw new Error("Testni strežnik nima kopije za izbranega uporabnika.");
    // First authenticate/decrypt fully; on failure leave local vault untouched.
