@@ -364,9 +364,16 @@ internal sealed class MainWindow : Form
                     }
                     break;
                 case "queue.imported-list":
-                    var importListCompany = root.GetProperty("companyId").GetString() ?? "";
-                    var summary = mobileImports.Read(importListCompany);
-                    Respond(id, new { ok = true, entry = summary });
+                    try
+                    {
+                        var importListCompany = root.GetProperty("companyId").GetString() ?? "";
+                        var summary = mobileImports.Read(importListCompany);
+                        Respond(id, new { ok = true, entry = summary });
+                    }
+                    catch (Exception)
+                    {
+                        Respond(id, new { ok = false, error = "Uvožene sintetične vrste ni mogoče preveriti." });
+                    }
                     break;
                 case "queue.imported-delete":
                     var importDeleteCompany = root.GetProperty("companyId").GetString() ?? "";
