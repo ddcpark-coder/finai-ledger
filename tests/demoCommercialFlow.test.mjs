@@ -91,5 +91,5 @@ test("browser-tampered stock is reconstructed rather than trusted in exported de
  assert.throws(()=>demoInventoryTrace(impossible,3),/veljaven/);
  assert.throws(()=>transitionDemoCommercialFlow({
   ...createDemoCommercialFlow(1),inventory:{onHand:-1}
- },"send_quote",1),/zaloge/);
+ },"send_quote",1),/zalog/);
 });
