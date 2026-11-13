@@ -39,10 +39,10 @@ final class SyntheticTransactionalScenarioTest extends TestCase
             'key' => 'synthetic-'.$user->id, 'name' => 'Synthetic tester', 'system' => true,
         ]);
         if ($canPost) {
-            $permission = DB::table('permissions')->where('key', 'accounting.post')->value('id');
+            $permission = DB::table('permissions')->where('key', 'ledger.post')->value('id');
             if (! $permission) {
                 $permission = DB::table('permissions')->insertGetId([
-                    'key' => 'accounting.post', 'name' => 'Post synthetic accounting events',
+                    'key' => 'ledger.post', 'name' => 'Post synthetic accounting events',
                 ]);
             }
             DB::table('permission_role')->insert([

@@ -15,7 +15,7 @@ Vse količine so cela števila; denar je v centih. `BalanceCalculator::assertBal
 
 ## Kontrole
 
-- Prijava in potrjen e-naslov, veljavno članstvo v podjetju; pisalni test zahteva `accounting.post`.
+- Prijava in potrjen e-naslov, veljavno članstvo v podjetju; pisalni test zahteva `ledger.post`.
 - Sintetični API obstaja samo v `APP_ENV=testing/local` **in** ob eksplicitno vklopljeni zastavici `FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED` (privzeto izključena).
 - `event_id` in `expected_version` z zaklenjeno transakcijo omogočata idempotenten replay ter preprečujeta preskoke verzije.
 - Stanje, dogodek in revizijska sled se zapišejo znotraj *ene* DB transakcije. Testni failpoint sproži izjemo po vnosu dogodka in preveri, da je celoten zapis razveljavljen.
