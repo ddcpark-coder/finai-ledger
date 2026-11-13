@@ -4,6 +4,9 @@ on:
     paths:
       - "app/field/**"
       - "app/documents/syntheticSyncClient.mjs"
+      - "app/documents/demoReceiptOutbox.mjs"
+      - "tests/demoReceiptOutbox.test.mjs"
+      - "tests/e2e/field-outbox.spec.cjs"
       - "app/documents/signatureProviderAdapter.mjs"
       - "tests/syntheticSyncClient.test.mjs"
       - "tests/signatureProviderAdapter.test.mjs"
@@ -36,6 +39,8 @@ jobs:
           npx playwright install chromium
       - name: Verify manual sync protocol and conflict behavior
         run: node --test tests/syntheticSyncClient.test.mjs
+      - name: Verify encrypted outbox retry and conflict invariants
+        run: node --test tests/demoReceiptOutbox.test.mjs
       - name: Verify exact PDF and manifest integrity
         run: node --test tests/signatureProviderAdapter.test.mjs
       - name: Build standalone field PWA with pre-cache and PNG icons
@@ -61,7 +66,7 @@ jobs:
       - name: Verify installed shell works offline on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs
+        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs tests/e2e/field-outbox.spec.cjs
       - name: Failure artifacts only
         if: failure()
         uses: actions/upload-artifact@v4
