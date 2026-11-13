@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Application\Accounting\SyntheticLedgerScenario;
+use App\Domain\Identity\Permission;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ final class SyntheticLedgerScenarioController extends Controller
                 ->where('membership.company_id', $companyId)
                 ->where('membership.user_id', $user->id)
                 ->where('membership.status', 'active')
-                ->where('permission.key', 'accounting.post')->exists();
+                ->where('permission.key', Permission::LedgerPost->value)->exists();
             abort_unless($authorized, 403);
         }
         return (int) $user->id;
