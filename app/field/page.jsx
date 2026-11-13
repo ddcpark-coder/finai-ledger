@@ -393,6 +393,7 @@ export default function FieldDemo(){
   </section>
   <section className="card" aria-label="Ročna testna sinhronizacija">
    <h2>4. Sinhronizacija naprav (razvojni preizkus)</h2>
+   <p className="small">Šifrirano demo dokazilo lahko uvrstiš v lokalno vrsto brez omrežja. Pošiljanje je izključno ročno in na javnem gostovanju varnostno izključeno.</p>
    <p className="small">Vključi se samo na lokalnem razvojno prijavljenem FinAI strežniku.
      Ni samodejnega pošiljanja, produkcijske sinhronizacije ali prenosa na javni račun.
      Druga naprava potrebuje prijavo istega uporabnika in isto lokalno testno geslo.</p>
@@ -401,11 +402,17 @@ export default function FieldDemo(){
      syncState==="ready"?"pripravljeno za ročni prenos":"samo lokalno"}.
      {syncVersion!==null?" Strežniška različica: "+syncVersion+"." : ""}</p>
    <div className="row">
+    <button type="button" className="secondary" disabled={!hasLocalCopy||busy||Boolean(queued)} onClick={queueProof}>Uvrsti šifriran demo v vrsto</button>
+    <button type="button" className="secondary" disabled={!queued||busy} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
+    <button type="button" className="secondary" disabled={!queued||busy} onClick={removeQueue}>Odstrani iz vrste</button>
+   </div>
+   <p className="small" role="status" aria-label="Lokalna sinhronizacijska vrsta">Lokalna vrsta: {queued?queued.state+" · UUID "+queued.clientEventId:"prazna"}.</p>
+   <div className="row">
     <button type="button" className="secondary" disabled={!syncEnabled||busy||!online}
       onClick={checkRemote}>Preveri testno različico</button>
-    <button type="button" className="secondary" disabled={!syncEnabled||busy||!online||!hasLocalCopy}
+    <button type="button" className="secondary" disabled={!syncEnabled||busy||!online||queued?.state!==SYNC_STATE.queued}
       onClick={pushEncrypted}>Ročno pošlji šifriran demo</button>
-    <button type="button" className="secondary" disabled={!syncEnabled||busy||!online||password.length<12}
+    <button type="button" className="secondary" disabled={!syncEnabled||busy||!online||password.length<12||Boolean(queued)}
       onClick={retrieveEncrypted}>Ročno obnovi iz testnega API-ja</button>
    </div>
    {!syncEnabled&&<p className="small">Sinhronizacija je varnostno izključena.
