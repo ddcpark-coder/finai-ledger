@@ -120,6 +120,10 @@ export const contextNavigation = {
     {label:"Finance",children:["Prihodki","Stroški","Marža"]},
     {label:"Dokumenti",children:["Dobavnice","Računi","Priloge"]}
   ],
+  "Integracije":[
+    {label:"Spletne trgovine",children:["WooCommerce","Shopify","Testna vrsta"]},
+    {label:"Vmesnik API",children:["Preslikave SKU","Dogodki","Napake"]}
+  ],
   "Nastavitve":[
     {label:"Podjetje",children:["Osnovni podatki","Branding","Davčni podatki"]},
     {label:"Uporabniki",children:["Uporabniki","Vloge","Dovoljenja"]},

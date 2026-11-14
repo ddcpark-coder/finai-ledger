@@ -23,6 +23,7 @@ const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
 const SalesOrdersWorkspace=dynamic(()=>import("./orders/SalesOrdersWorkspace"),{loading});
 const ProcurementWorkspace=dynamic(()=>import("./procurement/ProcurementWorkspace"),{loading});
 const InventoryWorkspace=dynamic(()=>import("./inventory/InventoryWorkspace"),{loading});
+const OperationsNetworkPanel=dynamic(()=>import("./next11/OperationsNetworkPanel"),{loading});
 const ProjectsWorkspace=dynamic(()=>import("./projects/ProjectsWorkspace"),{loading});
 
 const moduleData={
@@ -388,7 +389,8 @@ export default function Page(){
    "Naročila":"Naročila kupcev, izvedba, rezervacije in fakturiranje.",
    "Nabava":"Povpraševanja, naročilnice, prevzemi in kontrola dobaviteljev.",
    "Zaloge":"Skladišča, zaloga, premiki, rezervacije in inventure.",
-   "Projekti":"Projekti, delovni nalogi, stroški in donosnost."
+   "Projekti":"Projekti, delovni nalogi, stroški in donosnost.",
+   "Integracije":"Spletne trgovine, testna vrsta dogodkov in preslikave artiklov."
  };
  const current=moduleData[section]??{
    subtitle:moduleDescriptions[section]??"Pregled delovnega prostora.",
@@ -533,10 +535,12 @@ export default function Page(){
        {section==="Ponudbe"&&<QuotesWorkspace context={activeContext} companyId={company}/>}
        {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext} companyId={company}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
+       {section==="Zaloge"&&<OperationsNetworkPanel key={company+"-stock"} companyId={company} mode="warehouses"/>}
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
+       {section==="Integracije"&&<OperationsNetworkPanel key={company+"-commerce"} companyId={company} mode="commerce"/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
 
-       {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&<div className="workspace">
+       {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&section!=="Integracije"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
            <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>

@@ -15,6 +15,7 @@ export const modules = [
   { key:"procurement", label:"Nabava", icon:"◈", group:"operations", defaultEnabled:true },
   { key:"inventory", label:"Zaloge", icon:"▦", group:"operations", defaultEnabled:true },
   { key:"projects", label:"Projekti", icon:"▱", group:"operations", defaultEnabled:true },
+  { key:"integrations", label:"Integracije", icon:"↔", group:"system", defaultEnabled:true },
   { key:"settings", label:"Nastavitve", icon:"⚙", group:"system", defaultEnabled:true },
 ];
 
