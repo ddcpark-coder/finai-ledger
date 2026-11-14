@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
+import BusinessBriefCompact from "../next11/BusinessBriefCompact";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../documents/demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "../documents/demoDeliveryPdf.mjs";
 import {createUnsignedPdfManifest,verifyUnsignedPdfManifest} from "../documents/signatureProviderAdapter.mjs";
@@ -419,6 +420,7 @@ export default function FieldDemo(){
      Na javnem predogledu se dokumenti nikamor ne pošiljajo.</p>}
    {syncMessage&&<p className="message" role="status">{syncMessage}</p>}
   </section>
+  <BusinessBriefCompact key={companyId} companyId={companyId} mode="mobile"/>
   <p className="small">Ni dejanskega prevzema, kvalificiranega podpisa, avtomatske sinhronizacije, bančnih ali računovodskih knjižb. Brskalnik lahko lokalne podatke izbriše; to ni produkcijska hramba.</p>
   <Link href="/">Nazaj v FinAI</Link>
  </div></main>;
