@@ -11,4 +11,6 @@ return [
     'synthetic_receipt_sync_enabled' => (bool) env('FINAI_SYNTHETIC_RECEIPT_SYNC_ENABLED', false),
     // Double gate: controller also refuses every non-local/non-testing environment.
     'synthetic_ledger_scenario_enabled' => (bool) env('FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED', false),
+    // No public endpoint: application-layer synthetic commerce staging, local/testing only.
+    'synthetic_commerce_staging_enabled' => (bool) env('FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED', false),
 ];
