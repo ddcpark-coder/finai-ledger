@@ -1,5 +1,6 @@
 "use client";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
+import CrmNext11Panel from "../next11/CrmNext11Panel";
 import {useMemo,useState} from "react";
 
 const deals=[
@@ -23,7 +24,7 @@ const communications=[
 
 const stageOrder=["Kvalifikacija","Odkrivanje","Ponudba","Pogajanja"];
 
-export default function CrmWorkspace({context}){
+export default function CrmWorkspace({context,companyId=1}){
  const [query,setQuery]=useState("");
  const [selected,setSelected]=useState(deals[0]);
  const view=({"Pregled":"Pipeline","Lead-i":"Leadi","Priložnosti":"Pipeline","Kontakti":"Kontakti","Aktivnosti":"Aktivnosti","Napoved":"Napoved"})[context?.level2]??"Pipeline";
@@ -47,6 +48,7 @@ export default function CrmWorkspace({context}){
   @media(max-width:1100px){.crmGrid{grid-template-columns:1fr}.crmTop{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.crmTop{grid-template-columns:1fr 1fr}.crmHead{align-items:flex-start;flex-direction:column}.crmHead input{width:100%}.crmMeta{grid-template-columns:1fr}.listRow{grid-template-columns:1fr 1fr .7fr}.listRow>*:nth-child(3){display:none}}
   `}</style>
 
+  <CrmNext11Panel key={companyId} companyId={companyId}/>
   <div className="crmTop">
    <div className="crmKpi"><small>Pipeline</small><b>{pipelineValue.toLocaleString("sl-SI")} €</b></div>
    <div className="crmKpi"><small>Weighted pipeline</small><b>{weighted.toLocaleString("sl-SI")} €</b></div>

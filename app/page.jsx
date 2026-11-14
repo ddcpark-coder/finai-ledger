@@ -18,6 +18,7 @@ const DocumentsWorkspace=dynamic(()=>import("./documents/DocumentsWorkspace"),{l
 const TaskCenter=dynamic(()=>import("./tasks/TaskCenter"),{loading});
 const CatalogWorkspace=dynamic(()=>import("./catalog/CatalogWorkspace"),{loading});
 const CrmWorkspace=dynamic(()=>import("./crm/CrmWorkspace"),{loading});
+const BusinessIntelligencePanel=dynamic(()=>import("./next11/BusinessIntelligencePanel"),{loading});
 const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
 const SalesOrdersWorkspace=dynamic(()=>import("./orders/SalesOrdersWorkspace"),{loading});
 const ProcurementWorkspace=dynamic(()=>import("./procurement/ProcurementWorkspace"),{loading});
@@ -502,6 +503,7 @@ export default function Page(){
        <AdaptiveWorkspace companyId={company} moduleKey={activeRoute.module} viewKey={(activeRoute.view??"Pregled")+"::"+(activeRoute.subview??"Vsi")}>
        {current.stats.length>0&&<div className="kpis">{current.stats.map(([a,b,c,t])=><article className={toneClass(t)} key={a}><div className="kpiTop"><small>{a}</small><span className="dot"/></div><strong>{b}</strong><em>{c}</em></article>)}</div>}
 
+       {section==="Nadzorna plošča"&&(dashboardOverview||contextLevel2==="Analitika")&&<BusinessIntelligencePanel key={company} companyId={company}/>}
        {dashboardOverview&&<div className="customGrid">{layout.map(item=><DashboardWidget key={item.id} item={item} onDragStart={setDragId} onDrop={dropWidget}/>)}</div>}
         {dashboardOverview&&<TaskCenter companyId={company} compact/>}
         {section==="Nadzorna plošča"&&contextLevel2==="Moje naloge"&&<TaskCenter companyId={company} initialScope={contextLevel3==="Danes"?"today":contextLevel3==="Ta teden"?"week":contextLevel3==="Zamujeno"?"overdue":"all"}/>}
@@ -527,7 +529,7 @@ export default function Page(){
        {section==="eDavki / FURS"&&<EdavkiWorkspace context={activeContext}/>}
        {section==="Dokumenti"&&<DocumentsWorkspace context={activeContext} companyId={company}/>}
        {section==="Artikli in ceniki"&&<CatalogWorkspace context={activeContext}/>}
-       {section==="CRM"&&<CrmWorkspace context={activeContext}/>}
+       {section==="CRM"&&<CrmWorkspace context={activeContext} companyId={company}/>}
        {section==="Ponudbe"&&<QuotesWorkspace context={activeContext} companyId={company}/>}
        {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext} companyId={company}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
