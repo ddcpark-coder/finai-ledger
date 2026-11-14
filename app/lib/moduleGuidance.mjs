@@ -15,6 +15,7 @@ const guides={
  orders:["Kako spremljam naročilo?","Naročilo povezuje sprejeto ponudbo, izvedbo in fakturiranje.","Spremljaj status in pomembne korake izvedbe; demonstracija še ne sproži računov."],
  procurement:["Kako poteka nabava?","Nabava zajema potrebe, ponudbe dobaviteljev in prevzeme.","Primerjaj ponudbe ter preveri naročeno in prejeto količino."],
  inventory:["Kako spremljam zalogo?","Zaloge prikazujejo količine po skladiščih in premikih.","Preveri lokacijo, razpoložljivo količino in morebitna opozorila."],
+ integrations:["Kako delujejo spletne trgovine?","Testni pogled preverja preslikavo artiklov, zneske in preprečevanje dvojnih naročil.","Izberi WooCommerce ali Shopify in pripravi izmišljeno naročilo v vrsto za pregled; pravi API-ji in knjiženje so izključeni."],
  projects:["Kako spremljam projekt?","Projekt združuje naloge, delovne ure in stroške.","Začni s pregledom odprtih nalog, nato preveri porabo časa in sredstev."],
  settings:["Kako prilagodim FinAI?","Nastavitve vplivajo na podjetje, videz in dostop.","Izberi podjetje in prilagodi razporeditev, zahtevnost ter velikost besedila."]
 };
