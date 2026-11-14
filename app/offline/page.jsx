@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import BusinessBriefCompact from "../next11/BusinessBriefCompact";
 
 const protocol = "finai.offline.v1";
 const css = [
@@ -186,6 +187,7 @@ export default function OfflinePage() {
         <div className="eyebrow">Samostojna namizna različica · OFFLINE-01</div>
         <h1>FinAI deluje tudi<br/>brez interneta.</h1>
         <p className="intro">To je prvi lokalni prototip. Osnutki se shranjujejo v SQLite zbirko na tvojem računalniku in so zaščiteni s šifriranjem Windows. Za njihovo ustvarjanje, ponovno odpiranje in brisanje ni potrebna internetna povezava.</p>
+        <BusinessBriefCompact key={queueCompany} companyId={Number(queueCompany)} mode="windows"/>
         <div className="grid">
           <section className="panel">
             <h2>Nov lokalni osnutek</h2>
