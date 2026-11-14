@@ -30,11 +30,12 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
  const total=networkStockTotals(state,companyId);
  const move=()=>{
   try{
-   setState(current=>transferDemoStock(current,companyId,{
+   const next=transferDemoStock(state,companyId,{
      fromWarehouseId:sourceId,toWarehouseId:targetId,sku:effectiveSku,
-     quantity:1,eventId:"SYN-XFER-"+String(current.version+1),
-     expectedVersion:current.version
-   }));
+     quantity:1,eventId:"SYN-XFER-"+String(state.version+1),
+     expectedVersion:state.version
+   });
+   setState(next);
    setNotice("Zabeležen sintetični medskladiščni prenos 1 enote.");
   }catch(error){setNotice(error.message)}
  };
