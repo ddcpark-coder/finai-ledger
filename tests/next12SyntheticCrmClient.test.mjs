@@ -91,8 +91,8 @@ test("invalid client events and permissions fail closed without automatic retrie
  });
  await assert.rejects(denied.read(1),e=>e.status===403);
  assert.equal(calls,1);
- assert.throws(()=>denied.register(1,{...deal,id:"REAL-101"}),/Neveljavni/);
- assert.throws(()=>denied.advance(1,{...deal,companyId:2},"Odkrivanje"),/Neveljaven/);
+ await assert.rejects(denied.register(1,{...deal,id:"REAL-101"}),/Neveljavni/);
+ await assert.rejects(denied.advance(1,{...deal,companyId:2},"Odkrivanje"),/Neveljaven/);
  assert.equal(calls,1);
  const missingCsrf=createSyntheticCrmClient({
   base,origin,cookie:()=>"",fetcher:async()=>response(204,null)
