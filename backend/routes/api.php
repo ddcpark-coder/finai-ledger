@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
 use App\Http\Controllers\Api\SyntheticReceiptSyncController;
 use App\Http\Controllers\Api\SyntheticLedgerScenarioController;
+use App\Http\Controllers\Api\SyntheticCrmPipelineController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -66,6 +67,16 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
         [SyntheticLedgerScenarioController::class, 'show'])->whereNumber('companyId');
     Route::post('/companies/{companyId}/demo/ledger-scenario/events',
         [SyntheticLedgerScenarioController::class, 'advance'])->whereNumber('companyId');
+
+
+    // NEXT12: explicitly enabled local/testing synthetic CRM only; no public ERP writes.
+    Route::get('/companies/{companyId}/demo/crm/opportunities',
+        [SyntheticCrmPipelineController::class, 'index'])->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/crm/opportunities',
+        [SyntheticCrmPipelineController::class, 'store'])->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/crm/opportunities/{dealId}/advance',
+        [SyntheticCrmPipelineController::class, 'advance'])
+        ->whereNumber('companyId')->where('dealId', 'SYN-CRM-[A-Z0-9-]+');
 
     // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
     Route::get('/companies/{companyId}/demo/incoming-invoices',
