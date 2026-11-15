@@ -1,6 +1,7 @@
 "use client";
 
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
+import {createSyntheticCrmClient,syntheticCrmAvailable} from "./syntheticCrmClient.mjs";
 import {
   DEMO_PIPELINE_STAGES,advanceDemoOpportunity,buildDemoCrmActivity,
   demoBusinessUnits,demoCrmPipeline,demoCrmSummary
@@ -18,6 +19,38 @@ export default function CrmNext11Panel({companyId}){
  const [selectedId,setSelectedId]=useState(null);
  const [unitId,setUnitId]=useState("all");
  const [notice,setNotice]=useState("");
+ const [localAvailable,setLocalAvailable]=useState(false);
+ const [connected,setConnected]=useState(false);
+ const [busy,setBusy]=useState(false);
+ useEffect(()=>{setLocalAvailable(syntheticCrmAvailable());},[]);
+ useEffect(()=>{
+  setDeals(demoCrmPipeline(companyId));setActivities([]);setSelectedId(null);
+  setConnected(false);setNotice("");
+ },[companyId]);
+ const connectLocal=async()=>{
+  if(busy||!localAvailable)return;
+  setBusy(true);setNotice("");
+  try{
+   const client=createSyntheticCrmClient();
+   const source=demoCrmPipeline(companyId);
+   // Manual only. Replays never reset an already advanced local demo deal.
+   for(const deal of source)await client.register(companyId,deal);
+   const saved=await client.read(companyId);
+   const byId=new Map(saved.map(deal=>[deal.id,deal]));
+   if(saved.length!==source.length||source.some(original=>{
+    const row=byId.get(original.id);
+    return !row||row.unitId!==original.unitId||
+     row.valueCents!==original.valueCents;
+   }))throw new Error("Lokalna CRM baza ni skladna s sintetičnimi primeri.");
+   setDeals(source.map(original=>{
+    const row=byId.get(original.id);
+    return {...original,stage:row.stage,version:row.version};
+   }));
+   setConnected(true);
+   setNotice("Sintetični CRM je povezan z izolirano lokalno bazo. Samo ročno sprožena dejanja.");
+  }catch(error){setConnected(false);setNotice(error.message);}
+  finally{setBusy(false);}
+ };
  const units=useMemo(()=>demoBusinessUnits(companyId),[companyId]);
  const selected=deals.find(d=>d.id===selectedId)??deals[0];
  const effectiveUnit=units.some(u=>u.id===unitId)?unitId:"all";
@@ -26,13 +59,25 @@ export default function CrmNext11Panel({companyId}){
  const next=selected?DEMO_PIPELINE_STAGES[
     DEMO_PIPELINE_STAGES.indexOf(selected.stage)+1
  ]:null;
- const progress=()=>{
+ const progress=async()=>{
+  if(busy||!selected||!next)return;
+  setBusy(true);
   try{
-   setDeals(current=>advanceDemoOpportunity(
-    current,companyId,selected.id,next,selected.version
-   ));
+   if(connected){
+    const saved=await createSyntheticCrmClient().advance(companyId,selected,next);
+    if(saved.id!==selected.id||saved.unitId!==selected.unitId||
+       saved.valueCents!==selected.valueCents)
+      throw new Error("Neskladen odgovor CRM strežnika.");
+    setDeals(current=>current.map(d=>d.id===saved.id?
+     {...d,stage:saved.stage,version:saved.version}:d));
+   }else{
+    setDeals(current=>advanceDemoOpportunity(
+     current,companyId,selected.id,next,selected.version
+    ));
+   }
    setNotice("Sintetična priložnost je premaknjena v fazo "+next+".");
   }catch(error){setNotice(error.message);}
+  finally{setBusy(false);}
  };
  const createActivity=()=>{
   try{
@@ -43,8 +88,10 @@ export default function CrmNext11Panel({companyId}){
   }catch(error){setNotice(error.message);}
  };
  const reset=()=>{
-  setDeals(demoCrmPipeline(companyId));setActivities([]);
-  setNotice("Sintetični CRM je ponastavljen.");setSelectedId(null);
+  if(busy)return;
+  setConnected(false);setDeals(demoCrmPipeline(companyId));setActivities([]);
+  setNotice("Ponastavljen je samo prikaz v brskalniku; podatki lokalne testne baze niso izbrisani.");
+  setSelectedId(null);
  };
  return <section aria-label="FinAI NEXT11 CRM – interaktivna sintetična predstavitev"
   style={box}>
@@ -52,7 +99,8 @@ export default function CrmNext11Panel({companyId}){
    justifyContent:"space-between",flexWrap:"wrap"}}>
    <div><h3 style={{margin:0,fontSize:13}}>CRM 360 · interaktivni prodajni lijak</h3>
     <p style={{fontSize:10,color:"var(--muted)",margin:"6px 0"}}>
-     Sintetični podatki; spremembe veljajo samo do ponovnega odprtja tega pogleda.</p></div>
+     {connected?"Sintetični podatki v izolirani lokalni CRM bazi; brez povezav s produkcijo.":
+      "Sintetični podatki; spremembe veljajo samo do ponovnega odprtja tega pogleda."}</p></div>
    <div style={{display:"flex",gap:8}}>
     <label style={{fontSize:10,color:"var(--muted)"}}>Poslovna enota
      <select aria-label="Filtriraj CRM po poslovni enoti" value={effectiveUnit}
@@ -63,6 +111,11 @@ export default function CrmNext11Panel({companyId}){
       {units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
      </select>
     </label>
+    {localAvailable&&<button type="button" className="secondary"
+     disabled={busy||connected} onClick={connectLocal}
+     style={{alignSelf:"end",fontSize:10}}>
+     {busy?"Povezovanje ...":connected?"Lokalni CRM povezan":"Poveži lokalno testno CRM bazo"}
+    </button>}
     <button type="button" className="secondary" onClick={reset}
      style={{alignSelf:"end",fontSize:10}}>Ponastavi demo</button>
    </div>
@@ -98,7 +151,7 @@ export default function CrmNext11Panel({companyId}){
        {selected.partner} · {selected.unitId} · verzija {selected.version}
       </p>
     </div>
-    <button type="button" className="primary" onClick={progress} disabled={!next}
+    <button type="button" className="primary" onClick={progress} disabled={!next||busy}
       style={{fontSize:10}}>{next?"Premakni v: "+next:"Priložnost zaključena"}</button>
     <button type="button" className="secondary" onClick={createActivity}
       style={{fontSize:10}}>Dodaj demo opomnik</button>
