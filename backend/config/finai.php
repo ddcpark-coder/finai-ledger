@@ -13,4 +13,6 @@ return [
     'synthetic_ledger_scenario_enabled' => (bool) env('FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED', false),
     // No public endpoint: application-layer synthetic commerce staging, local/testing only.
     'synthetic_commerce_staging_enabled' => (bool) env('FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED', false),
+    // Optional LOCAL/TESTING persistent synthetic CRM demo; off by default.
+    'synthetic_crm_persistence_enabled' => (bool) env('FINAI_SYNTHETIC_CRM_PERSISTENCE_ENABLED', false),
 ];
