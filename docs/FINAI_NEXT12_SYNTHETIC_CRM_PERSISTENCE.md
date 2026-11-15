@@ -45,3 +45,12 @@ Novo tabelo migriraj **izključno** v izolirani lokalni/testni SQLite/MariaDB po
 - Windows in mobilna offline različica obdržita obstoječi read-only sintetični KPI prikaz in lokalno šifrirano vrsto; sinhronizacija ni aktivirana.
 - Odprti PR #34/#35/#87/#88 se ne združujejo na slepo zaradi zastarelih baz in morebitnih podvojenih funkcij.
 - Gostovanje `laskot48` ostaja izključno read-only. Prepoved kakršnekoli spremembe Laškoteke, STNG in skupnih cPanel/SSH nastavitev ostaja absolutna.
+
+## NEXT-12B — ročni lokalni most do spletnega CRM prikaza
+
+- `app/next11/syntheticCrmClient.mjs` dovoljuje samo isti lokalni `localhost`/`127.0.0.1` izvor in natanko pot `/api`, z eksplicitno nastavitvijo `NEXT_PUBLIC_FINAI_SYNTHETIC_CRM_API_BASE=http://127.0.0.1:3000/api` v lokalni sestavi. To **ni** produkcijska nastavitev.
+- V CRM NEXT11 se **samo v lokalnem predogledu** pojavi gumb »Poveži lokalno testno CRM bazo«. Pred klikom ni nobene CRM HTTP zahteve; brez veljavne lokalne prijave, CSRF piškotka in backendove dovolilnice dejanje zavrne.
+- Ob ročnem vklopu so predizpolnjene sintetične priložnosti vpisane idempotentno; lokalno stanje se prebere nazaj in preveri identiteta podjetja, enote, vrednosti ter faze. Naslednji ročni premik se izvede strežniško z nadzorom verzije.
+- »Ponastavi demo« ob povezavi odklopi **samo prikaz**, nikoli ne briše trajne testne baze ali knjižb. Windows/mobile offline KPI ostaneta popolnoma read-only.
+- Demo poslovne enote in uporabniško članstvo/prijavo je treba pred ročnim lokalnim testom ustvariti v namenski izolirani bazi; most ne odpira ali ustvarja produkcijskih poslovnih enot.
+- QA: `node --test tests/next11BusinessModel.test.mjs tests/next12SyntheticCrmClient.test.mjs`. Obravnava se dovoljenje samo lokalnega izvora, prepoved PII/podatkov drugih podjetij, CSRF, 401/403/409 ter odsotnost samodejnih ponovnih poskusov.
