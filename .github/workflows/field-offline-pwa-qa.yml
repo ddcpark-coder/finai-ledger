@@ -10,6 +10,9 @@ on:
       - "tests/demoOutboxPortable.test.mjs"
       - "tests/e2e/field-outbox.spec.cjs"
       - "tests/e2e/field-two-device-transfer.spec.cjs"
+      - "app/field/deviceReadiness.mjs"
+      - "tests/fieldDeviceReadiness.test.mjs"
+      - "tests/e2e/field-device-readiness.spec.cjs"
       - "app/documents/signatureProviderAdapter.mjs"
       - "tests/syntheticSyncClient.test.mjs"
       - "tests/signatureProviderAdapter.test.mjs"
@@ -42,6 +45,8 @@ jobs:
           npx playwright install chromium
       - name: Verify manual sync protocol and conflict behavior
         run: node --test tests/syntheticSyncClient.test.mjs
+      - name: Verify local mobile diagnostics, privacy and no network dependency
+        run: node --test tests/fieldDeviceReadiness.test.mjs
       - name: Verify encrypted outbox retry and conflict invariants
         run: node --test tests/demoReceiptOutbox.test.mjs
       - name: Verify encrypted portable mobile outbox company and checksum guards
@@ -71,7 +76,7 @@ jobs:
       - name: Verify installed shell works offline on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs tests/e2e/field-outbox.spec.cjs tests/e2e/field-two-device-transfer.spec.cjs
+        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs tests/e2e/field-outbox.spec.cjs tests/e2e/field-two-device-transfer.spec.cjs tests/e2e/field-device-readiness.spec.cjs
       - name: Failure artifacts only
         if: failure()
         uses: actions/upload-artifact@v4

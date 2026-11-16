@@ -19,6 +19,7 @@ import {SYNC_STATE,readDemoOutbox,queueEncryptedDemoProof,transmitDemoOutbox,
  updateDemoOutbox,discardDemoOutbox,reviewIdenticalDemoConflict,
  importEncryptedDemoPending} from "../documents/demoReceiptOutbox.mjs";
 import {packPortableDemoOutbox,unpackPortableDemoOutbox} from "../documents/demoOutboxPortable.mjs";
+import {diagnoseFieldDevice,validateFieldDiagnostic} from "./deviceReadiness.mjs";
 
 // A deliberately separate synthetic-only mobile route. Never cache real data,
 // API responses or credentials. No network sync or certified signature.
@@ -136,6 +137,9 @@ export default function FieldDemo(){
  const [syncState,setSyncState]=useState("local-only");
  const [syncVersion,setSyncVersion]=useState(null);
  const [syncMessage,setSyncMessage]=useState("");
+ const [deviceReport,setDeviceReport]=useState(null);
+ const [deviceBusy,setDeviceBusy]=useState(false);
+ const [deviceNotice,setDeviceNotice]=useState("");
  const [queued,setQueued]=useState(null);
  const syncEnabled=syntheticSyncAvailable();
  const syncMetaKey=id=>"finai:synthetic-sync-test:company-"+id;
@@ -377,6 +381,29 @@ export default function FieldDemo(){
   if(!proof)throw new Error("Najprej preveri dokazilo.");
   download(JSON.stringify(proof,null,2),proof.documentId+"-demo-dokazilo.json","application/json");
  });
+ const runDeviceDiagnostic=async()=>{
+  if(deviceBusy)return;
+  setDeviceBusy(true);setDeviceNotice("");setDeviceReport(null);
+  try{
+   const report=validateFieldDiagnostic(await diagnoseFieldDevice());
+   setDeviceReport(report);
+   setDeviceNotice(report.outcome==="fail"
+    ?"Na napravi so napake. Ne uporabljaj je za testni prenos, dokler niso odpravljene."
+    :report.outcome==="review"
+    ?"Preveri opozorila in izvedi fizični preizkus offline prenosa."
+    :"Osnovne lokalne zmožnosti so preverjene. To ni varnostna odobritev.");
+  }catch{
+   setDeviceNotice("Diagnostike na tej napravi ni bilo mogoče zaključiti.");
+  }finally{setDeviceBusy(false)}
+ };
+ const exportDeviceDiagnostic=()=>{
+  if(!deviceReport)return;
+  try{
+   const safe=validateFieldDiagnostic(deviceReport);
+   download(JSON.stringify(safe,null,2),
+    "finai-sinteticna-diagnostika-naprave.json","application/json");
+  }catch{setDeviceNotice("Neveljavno lokalno diagnostično poročilo.");}
+ };
  const installApp=async()=>{
   if(!install)return;
   await install.prompt();setInstall(null);
@@ -475,6 +502,38 @@ export default function FieldDemo(){
    {!syncEnabled&&<p className="small">Sinhronizacija je varnostno izključena.
      Na javnem predogledu se dokumenti nikamor ne pošiljajo.</p>}
    {syncMessage&&<p className="message" role="status">{syncMessage}</p>}
+  </section>
+  <section className="card" aria-label="Diagnostika mobilne naprave">
+   <h2>5. Diagnostika mobilne naprave</h2>
+   <p className="small">Preveri, ali brskalnik omogoča lokalno šifriranje,
+    začasni test IndexedDB, offline predpomnilnik in Service Worker.
+    Test uporabi samo sintetične podatke, ne prebere vsebine dobavnice in
+    ne pošilja ničesar na strežnik.</p>
+   <div className="row">
+    <button type="button" className="secondary" disabled={deviceBusy}
+     onClick={runDeviceDiagnostic}>
+     {deviceBusy?"Preverjanje naprave …":"Preveri pripravljenost naprave"}
+    </button>
+    <button type="button" className="secondary" disabled={!deviceReport||deviceBusy}
+     onClick={exportDeviceDiagnostic}>Izvozi poročilo naprave</button>
+   </div>
+   {deviceReport&&<div role="region" aria-label="Rezultati diagnostike">
+    <p className="small"><b>Rezultat: {deviceReport.outcome==="pass"
+     ?"osnovne preveritve uspešne":deviceReport.outcome==="review"
+     ?"potreben dodatni pregled":"ugotovljene napake"}</b>.
+     To ni produkcijska varnostna potrditev.</p>
+    <ul className="items">{deviceReport.checks.map(item=>
+     <li key={item.code}><b>{item.label}: {item.state==="pass"?"OK":
+      item.state==="fail"?"NAPAKA":item.state==="warn"?"PREVERI":"INFO"}</b>
+      {" — "+item.note}</li>
+    )}</ul>
+   </div>}
+   {deviceNotice&&<p role="status" className="small">{deviceNotice}</p>}
+   <p className="small">Za pravi mobilni QA nadaljuj na drugi napravi:
+    izvozi sintetični paket v2, na drugi napravi najprej poskusi napačno
+    frazo in drugo podjetje, nato uvozi s pravilno frazo ter preveri UUID
+    po izklopu omrežja in ponovnem odprtju aplikacije. Diagnostično
+    poročilo ne vsebuje podpisov, lokalnih gesel ali identifikatorjev dokazil.</p>
   </section>
   <BusinessBriefCompact key={companyId} companyId={companyId} mode="mobile"/>
   <p className="small">Ni dejanskega prevzema, kvalificiranega podpisa, avtomatske sinhronizacije, bančnih ali računovodskih knjižb. Brskalnik lahko lokalne podatke izbriše; to ni produkcijska hramba.</p>
