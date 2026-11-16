@@ -140,10 +140,6 @@ final class SyntheticCommerceReview
         } catch (\JsonException) {
             throw new \DomainException('Invalid synthetic commerce review row.');
         }
-        if (! is_array($normalized) ||
-            $normalized['demo_only'] ?? null !== true) {
-            // handled by the exact schema + checks below, deliberately fail-closed
-        }
         $keys = array_keys(is_array($normalized) ? $normalized : []);
         sort($keys);
         $expected = [
