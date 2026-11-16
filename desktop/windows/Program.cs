@@ -89,7 +89,12 @@ internal static class Program
         if (args.Length == 1 && args[0] == "--qa-installer-seed")
         {
             try { return OfflineInstallerUpgradeQa.Seed() ? 0 : 17; }
-            catch (Exception) { return 18; } // CI-only, no secrets/paths in logs.
+            catch (UnauthorizedAccessException) { return 21; }
+            catch (IOException) { return 22; }
+            catch (System.Security.Cryptography.CryptographicException) { return 23; }
+            catch (Microsoft.Data.Sqlite.SqliteException) { return 24; }
+            catch (InvalidOperationException) { return 25; }
+            catch (Exception) { return 26; } // Only category code, no secrets/paths.
         }
 
         if (args.Length == 1 && args[0] == "--qa-installer-verify")
