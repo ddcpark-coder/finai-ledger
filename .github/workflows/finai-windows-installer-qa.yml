@@ -54,10 +54,10 @@ jobs:
           if (-not (Test-Path dist/windows/wwwroot/offline/index.html)) {
             throw 'Standalone Windows UI is incomplete'
           }
-          & dist/windows/EIntegrator.Desktop.exe --synthetic-order-draft-self-test
-          if ($LASTEXITCODE -ne 0) { throw 'Encrypted native order/session/tenant/recovery QA failed' }
-          & dist/windows/EIntegrator.Desktop.exe --ledger-recovery-self-test
-          if ($LASTEXITCODE -ne 0) { throw 'Encrypted portable database recovery QA failed' }
+          $orderQa = Start-Process -FilePath (Resolve-Path 'dist/windows/EIntegrator.Desktop.exe').Path -ArgumentList '--synthetic-order-draft-self-test' -Wait -PassThru
+          if ($orderQa.ExitCode -ne 0) { throw "Encrypted native order/session/tenant/recovery QA failed ($($orderQa.ExitCode))" }
+          $restoreQa = Start-Process -FilePath (Resolve-Path 'dist/windows/EIntegrator.Desktop.exe').Path -ArgumentList '--ledger-recovery-self-test' -Wait -PassThru
+          if ($restoreQa.ExitCode -ne 0) { throw "Encrypted portable database recovery QA failed ($($restoreQa.ExitCode))" }
           Write-Output 'FINAI_WINDOWS_INSTALLER_CRITICAL_OFFLINE_QA=PASS'
 
       - name: Download Microsoft full offline WebView2 installer and check signature
@@ -118,13 +118,13 @@ jobs:
               -not (Test-Path (Join-Path $target 'wwwroot/offline/index.html'))) {
             throw 'Installed offline Windows app is incomplete'
           }
-          & $installedExe --qa-installer-seed
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic encrypted upgrade fixture creation failed (category $LASTEXITCODE)" }
+          $seed = Start-Process -FilePath $installedExe -ArgumentList '--qa-installer-seed' -Wait -PassThru
+          if ($seed.ExitCode -ne 0) { throw "Synthetic encrypted upgrade fixture creation failed (category $($seed.ExitCode))" }
           $second = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru
           if ($second.ExitCode -ne 0) { throw "Offline reinstall failed $($second.ExitCode)" }
-          & $installedExe --qa-installer-verify
-          if ($LASTEXITCODE -ne 0) {
-            throw "Encrypted company/order/backup data changed during reinstall: $LASTEXITCODE"
+          $verification = Start-Process -FilePath $installedExe -ArgumentList '--qa-installer-verify' -Wait -PassThru
+          if ($verification.ExitCode -ne 0) {
+            throw "Encrypted company/order/backup data changed during reinstall: $($verification.ExitCode)"
           }
           Write-Output 'FINAI_WINDOWS_REINSTALL_ENCRYPTED_VAULT_PRESERVED=PASS'
           Write-Output 'FINAI_OFFLINE_REINSTALL_WITHOUT_DATA_RESET=PASS'
