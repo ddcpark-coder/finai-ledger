@@ -58,6 +58,9 @@ jobs:
           if ($orderQa.ExitCode -ne 0) { throw "Encrypted native order/session/tenant/recovery QA failed ($($orderQa.ExitCode))" }
           $restoreQa = Start-Process -FilePath (Resolve-Path 'dist/windows/EIntegrator.Desktop.exe').Path -ArgumentList '--ledger-recovery-self-test' -Wait -PassThru
           if ($restoreQa.ExitCode -ne 0) { throw "Encrypted portable database recovery QA failed ($($restoreQa.ExitCode))" }
+          & dist/windows/EIntegrator.Desktop.exe --upgrade-preservation-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic encrypted user data was not preserved across upgrade model' }
+          Write-Output 'FINAI_WINDOWS_ENCRYPTED_UPGRADE_PRESERVATION=PASS'
           Write-Output 'FINAI_WINDOWS_INSTALLER_CRITICAL_OFFLINE_QA=PASS'
 
       - name: Download Microsoft full offline WebView2 installer and check signature
