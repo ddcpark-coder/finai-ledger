@@ -225,6 +225,44 @@ final class Next14cSyntheticProviderOrdersTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 0);
     }
 
+    public function test_same_synthetic_order_under_new_delivery_id_is_idempotent_but_changed_lines_fail(): void
+    {
+        $company = $this->company('Synthetic A');
+        $actor = $this->actor($company, 'writer', true);
+        foreach (['shopify', 'woocommerce'] as $provider) {
+            $warehouse = $this->fixtures($company, $provider);
+            [$raw, $originalHeaders] = $this->signed($provider, $this->payload($provider));
+            $original = $this->send(
+                $company->id, $actor->id, $provider, $raw, $originalHeaders, $warehouse);
+            $otherHeader = $provider === 'shopify'
+                ? ['X-Shopify-Webhook-Id' => '22222222-2222-4333-8444-555555555555']
+                : ['X-WC-Webhook-Delivery-ID' => '7002'];
+            $newDeliveryHeaders = [...$originalHeaders, ...$otherHeader];
+
+            // Same provider order, same normalized data, different signed delivery:
+            // no duplicate order/event row and no duplicate audit.
+            $redelivered = $this->send(
+                $company->id, $actor->id, $provider, $raw, $newDeliveryHeaders, $warehouse);
+            $this->assertTrue($redelivered['replayed']);
+            $this->assertSame($original['id'], $redelivered['id']);
+
+            $changed = $this->payload($provider);
+            $changed['line_items'][0]['price'] = '125.50';
+            if ($provider === 'shopify') {
+                $changed['total_price'] = '251.00';
+            } else {
+                $changed['line_items'][0]['total'] = '251.00';
+                $changed['total'] = '251.00';
+            }
+            [$alteredRaw, $alteredHeaders] = $this->signed($provider, $changed);
+            $alteredHeaders = [...$alteredHeaders, ...$otherHeader];
+            $this->rejects(fn () => $this->send($company->id, $actor->id,
+                $provider, $alteredRaw, $alteredHeaders, $warehouse));
+        }
+        $this->assertDatabaseCount('commerce_order_events', 2);
+        $this->assertDatabaseCount('audit_logs', 2);
+    }
+
     public function test_disabled_adapter_rejects_valid_signed_synthetic_order(): void
     {
         $company = $this->company('Synthetic A');

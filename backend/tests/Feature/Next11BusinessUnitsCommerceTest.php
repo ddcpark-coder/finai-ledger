@@ -196,13 +196,22 @@ final class Next11BusinessUnitsCommerceTest extends TestCase
         $this->connection($b);
         $service=app(StageSyntheticCommerceOrder::class);
         $payload=$this->payload($a,$warehouseA);
-        $service->execute($a->id,$alice->id,$payload);
+        $original=$service->execute($a->id,$alice->id,$payload);
         $this->rejects(fn()=> $service->execute($a->id,$alice->id,[
             ...$payload,'totalCents'=>13500,
             'lines'=>[['sku'=>'TAB-10070','quantity'=>1,'unitPriceCents'=>13500]],
         ]));
-        $this->rejects(fn()=> $service->execute($a->id,$alice->id,[
+        $redelivery=$service->execute($a->id,$alice->id,[
             ...$payload,'eventId'=>'SYN-DEMO-EVENT-002',
+        ]);
+        $this->assertTrue($redelivery['replayed']);
+        $this->assertSame($original['id'],$redelivery['id']);
+        // Same external order + a new event ID but DIFFERENT content is still
+        // rejected, never re-staged and never audited a second time.
+        $this->rejects(fn()=> $service->execute($a->id,$alice->id,[
+            ...$payload,'eventId'=>'SYN-DEMO-EVENT-006',
+            'lines'=>[['sku'=>'TAB-10070','quantity'=>1,'unitPriceCents'=>13500]],
+            'totalCents'=>13500,
         ]));
         $this->rejects(fn()=> $service->execute($a->id,$alice->id,[
             ...$payload,'eventId'=>'SYN-DEMO-EVENT-003',
