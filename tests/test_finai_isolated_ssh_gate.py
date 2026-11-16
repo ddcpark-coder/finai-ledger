@@ -3,6 +3,8 @@
 import hashlib
 import importlib.util
 import io
+import os
+from types import SimpleNamespace
 from pathlib import Path
 import tarfile
 import tempfile
@@ -35,6 +37,32 @@ def valid_archive():
 
 
 class GateTests(unittest.TestCase):
+    def test_dedicated_os_uid_must_not_alias_shared_account(self):
+        with tempfile.TemporaryDirectory(prefix="finai-identity-qa-") as temp:
+            home = Path(temp)
+            uid = os.getuid()
+            independent = SimpleNamespace(pw_name="finai09")
+            # A dedicated account name alone cannot satisfy the safety gate.
+            gate.require_dedicated_identity(independent, uid, home)
+            with self.assertRaises(gate.Denied):
+                gate.require_dedicated_identity(independent, uid, home, shared_uid=uid)
+            with self.assertRaises(gate.Denied):
+                gate.require_dedicated_identity(
+                    SimpleNamespace(pw_name="laskot48"), uid, home)
+            with self.assertRaises(gate.Denied):
+                gate.require_dedicated_identity(independent, 0, home)
+            home.chmod(0o777)
+            try:
+                with self.assertRaises(gate.Denied):
+                    gate.require_dedicated_identity(independent, uid, home)
+            finally:
+                home.chmod(0o700)
+            external = home / "external"
+            external.mkdir()
+            (home / "alias").symlink_to(external, target_is_directory=True)
+            with self.assertRaises(gate.Denied):
+                gate.require_dedicated_identity(independent, uid, home / "alias")
+
     def test_command_allowlist(self):
         good = hashlib.sha256(b"synthetic").hexdigest()
         self.assertEqual(gate.parse("finai:status:v1"), ("status", None))
