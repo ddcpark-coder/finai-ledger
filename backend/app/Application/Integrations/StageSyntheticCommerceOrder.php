@@ -60,10 +60,20 @@ final class StageSyntheticCommerceOrder
                 return ['id'=>$prior->id,'demo_only'=>true,'replayed'=>true,
                     'status'=>'review'];
             }
+            // A provider may redeliver the identical external order under a NEW
+            // delivery/event ID. Deduplicate by (connection, external_order_id)
+            // AND fingerprint: never create a second order or a second audit.
+            // A changed amount, SKU, warehouse or line remains a hard conflict.
             $sameOrder=DB::table('commerce_order_events')
                 ->where('connection_id',$connection->id)
-                ->where('external_order_id',$order['external_order_id'])->exists();
-            if($sameOrder)throw new \DomainException('Commerce order already staged.');
+                ->where('external_order_id',$order['external_order_id'])
+                ->lockForUpdate()->first();
+            if($sameOrder){
+                if($sameOrder->fingerprint!==$fingerprint)
+                    throw new \DomainException('Commerce order redelivery has changed data.');
+                return ['id'=>$sameOrder->id,'demo_only'=>true,'replayed'=>true,
+                    'status'=>'review'];
+            }
 
             $id=DB::table('commerce_order_events')->insertGetId([
                 'company_id'=>$companyId,'connection_id'=>$connection->id,
