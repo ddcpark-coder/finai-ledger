@@ -86,6 +86,18 @@ internal static class Program
             catch (Exception) { return 16; } // Never print private cipher or test data.
         }
 
+        if (args.Length == 1 && args[0] == "--qa-installer-seed")
+        {
+            try { return OfflineInstallerUpgradeQa.Seed() ? 0 : 17; }
+            catch (Exception) { return 18; } // CI-only, no secrets/paths in logs.
+        }
+
+        if (args.Length == 1 && args[0] == "--qa-installer-verify")
+        {
+            try { return OfflineInstallerUpgradeQa.VerifyAfterReinstall() ? 0 : 19; }
+            catch (Exception) { return 20; } // Never log local decrypted bytes.
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
