@@ -5,6 +5,9 @@ on:
     paths:
       - ".github/workflows/finai-windows-installer-qa.yml"
       - "desktop/windows/FinAI.iss"
+      - "desktop/windows/OfflineInstallerUpgradeQa.cs"
+      - "desktop/windows/Program.cs"
+      - "desktop/windows/EIntegrator.Desktop.csproj"
   workflow_dispatch:
 
 permissions:
@@ -96,6 +99,35 @@ jobs:
           $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash
           Write-Output "FINAI_UNSIGNED_SYNTHETIC_INSTALLER_SHA256=$hash"
           Write-Output 'FINAI_WINDOWS_OFFLINE_QA_INSTALLER=PASS'
+
+      - name: Reinstall offline QA application and verify encrypted vault survived
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_ACTIONS -ne 'true' -or $env:CI -ne 'true' -or
+              -not (Test-Path $env:RUNNER_TEMP)) {
+            throw 'Isolated GitHub Actions upgrade QA required'
+          }
+          $installer = (Resolve-Path 'dist/installer/e-integrator-desktop-offline-setup-win-x64-unsigned.exe').Path
+          $target = Join-Path $env:RUNNER_TEMP 'finai-isolated-upgrade-installed'
+          if (Test-Path $target) { throw 'Upgrade QA destination already exists' }
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/DIR="' + $target + '"'))
+          $first = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru
+          if ($first.ExitCode -ne 0) { throw "Offline QA setup failed $($first.ExitCode)" }
+          $installedExe = Join-Path $target 'EIntegrator.Desktop.exe'
+          if (-not (Test-Path $installedExe) -or
+              -not (Test-Path (Join-Path $target 'wwwroot/offline/index.html'))) {
+            throw 'Installed offline Windows app is incomplete'
+          }
+          & $installedExe --qa-installer-seed
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic encrypted upgrade fixture creation failed' }
+          $second = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru
+          if ($second.ExitCode -ne 0) { throw "Offline reinstall failed $($second.ExitCode)" }
+          & $installedExe --qa-installer-verify
+          if ($LASTEXITCODE -ne 0) {
+            throw "Encrypted company/order/backup data changed during reinstall: $LASTEXITCODE"
+          }
+          Write-Output 'FINAI_WINDOWS_REINSTALL_ENCRYPTED_VAULT_PRESERVED=PASS'
+          Write-Output 'FINAI_OFFLINE_REINSTALL_WITHOUT_DATA_RESET=PASS'
 
       - name: Store unsigned QA installer for internal review only
         uses: actions/upload-artifact@v4
