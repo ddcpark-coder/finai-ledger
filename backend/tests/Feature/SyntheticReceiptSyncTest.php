@@ -15,7 +15,7 @@ final class SyntheticReceiptSyncTest extends TestCase
         return Company::query()->create(['name' => $name, 'active' => true]);
     }
 
-    private function member(Company $company, string $name): User
+    private function member(Company $company, string $name, bool $writer = true): User
     {
         $user = User::query()->create([
             'name' => $name,
@@ -29,6 +29,17 @@ final class SyntheticReceiptSyncTest extends TestCase
             'name' => 'Viewer',
             'system' => true,
         ]);
+        if ($writer) {
+            $permission = DB::table('permissions')->where('key', 'documents.write')->value('id');
+            if (! $permission) {
+                $permission = DB::table('permissions')->insertGetId([
+                    'key' => 'documents.write', 'name' => 'Synthetic documents write',
+                ]);
+            }
+            DB::table('permission_role')->insert([
+                'role_id' => $role, 'permission_id' => $permission,
+            ]);
+        }
         $user->companies()->attach($company->id, [
             'role_id' => $role,
             'status' => 'active',
@@ -217,4 +228,88 @@ final class SyntheticReceiptSyncTest extends TestCase
         $this->postJson($uri, $this->payload($a->id))->assertForbidden();
         $this->assertDatabaseCount('synthetic_receipt_sync_events', 0);
     }
+
+    public function test_verified_member_without_documents_write_can_only_read_own_synthetic_sync(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $company = $this->company('A');
+        $reader = $this->member($company, 'Reader', writer: false);
+        $writer = $this->member($company, 'Writer');
+        $url = $this->uri($company);
+
+        $this->actingAs($reader);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.version', 0);
+        $this->getJson($url.'/latest')->assertOk()
+            ->assertJsonPath('data.envelope', null);
+        $this->postJson($url, $this->payload($company->id))->assertForbidden();
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 0);
+        $this->assertDatabaseCount('audit_logs', 0);
+
+        $this->actingAs($writer);
+        $this->postJson($url, $this->payload($company->id))->assertOk()
+            ->assertJsonPath('data.demo_only', true);
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 1);
+
+        // A different member of the same company cannot fetch the writer's
+        // private client-encrypted event by guessing the company or document.
+        $this->actingAs($reader);
+        $this->getJson($url.'/latest')->assertOk()
+            ->assertJsonPath('data.envelope', null);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.version', 0);
+    }
+
+    public function test_documents_write_revocation_is_checked_on_each_upload_and_failed_write_is_not_audited(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $company = $this->company('A');
+        $writer = $this->member($company, 'Writer');
+        $this->actingAs($writer);
+        $url = $this->uri($company);
+        $this->postJson($url, $this->payload($company->id))->assertOk();
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        $role = DB::table('company_user')->where('user_id', $writer->id)
+            ->where('company_id', $company->id)->value('role_id');
+        DB::table('permission_role')->where('role_id', $role)->delete();
+        $this->postJson($url, $this->payload($company->id, version: 1,
+            id: '1069a8cb-93c6-4a6f-8a8c-5fb138f7a802'))->assertForbidden();
+        $this->getJson($url)->assertOk()->assertJsonPath('data.version', 1);
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 1);
+        $this->assertDatabaseCount('audit_logs', 1);
+    }
+
+    public function test_unverified_and_suspended_member_are_denied_for_synthetic_sync(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $company = $this->company('A');
+        $writer = $this->member($company, 'Writer');
+        $this->actingAs($writer);
+        $url = $this->uri($company);
+
+        $writer->forceFill(['email_verified_at' => null])->save();
+        $this->postJson($url, $this->payload($company->id))->assertForbidden();
+        $this->getJson($url)->assertForbidden();
+        $writer->forceFill(['email_verified_at' => now()])->save();
+
+        DB::table('company_user')->where('user_id', $writer->id)
+            ->where('company_id', $company->id)->update(['status' => 'suspended']);
+        $this->postJson($url, $this->payload($company->id))->assertForbidden();
+        $this->getJson($url)->assertForbidden();
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 0);
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    public function test_prod_environment_always_disables_synthetic_upload_even_with_feature_flag(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $company = $this->company('A');
+        $writer = $this->member($company, 'Writer');
+        $this->actingAs($writer);
+        app()->instance('env', 'production');
+        $url = $this->uri($company);
+        $this->postJson($url, $this->payload($company->id))->assertNotFound();
+        $this->getJson($url)->assertNotFound();
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 0);
+    }
+
 }
