@@ -107,6 +107,11 @@ internal static class Program
             catch (Exception) { return 20; } // Never log local decrypted bytes.
         }
 
+        // The Inno Setup AppMutex uses the EXACT same name and stops upgrades
+        // while a cipher session or local UI may still have open files.
+        using var running = new System.Threading.Mutex(true,
+            @"Local\FinAI_EIntegrator_Desktop_QA_v1", out bool first);
+        if (!first) return 17;
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
