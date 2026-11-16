@@ -188,9 +188,10 @@ def verify_staged_release(root, digest):
                 raise Denied("staged release member is not a regular file")
             if target.stat().st_size != member.size:
                 raise Denied("staged release file length differs")
-            with tar.extractfile(member) as source, target.open("rb") as live:
-                if source is None:
-                    raise Denied("invalid original release member")
+            source = tar.extractfile(member)
+            if source is None:
+                raise Denied("invalid original release member")
+            with source, target.open("rb") as live:
                 while True:
                     original = source.read(1024 * 1024)
                     actual = live.read(1024 * 1024)
@@ -244,7 +245,7 @@ def stage(archive_bytes, digest, root):
         output = staging / "out"
         output.mkdir(mode=0o700)
         extract_verified_archive(archive, output)
-        # Keep original *CI-signed-by-digest* compressed bytes OUTSIDE the
+        # Preserve original CI digest-pinned compressed bytes OUTSIDE the
         # docroot. Promotion must compare actual files against these bytes.
         if pinned_archive.is_symlink():
             raise Denied("pinned archive location is linked")
