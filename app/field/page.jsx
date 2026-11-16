@@ -16,7 +16,7 @@ import {
  createSyntheticSyncClient,syntheticSyncAvailable,planSyntheticUpload
 } from "../documents/syntheticSyncClient.mjs";
 import {SYNC_STATE,readDemoOutbox,queueEncryptedDemoProof,transmitDemoOutbox,
- updateDemoOutbox,discardDemoOutbox} from "../documents/demoReceiptOutbox.mjs";
+ updateDemoOutbox,discardDemoOutbox,reviewIdenticalDemoConflict} from "../documents/demoReceiptOutbox.mjs";
 
 // A deliberately separate synthetic-only mobile route. Never cache real data,
 // API responses or credentials. No network sync or certified signature.
@@ -230,6 +230,21 @@ export default function FieldDemo(){
    download(JSON.stringify(current,null,2),current.documentId+"-encrypted-demo-queue.json","application/json");
    setSyncMessage("Izvožen je šifriran sintetični dogodek brez gesel ali čistega podpisa.");
  });
+ const reviewConflict=()=>perform(async()=>{
+   if(!syncEnabled||!online)
+     throw new Error("Pregled zahteva izključno lokalno prijavljeno testno povezavo.");
+   const current=await readDemoOutbox(companyId);
+   if(!current||current.state!==SYNC_STATE.conflict)
+     throw new Error("Ni lokalnega konfliktnega dogodka za pregled.");
+   // Strictly a GET. The original UUID and encrypted data are never sent again.
+   const remote=await createSyntheticSyncClient().latest(companyId);
+   const verified=reviewIdenticalDemoConflict(current,companyId,remote);
+   await updateDemoOutbox(verified,companyId);
+   setQueued(verified);setSyncVersion(verified.serverVersion);
+   setSyncState("reviewed");
+   setSyncMessage("Šifrirani kopiji sta identični pri isti strežniški različici. "+
+     "To NI potrditev dostave UUID in nič ni bilo prepisano ali poslano.");
+ });
  const removeQueue=()=>perform(async()=>{
    const current=await readDemoOutbox(companyId);
    if(!current)return;
@@ -248,6 +263,7 @@ export default function FieldDemo(){
    if(pending){
      setQueued(pending);
      setSyncState(pending.state===SYNC_STATE.conflict?"conflict":
+       pending.state===SYNC_STATE.matched?"reviewed":
        pending.state===SYNC_STATE.acknowledged?"synced":"ready");
      setSyncMessage("Vrsta: "+pending.state+"; strežniška verzija "+result.version+
        ". Ponovni prenos zahteva izrecni klik; brez prepisovanja.");
@@ -410,12 +426,16 @@ export default function FieldDemo(){
      Druga naprava potrebuje prijavo istega uporabnika in isto lokalno testno geslo.</p>
    <p className="small" role="status">Stanje: {syncState==="conflict"?"konflikt – potreben pregled":
      syncState==="synced"?"testno poslano / obnovljeno":
+     syncState==="reviewed"?"ujemanje šifriranih kopij preverjeno, brez strežniške potrditve":
      syncState==="ready"?"pripravljeno za ročni prenos":"samo lokalno"}.
      {syncVersion!==null?" Strežniška različica: "+syncVersion+"." : ""}</p>
    <div className="row">
     <button type="button" className="secondary" disabled={!hasLocalCopy||busy||Boolean(queued)} onClick={queueProof}>Uvrsti šifriran demo v vrsto</button>
     <button type="button" className="secondary" disabled={!queued||busy} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
     <button type="button" className="secondary" disabled={!queued||busy} onClick={removeQueue}>Odstrani iz vrste</button>
+    <button type="button" className="secondary"
+     disabled={!syncEnabled||!online||busy||queued?.state!==SYNC_STATE.conflict}
+     onClick={reviewConflict}>Ročno preveri ujemanje konflikta</button>
    </div>
    <p className="small" role="status" aria-label="Lokalna sinhronizacijska vrsta">Lokalna vrsta: {queued?queued.state+" · UUID "+queued.clientEventId:"prazna"}.</p>
    <div className="row">

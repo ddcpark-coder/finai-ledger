@@ -62,4 +62,5 @@ test("public static preview has no enabled network sync, even when queue control
  await page.goto("/field/");
  await expect(page.getByRole("button",{name:"Ročno pošlji šifriran demo"})).toBeDisabled();
  await expect(page.getByRole("button",{name:"Preveri testno različico"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Ročno preveri ujemanje konflikta"})).toBeDisabled();
 });

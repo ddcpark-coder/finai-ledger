@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  SYNC_STATE,createDemoPending,assertDemoPending,syncRequestPayload,
- markSyncAccepted,markSyncConflict,transmitDemoOutbox,demoOutboxKey
+ markSyncAccepted,markSyncConflict,transmitDemoOutbox,demoOutboxKey,reviewIdenticalDemoConflict
 } from "../app/documents/demoReceiptOutbox.mjs";
 const envelope={
  format:"finai-mobile-synthetic-vault-v1",companyId:1,documentId:"SYNTH-DOB-2026-0048",
@@ -71,4 +71,34 @@ test("offline, 401, wrong ACK and foreign company fail closed",async()=>{
  }),/Stanja konflikta/);
  assert.throws(()=>markSyncAccepted(p,1,ack(2)),/potrditve/);
  assert.throws(()=>markSyncConflict(p,1,-1),/verziji/);
+});
+
+test("manual conflict match keeps original encrypted UUID without claiming POST ACK",()=>{
+ const p=markSyncConflict(sample(),1,3);
+ const remote={company_id:1,document_id:envelope.documentId,
+  version:3,demo_only:true,real_sync_enabled:false,envelope};
+ const matched=reviewIdenticalDemoConflict(p,1,remote);
+ assert.equal(matched.state,SYNC_STATE.matched);
+ assert.equal(matched.clientEventId,p.clientEventId);
+ assert.equal(matched.serverVersion,3);
+ assert.equal(matched.expectedVersion,0);
+ assert.deepEqual(matched.envelope,envelope);
+ assert.throws(()=>syncRequestPayload(matched,1),/Konfliktnega/);
+ assert.equal(p.state,SYNC_STATE.conflict); // no mutation and no network side effects
+});
+test("manual conflict review rejects changed ciphertext, moving versions, other tenants and fake ACK",()=>{
+ const p=markSyncConflict(sample(),1,3);
+ const good={company_id:1,document_id:envelope.documentId,
+  version:3,demo_only:true,real_sync_enabled:false,envelope};
+ for(const wrong of [
+  {...good,version:4},{...good,version:2},
+  {...good,company_id:2},{...good,document_id:"SYN-OTHER"},
+  {...good,demo_only:false},{...good,real_sync_enabled:true},
+  {...good,envelope:{...envelope,ciphertext:"Wkpa".repeat(48)}},
+  {...good,envelope:null},
+ ]){
+  assert.throws(()=>reviewIdenticalDemoConflict(p,1,wrong));
+ }
+ assert.throws(()=>reviewIdenticalDemoConflict(sample(),1,good),/samo za konfliktni/);
+ assert.throws(()=>reviewIdenticalDemoConflict(p,2,good),/podjetju/);
 });
