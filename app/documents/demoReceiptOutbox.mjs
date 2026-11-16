@@ -141,6 +141,29 @@ export async function queueEncryptedDemoProof(envelope,companyId,expectedVersion
   return planned;
  });
 }
+// Import only an untouched, encrypted QUEUED synthetic event from a portable
+// package. Preserve its original UUID and expected revision; never overwrite
+// an existing conflicting local outbox or silently resume a POST.
+export async function importEncryptedDemoPending(record,companyId){
+ assertDemoPending(record,companyId);
+ if(record.state!==SYNC_STATE.queued||record.serverVersion!==null)
+  throw new Error("Uvoz dovoljuje samo lokalno čakajoče demo dogodke.");
+ if(typeof record.createdAt!=="string"||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.createdAt)||
+  Number.isNaN(Date.parse(record.createdAt)))
+  throw new Error("Čas lokalnega sintetičnega dogodka ni veljaven.");
+ return operation(companyId,"readwrite",(store,key,current)=>{
+  if(current){
+   assertDemoPending(current,companyId);
+   if(JSON.stringify(current)===JSON.stringify(record))return current;
+   throw new Error("Obstoječi dogodek ni enak. Uvoz ne sme prepisati lokalnih sprememb.");
+  }
+  const saved=structuredClone(record);
+  store.put({id:key,value:saved});
+  return saved;
+ });
+}
+
 export async function updateDemoOutbox(record,companyId){
  assertDemoPending(record,companyId);
  return operation(companyId,"readwrite",(store,key,current)=>{

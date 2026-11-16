@@ -16,7 +16,9 @@ import {
  createSyntheticSyncClient,syntheticSyncAvailable,planSyntheticUpload
 } from "../documents/syntheticSyncClient.mjs";
 import {SYNC_STATE,readDemoOutbox,queueEncryptedDemoProof,transmitDemoOutbox,
- updateDemoOutbox,discardDemoOutbox,reviewIdenticalDemoConflict} from "../documents/demoReceiptOutbox.mjs";
+ updateDemoOutbox,discardDemoOutbox,reviewIdenticalDemoConflict,
+ importEncryptedDemoPending} from "../documents/demoReceiptOutbox.mjs";
+import {packPortableDemoOutbox,unpackPortableDemoOutbox} from "../documents/demoOutboxPortable.mjs";
 
 // A deliberately separate synthetic-only mobile route. Never cache real data,
 // API responses or credentials. No network sync or certified signature.
@@ -227,8 +229,28 @@ export default function FieldDemo(){
  const exportQueue=()=>perform(async()=>{
    const current=await readDemoOutbox(companyId);
    if(!current)throw new Error("Vrsta je prazna.");
-   download(JSON.stringify(current,null,2),current.documentId+"-encrypted-demo-queue.json","application/json");
+   if(current.state!==SYNC_STATE.queued)
+     throw new Error("Prenos dovoljuje samo čakajoč šifrirani sintetični dogodek.");
+   const portable=await packPortableDemoOutbox(current,companyId);
+   download(portable,current.documentId+"-encrypted-demo-queue-portable.json","application/json");
    setSyncMessage("Izvožen je šifriran sintetični dogodek brez gesel ali čistega podpisa.");
+ });
+ const importQueue=()=>perform(async()=>{
+   if(await readDemoOutbox(companyId))
+     throw new Error("Lokalna vrsta ni prazna. Obstoječega dogodka ni dovoljeno prepisati.");
+   const input=window.document.createElement("input");
+   input.type="file";input.accept=".json,application/json";
+   const file=await new Promise(resolve=>{
+     input.onchange=()=>resolve(input.files?.[0]??null);
+     input.oncancel=()=>resolve(null);
+     input.click();
+   });
+   if(!file)return;
+   if(file.size>302000)throw new Error("Prenosni sintetični paket je prevelik.");
+   const record=await unpackPortableDemoOutbox(await file.text(),companyId);
+   const imported=await importEncryptedDemoPending(record,companyId);
+   setQueued(imported);setSyncState("ready");
+   setSyncMessage("Izvirni šifrirani testni dogodek je uvožen z istim UUID. Ni bil poslan.");
  });
  const reviewConflict=()=>perform(async()=>{
    if(!syncEnabled||!online)
@@ -431,7 +453,8 @@ export default function FieldDemo(){
      {syncVersion!==null?" Strežniška različica: "+syncVersion+"." : ""}</p>
    <div className="row">
     <button type="button" className="secondary" disabled={!hasLocalCopy||busy||Boolean(queued)} onClick={queueProof}>Uvrsti šifriran demo v vrsto</button>
-    <button type="button" className="secondary" disabled={!queued||busy} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
+    <button type="button" className="secondary" disabled={!queued||busy||queued.state!==SYNC_STATE.queued} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
+    <button type="button" className="secondary" disabled={Boolean(queued)||busy} onClick={importQueue}>Uvozi šifrirano vrsto</button>
     <button type="button" className="secondary" disabled={!queued||busy} onClick={removeQueue}>Odstrani iz vrste</button>
     <button type="button" className="secondary"
      disabled={!syncEnabled||!online||busy||queued?.state!==SYNC_STATE.conflict}
