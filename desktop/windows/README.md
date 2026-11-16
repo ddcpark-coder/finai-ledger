@@ -72,3 +72,19 @@ Nov ciljni potek GitHub Actions finai-windows-installer-qa.yml izdela preizkusni
 - Artefakt: finai-next13d-win-x64-offline-qa-unsigned; 7-dnevna hramba.
 - Nameščalnik FinAI je nepodpisan in primeren izključno za notranji sintetični QA.
 - Uporabljati na testnem Windows 11 računalniku; pred resničnimi podatki sta nujna preverjena offline namestitev in varna nadgradnja brez izgube lokalne baze, podpis izdaje ter neodvisen varnostni in računovodski pregled.
+
+
+## NEXT-13F — Windows 0.1.1 QA: prenosna obnova in ponovna namestitev
+
+Napaka v prejšnjem Windows preizkusu je bila posledica zagona GUI aplikacije brez čakanja na njeno izhodno kodo. Zdaj vsak test uporablja \`Start-Process -Wait -PassThru\` in je preveril tudi postopek prenosne obnove.
+
+**Aktualni interni testni namestitveni paket 0.1.1**:
+- https://github.com/ddcpark-coder/finai-ledger/actions/runs/43860251753
+- Razdelek \`Artifacts\` → \`finai-next13d-win-x64-offline-qa-unsigned\` (ZIP).
+- SHA256 nameščalnika \`setup.exe\`: \`C39BDECFF29E183122FBD592CA9569506BC70A70EBBBD640BC49334C86D69510\`.
+
+Na **namenskem testnem Windows 11 računalniku** (brez resničnih poslovnih podatkov) pred testiranjem z PowerShell preveri SHA256 datoteke z \`(Get-FileHash 'pot-do-setup.exe' -Algorithm SHA256).Hash\`; neskladje je razlog STOP. Nepodpisanega razvojnega paketa ne obravnavaj kot varno javno izdajo in ne izklapljaj zaščit Windows za potrebe realnega poslovanja.
+
+CI je že samodejno namestil in znova namestil isto različico v izolirano začasno okolje ter potrdil ohranitev šifriranih podjetij, naročila in AES-GCM obnovitvene kopije. **Nista še preverjena** čista ročna offline namestitev na uporabnikovem računalniku in nadgradnja stare izdaje 0.1.0 → 0.1.1. Zato ne vključuj resničnih podatkov.
+
+Obseg preizkusa: izvorni trezor uporablja Windows DPAPI in SQLite3 Multiple Ciphers. Prenosna varnostna kopija vsebuje **samo šifrirane** SQLite podatke in je dodatno zaščitena z AES-GCM/geslom. Pred njenim nastankom SQLite izdela ločen konsistenten šifriran posnetek, namesto neposrednega branja zaklenjene datoteke. Sinhronizacija z Hiper M še ni aktivirana.

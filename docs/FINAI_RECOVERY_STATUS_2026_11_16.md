@@ -104,3 +104,36 @@ Razvoj se nadaljuje na glavni veji main; vse spremembe ostajajo sintetične in l
 4. Pred realnimi poslovnimi podatki: računovodska, varnostna in pravna revizija.
 
 Laškoteka, STNG, skupne nastavitve cPanel/SSH/DNS in drugi projekti niso bili spreminjani.
+
+
+---
+
+## Zaključeno nadaljevanje — mobilni konflikti, ponudniška naročila in Windows obnova (16. 11. 2026)
+
+| PR | Commit main | Potrjeni ciljni testi |
+|---|---|---|
+| [#132](https://github.com/ddcpark-coder/finai-ledger/pull/132) | f2bff29 | NEXT-13E: lokalna ročna primerjava šifrirane mobilne vrste pri konfliktu, strogo razlikovanje \`matched\` od dejanske potrditve \`acknowledged\`; pet GitHub CI postopkov PASS |
+| [#134](https://github.com/ddcpark-coder/finai-ledger/pull/134) | 7d309e4 | NEXT-14C: sintetična provider-shaped naročila Shopify/WooCommerce, podpis HMAC, strogo dovoljene tipke, izmišljeni SKU/ID in celoštevilska denarna matematika; izolirani Laravel CI PASS |
+| [#133](https://github.com/ddcpark-coder/finai-ledger/pull/133) | 4ce2a9d | NEXT-13F: pravilno sinhrono zaganjanje vseh Windows WinExe self-testov, odprava napake zaklenjene SQLite datoteke pri prenosni kopiji, SQLite3MC online encrypted snapshot, varna ponovna namestitev interne 0.1.1 izdaje. Windows CI, fokus kriptografskega QA in namestitveni CI PASS |
+
+### Pomembna ugotovitev pri Windows QA
+
+Stari Windows PowerShell testni ukazi so lahko predčasno zaključili, preden se je zagnan Windows GUI \`.exe\` dejansko iztekel. Prehod na \`Start-Process -Wait -PassThru\` je razkril dotlej prikrito napako pri prenosni obnovi; zeleni rezultati iz prejšnjih buildov zato **niso bili zadosten dokaz prenosne obnovitve**. Po preverjenem popravku se posnetek pridobi z \`SqliteConnection.BackupDatabase\` v namenski, prav tako SQLite3MC šifrirani začasni bazi, nato se preveri integriteta in datoteka odstrani.
+
+- Osnovna Windows portable/static CI: [run #43860251667](https://github.com/ddcpark-coder/finai-ledger/actions/runs/43860251667), PASS.
+- Kriptografski ciljni Windows CI: [run #43860251682](https://github.com/ddcpark-coder/finai-ledger/actions/runs/43860251682), PASS za šifriranje, prenosno obnovo, osnutke, pripravo in preverjanje ponovne namestitve.
+- Polni Windows QA namestitveni postopek: [run #43860251753](https://github.com/ddcpark-coder/finai-ledger/actions/runs/43860251753), PASS. To vključuje namestitev, ustvarjanje šifriranega podjetja/naročila, ponovno namestitev iste izdaje in verificirano obnovo.
+- Nova različica: \`0.1.1\`, **nepodpisani QA namestitveni program**, ne javna izdaja.
+- Artefakt: \`finai-next13d-win-x64-offline-qa-unsigned\`, GitHub artifact ID \`14223645026\`, približno 254 MB ZIP, veljavnost predvidoma do **23. 11. 2026**.
+- SHA-256 **setup.exe**: \`C39BDECFF29E183122FBD592CA9569506BC70A70EBBBD640BC49334C86D69510\`.
+- SHA-256 **GitHub ZIP**: \`8a50c99251f5cdf13190713e25d3bfd0bac69c674c8f01bcc012e1b676756e73\`. Vsoti pripadata različnima datotekama.
+- **Prejšnji nepodpisani 0.1.0 QA artefakt** je zastarel in se ne sme uporabljati za presojo prenosne obnove.
+
+### Še odprto
+
+- Windows: dejanska ročna čista Windows 11 namestitev brez interneta in **prehod 0.1.0 → 0.1.1** z ohranjenimi sintetičnimi podatki še nista preverjena; opravljena je ponovna namestitev iste 0.1.1 izdaje. Koda še ni podpisana za javno distribucijo.
+- Mobilno: PWA sintetični konflikti so preglednejši; ni prave produkcijske dvosmerne sinhronizacije, kvalificiranega elektronskega podpisa ali shranjevanja resničnih podatkov.
+- Shopify/WooCommerce: prilagojen je izmišljeni, strogo omejeni provider-shaped format; resnični webhooki, davki, PII, storno, popusti in varna shramba produkcijskih ključev ostanejo izključeni.
+- Gostovanje: samostojni, dokazano izolirani FinAI OS/cPanel račun, namenski DB/TLS, povrnljiv deploy in obnovitev še niso potrjeni; pisanje na skupni \`laskot48\` je prepovedano.
+
+Brez sprememb Laškoteke, STNG, skupnih cPanel/SSH/DNS, drugih podatkovnih baz ali produkcijskega gostovanja.
