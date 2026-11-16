@@ -137,3 +137,32 @@ Stari Windows PowerShell testni ukazi so lahko predčasno zaključili, preden se
 - Gostovanje: samostojni, dokazano izolirani FinAI OS/cPanel račun, namenski DB/TLS, povrnljiv deploy in obnovitev še niso potrjeni; pisanje na skupni \`laskot48\` je prepovedano.
 
 Brez sprememb Laškoteke, STNG, skupnih cPanel/SSH/DNS, drugih podatkovnih baz ali produkcijskega gostovanja.
+
+---
+
+## Nadaljevanje 16. 11. 2026 — preverjene nove faze
+
+- **NEXT-13E**, commit `f2bff29`: ročni pregled konflikta sintetičnih šifriranih mobilnih dokazil (brez samodejnega POST ali lažne potrditve).
+- **NEXT-14C**, commit `7d309e4`: nadaljnja, strogo sintetična prilagoditev podpisanih Shopify/WooCommerce naročil; tuje podjetje, napačne cene, PII in nepodpisan tovor se zavrnejo.
+- **NEXT-13F**, commit `4ce2a9d`: izoliran Windows GitHub CI test za ponovno namestitev QA programa in ohranitev šifriranega SQLite3MC trezorja, podjetij, osnutkov in prenosne obnove.
+- **NEXT-13G**, [PR #137](https://github.com/ddcpark-coder/finai-ledger/pull/137), commit `f385c5c`: ročni prenos šifriranega sintetičnega mobilnega dogodka med napravama. Vključuje originalni UUID, `expectedVersion`, tenant scope, strogo shemo, SHA-256 kontrolno vsoto za odkrivanje sprememb ter transakcijsko preprečitev prepisovanja že obstoječega lokalnega dogodka. SHA-256 ni avtentikacija; za šifriranje je odgovoren obstoječi AES-GCM paket.
+
+### Rezultati NEXT-13G
+
+Ciljni CI na glavi PR #137 `dd65e4ef`:
+- `FinAI isolated mobile field PWA QA` — PASS.
+- `FinAI mobile delivery signing - focused synthetic QA` — PASS.
+- `FinAI NEXT11 offline Windows and mobile BI preview QA` — PASS.
+- `FinAI isolated-account CI and controlled Hiper M releases` — PASS na veji PR, brez aktiviranja gostovanja.
+
+**Pomembne omejitve:** Windows QA namestitev na izoliranem GitHub runnerju ni enaka neodvisnemu uporabniškemu preizkusu na fizičnem Windows 11 računalniku; pravi WooCommerce/Shopify dogodki niso omogočeni; PWA prenosni paket ohranja **šifrirane sintetične** podatke in ga ne smemo obravnavati kot certificirano ali produkcijsko sinhronizacijo. Nobenih realnih poslovnih podatkov.
+
+### Prednostni nadaljnji koraki
+
+1. Nadzorovani Windows QA na samostojnem Windows 11 računalniku, vključno z brezomrežno namestitvijo, prijavo, obnovitvijo in postopkom nadgradnje brez izgube sintetičnih zapisov. Nepodpisana izdaja ni primerna za resnične stranke.
+2. Izolirani sintetični mobilni uvoz/izvoz z dodatnim uporabniškim QA konfliktov in obnovitve na dejanskih napravah; šele potem načrt povsem avtenticirane in varno odobrene dvosmerne sinhronizacije.
+3. Prave trgovinske integracije zahtevajo varno hrambo resničnih poverilnic, preverjanje dejanskih ponudniških formatov v samostojnem FinAI okolju ter preverjeno politiko idempotentnosti, zalog in davčnega knjiženja.
+4. Za spletni FinAI je nujen namenski preverjeno izoliran Hiper M cPanel/OS račun, samostojna MariaDB baza, HTTPS, obnovitvena točka in atomarna varovana objava. Na skupnem `laskot48` ostaja strogo read-only.
+5. Računovodski, varnostni in zakonodajni QA pred sprejemanjem resničnih podatkov.
+
+Laškoteka, STNG ter skupne cPanel/SSH/DNS storitve in drugi projekti ostajajo absolutno izključeni iz FinAI pisalnih posegov.
