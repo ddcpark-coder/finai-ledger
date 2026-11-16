@@ -58,7 +58,7 @@ final class StageSyntheticCommerceOrder
                     ||$prior->external_order_id!==$order['external_order_id'])
                     throw new \DomainException('Commerce event replay contains different data.');
                 return ['id'=>$prior->id,'demo_only'=>true,'replayed'=>true,
-                    'status'=>'review'];
+                    'status'=>$prior->status];
             }
             // A provider may redeliver the identical external order under a NEW
             // delivery/event ID. Deduplicate by (connection, external_order_id)
@@ -72,7 +72,7 @@ final class StageSyntheticCommerceOrder
                 if($sameOrder->fingerprint!==$fingerprint)
                     throw new \DomainException('Commerce order redelivery has changed data.');
                 return ['id'=>$sameOrder->id,'demo_only'=>true,'replayed'=>true,
-                    'status'=>'review'];
+                    'status'=>$sameOrder->status];
             }
 
             $id=DB::table('commerce_order_events')->insertGetId([
