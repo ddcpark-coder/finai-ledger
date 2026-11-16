@@ -220,3 +220,23 @@ Stanje 16. 11. 2026, razvoj GitHub FinAI. Brez sprememb na skupnem Hiper M.
 4. Nadaljevati s ciljnim Windows 11 QA nepodpisanega testnega namestitvenega paketa, nadgradnje in prenosne obnove. Uporabnik izvaja svoj preizkus neodvisno od GitHub razvoja.
 
 Laškoteka, STNG, druge podatkovne baze in skupne nastavitve cPanel/SSH/DNS/SSL ostajajo nedotaknjene.
+
+---
+
+## NEXT-17C/17D — prikaz naročil in neodvisni HTTP varnostni QA (16. 11. 2026)
+
+### Združeni razvojni fazi
+
+- **NEXT-17C, [PR #145](https://github.com/ddcpark-coder/finai-ledger/pull/145), commit `a18a1671`:** v obstoječem modulu **Integracije** je nova pregledna površina sintetičnih WooCommerce/Shopify naročil. Pomnilniški demo omogoča `reviewed` ali `hold` brez sprememb zalog. Ločen zaledni testni način ima strogo same-origin `localhost` klienta, ki ga uporabnik sproži izrecno; HTTP poti za pregled in odločitev so pod `auth:web`, e-poštno verifikacijo, 2FA guardom, `orders.read/orders.write` in dvojnim `APP_ENV=local/testing` + test flag pogojem. PII-free in nespremenljive revizijske odločitve. CI **PASS:** pet povezanih GitHub postopkov na glavi PR `10184b636`, med njimi Laravel Feature API/tenant QA ter Next.js statična gradnja s ciljnimi Node testi.
+- **NEXT-17D, [PR #146](https://github.com/ddcpark-coder/finai-ledger/pull/146), commit `40ff82ae`:** izolirani GitHub runner na `127.0.0.1:8765` z novo začasno SQLite bazo dejansko požene Laravel + Fortify + Sanctum. Dve neodvisni HTTP cookie seji preizkusita manjkajoč CSRF (419), dovoljen CSRF, geselno prijavo, idempotentnost sintetične oddaje, zasebnost šifriranega dokumenta med dvema uporabnikoma, obvezni TOTP po geselni prijavi lastnika, zavrnjen OTP, aktivirano MFA sejo, revokacijo članstva med sejo in odjavo. **PASS:** [real HTTP workflow 43878379205](https://github.com/ddcpark-coder/finai-ledger/actions/runs/43878379205), `FinAI Laravel foundation tests` isti PR commit `3027abbb` **PASS**.
+
+### Dejanske omejitve in nadaljnji koraki
+
+1. **Ni produkcijske sinhronizacije:** test uporablja dve neodvisni HTTP seji na istem izoliranem GitHub runnerju, ne dveh fizičnih mobilnih naprav. Mobilni uporabniški procesi, omrežni prehodi, ključi naprav in produkcijska HTTPS politika potrebujejo poseben QA pred resničnimi podatki.
+2. **Naročila so sintetična:** vmesnik je demonstracijski, Laravel odločitev `reviewed/hold` ne rezervira zaloge, ne izstavi računa, ne knjiži, ne sproži plačil in ni povezana z realnimi ponudniki. V produkciji testne poti vračajo 404.
+3. **Zaledni lokalni test je ročen:** zahteva same-origin localhost, izrecno testno konfiguracijo, prijavljeno sejo ter pravice podjetja. Sam odjemalec se ne povezuje samodejno v omrežje.
+4. **Spletna objava ni izvedena:** zahtevana je neodvisno izolirana namenska Hiper M cPanel/OS identiteta FinAI, namenska MariaDB, HTTPS, obnovitvena točka in varovan atomaren preklop. Skupni račun `laskot48` je za FinAI vedno read-only.
+5. **Windows** ostaja na notranji nepodpisani offline QA namestitvi. Ne trdimo, da je uporabniški preizkus na neodvisnem Windows 11 računalniku zaključen.
+6. Pred resnično uporabo: funkcionalni scenariji realnih spletnih trgovin, fiskalne in računovodske kontrole, varnostni pregled, šifriranje/obnova in RS/EU skladnost.
+
+**Izvedeni posegi:** zgolj GitHub veje, PR in izolirani sintetični CI. Laškoteka, STNG, cPanel/SSH/DNS/SSL skupnih računov, drugih baz in drugih projektov niso bili spremenjeni.
