@@ -38,3 +38,39 @@ Po zadnjem združevanju na `main`: GitHub Actions 'FinAI isolated-account CI and
 FinAI GitHub razvoj je dovoljen. Skupni račun `laskot48` za FinAI ostaja izključno read-only. Laškoteka, STNG, skupni DNS/SSH/cPanel, mediji in baze so nedotakljivi. Vercel ni produkcijsko gostovanje. Nikoli ne zapisuj gesel ali realnih poslovnih podatkov v repo ali CI dnevnik.
 
 Projekt naj se nadaljuje od tega dokumenta in aktualne veje `main`, ne iz predpostavke, da so stare razvojne veje produkcijsko združljive.
+---
+
+## Nadaljevanje 16. 11. 2026 — NEXT-13B/14/15/16, dejansko združeno
+
+| PR | Status | Preverjeno |
+|---|---|---|
+| [#122](https://github.com/ddcpark-coder/finai-ledger/pull/122) | MERGED `d2bf549` | Windows SQLite3MC: append-only sintetični osnutki naročil po podjetjih, lokalna prijava/vloge, idempotenca, HMAC integriteta, revizijska veriga in prenosna šifrirana obnova; Windows build/self-test CI PASS |
+| [#123](https://github.com/ddcpark-coder/finai-ledger/pull/123) | MERGED `37c55fc` | Shopify/WooCommerce podpisani **sintetični** testni dogodki → existing company-scoped inbox `review`, brez pravega webhooka in knjiženja; Laravel Feature CI PASS |
+| [#124](https://github.com/ddcpark-coder/finai-ledger/pull/124) | MERGED `4d0c4c9` | Bralno preverjanje ločenega FinAI UID, poti in povezav ter GO/NO-GO; izolirani CI PASS, deploy še vedno prepovedan |
+| [#125](https://github.com/ddcpark-coder/finai-ledger/pull/125) | MERGED `a85f10d` | SQL popravki katalog/nabava/projekti in test **vseh 25** migracij dvakrat v disposable MariaDB 10.11; MariaDB + Laravel CI PASS |
+| [#126](https://github.com/ddcpark-coder/finai-ledger/pull/126) | MERGED `240ebbb` | Izolirana sintetična produkcijska prijavna varovalka (brez 2FA/ob 2FA) in dokumentirano nadomeščanje starih BACKEND vej; Laravel CI PASS |
+
+### Razrešitev starih osnutkov
+
+- #87 in #88 sta zaprta kot nadomeščena; novi PWA `/field/` že ima sintetično offline predpomnjenje, šifrirano lokalno dokazilo in ročno vrsto s stanji `queued/conflict/acknowledged`.
+- #34 in #35 sta zaprta kot zastarela; potrebni popravki in test so preneseni selektivno v #124/#125/#126. Opuščeni so stari Vercel produkcijski načrti in kakršnokoli pisanje na skupni cPanel.
+
+### Kaj še ni zaključeno
+
+1. Windows: nova šifrirana storitev osnutkov je **native-only QA**, še ni uporabniškega obrazca z varno lokalno prijavo in sinhronizacijo. Obstoječi Windows namestitveni artefakt je nepodpisan in samo interni QA.
+2. Mobilno: PWA ima podpisovanje sintetičnih dobavnic, offline šifrirano hrambo in ročno pregledovanje konfliktov demo vrste. Ni nativna aplikacija Android/iOS ali produkcijska dvosmerna sinhronizacija.
+3. Spletne trgovine: podpisan je samo **testni** sintetični format z veljavnostjo časa; pravi WooCommerce/Shopify transport, ponudnikova dejanska JSON oblika, poverilnice, varna hramba in realni webhooks še niso vklopljeni.
+4. Hiper M: namenski FinAI OS/cPanel račun, posebna MariaDB, certifikati, preverjena obnova, DNS in pogoji produkcijske objave še niso neodvisno preverjeni. Lokalni preflight iz #124 izrecno **nikoli** ne dovoljuje pisanja.
+5. Realni podatki: do končnega varnostnega in računovodsko-pravnega QA strogo prepovedani.
+
+### Verificirana zadnja kontrola glavne veje
+
+- Zadnji preverjeni GitHub Actions `FinAI isolated-account CI and controlled Hiper M releases`, run `43846393631`, je zgradil statični spletni artefakt in opravil lokalne varnostne kontrole: SUCCESS; `stage=skipped`, `promote=skipped`. Ne sklepaj, da je Hiper M posodobljen.
+
+### Prednostno nadaljevanje
+
+- NEXT-13C: varen native Windows obrazec z lokalnim preverjanjem uporabnika, popis sprememb osnutkov, podporni mobilni postopki in notranji konfliktni QA. Brez resničnih podatkov.
+- NEXT-14B: provider-specifični podpisni HTTP adapterji in ločena obdelava ponudnikov na sintetičnem testnem okolju, brez registracije pravih webhookov.
+- NEXT-16: šele po dejanski aktivaciji novega FinAI OS/cPanel računa opraviti read-only sistemski pregled, pregled SQL pravic, DNS/SSL in obnovitvene točke. Brez teh dokazov zavrni strežniške pisalne operacije.
+
+Absolutno: nobeno FinAI dejanje ne sme spreminjati Laškoteke, STNG, skupnih SSH/cPanel/DNS nastavitev ali `laskot48`.
