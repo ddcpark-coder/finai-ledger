@@ -60,11 +60,15 @@ internal static class Program
         {
             try
             {
-                return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 9;
+                return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 50 + PortableEncryptedLedgerBackup.QaPhase;
             }
+            catch (IOException) { return 200 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (System.Security.Cryptography.CryptographicException) { return 300 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (Microsoft.Data.Sqlite.SqliteException) { return 400 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (InvalidOperationException) { return 500 + PortableEncryptedLedgerBackup.QaPhase; }
             catch (Exception)
             {
-                return 10; // No plaintext, key material or paths in test output.
+                return 100 + PortableEncryptedLedgerBackup.QaPhase; // Only phase number, never plaintext.
             }
         }
 
@@ -82,8 +86,25 @@ internal static class Program
 
         if (args.Length == 1 && args[0] == "--synthetic-order-draft-self-test")
         {
-            try { return EncryptedLedgerStore.SyntheticOrderDraftSelfTest() ? 0 : 15; }
-            catch (Exception) { return 16; } // Never print private cipher or test data.
+            try { return EncryptedLedgerStore.SyntheticOrderDraftSelfTest() ? 0 : 60 + EncryptedLedgerStore.SyntheticOrderQaPhase; }
+            catch (Exception) { return 120 + EncryptedLedgerStore.SyntheticOrderQaPhase; } // Phase only, never keys or paths.
+        }
+
+        if (args.Length == 1 && args[0] == "--qa-installer-seed")
+        {
+            try { return OfflineInstallerUpgradeQa.Seed() ? 0 : 17; }
+            catch (UnauthorizedAccessException) { return 21; }
+            catch (IOException) { return 22; }
+            catch (System.Security.Cryptography.CryptographicException) { return 23; }
+            catch (Microsoft.Data.Sqlite.SqliteException) { return 24; }
+            catch (InvalidOperationException) { return 25; }
+            catch (Exception) { return 26; } // Only category code, no secrets/paths.
+        }
+
+        if (args.Length == 1 && args[0] == "--qa-installer-verify")
+        {
+            try { return OfflineInstallerUpgradeQa.VerifyAfterReinstall() ? 0 : 19; }
+            catch (Exception) { return 20; } // Never log local decrypted bytes.
         }
 
         ApplicationConfiguration.Initialize();

@@ -1,7 +1,7 @@
 ; FinAI e-integrator DESKTOP-01: unsigned offline QA installer.
 ; Never publish this as a production accounting release.
 #define AppName "e-integrator Desktop (preizkus)"
-#define AppVersion "0.1.0"
+#define AppVersion "0.1.1"
 #define AppExe "EIntegrator.Desktop.exe"
 
 [Setup]
@@ -22,6 +22,10 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupLogging=yes
+; Data is intentionally held outside {app}: LocalApplicationData/e-integrator/Desktop.
+; No [InstallDelete], [UninstallDelete], migrations or cache reset on upgrades.
+CloseApplications=yes
+RestartApplications=no
 
 [Tasks]
 Name: "desktopicon"; Description: "Ustvari bližnjico na namizju"; GroupDescription: "Dodatne možnosti:"; Flags: unchecked

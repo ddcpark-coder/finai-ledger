@@ -649,29 +649,47 @@ internal sealed partial class EncryptedLedgerStore : IDisposable
     {
         if (maxBytes < 4096 || maxBytes > 64 * 1024 * 1024)
             throw new ArgumentOutOfRangeException(nameof(maxBytes));
-        using var db = OpenDb();
-        using (var acquire = db.CreateCommand())
-        {
-            acquire.CommandText = "BEGIN EXCLUSIVE;";
-            acquire.ExecuteNonQuery();
-        }
+        // A raw File.ReadAllBytes while SQLite holds BEGIN EXCLUSIVE fails on
+        // Windows byte-range locks. Use SQLite's atomic online backup instead,
+        // writing through the SAME SQLite3MC encrypted provider and key.
+        // Neither the temporary database nor portable output is plaintext.
+        var parent = Path.GetDirectoryName(databasePath)
+            ?? throw new InvalidDataException("Encrypted ledger root missing");
+        var snapshotPath = Path.Combine(parent,
+            ".finai-cipher-snapshot-" + Guid.NewGuid().ToString("N") + ".db");
+        if (File.Exists(snapshotPath) || Directory.Exists(snapshotPath))
+            throw new IOException("Encrypted snapshot path unexpectedly exists");
         try
         {
-            CheckHealth(db);
-            var size = new FileInfo(databasePath).Length;
+            using (var source = OpenDb())
+            {
+                CheckHealth(source);
+                using (var target = OpenDbAt(snapshotPath, databaseKey, create: true))
+                {
+                    source.BackupDatabase(target);
+                    CheckHealth(target); // Verify destination cipher + all audits.
+                }
+            }
+            if (File.Exists(snapshotPath + "-wal") ||
+                File.Exists(snapshotPath + "-shm") ||
+                File.Exists(snapshotPath + "-journal"))
+                throw new InvalidDataException("Encrypted snapshot has unfinalized sidecars");
+            var size = new FileInfo(snapshotPath).Length;
             if (size < 4096 || size > maxBytes)
-                throw new InvalidDataException("Encrypted database backup exceeds allowed size");
-            var file = File.ReadAllBytes(databasePath);
-            if (file.Length != size ||
-                file.AsSpan(0, 16).SequenceEqual("SQLite format 3\0"u8))
-                throw new InvalidDataException("Database snapshot is invalid or plaintext");
-            return (file, (byte[])databaseKey.Clone());
+                throw new InvalidDataException("Encrypted snapshot exceeds allowed size");
+            var cipher = File.ReadAllBytes(snapshotPath);
+            if (cipher.Length != size ||
+                cipher.AsSpan(0, 16).SequenceEqual("SQLite format 3\0"u8))
+                throw new InvalidDataException("Snapshot is not a valid encrypted SQLite3MC file");
+            return (cipher, (byte[])databaseKey.Clone());
         }
         finally
         {
-            using var release = db.CreateCommand();
-            release.CommandText = "ROLLBACK;";
-            release.ExecuteNonQuery();
+            // The temporary file is encrypted and remains solely under this
+            // already-opened local vault; deletion is mandatory even on failure.
+            if (File.Exists(snapshotPath)) File.Delete(snapshotPath);
+            foreach (var suffix in new[] { "-journal", "-wal", "-shm" })
+                if (File.Exists(snapshotPath + suffix)) File.Delete(snapshotPath + suffix);
         }
     }
 

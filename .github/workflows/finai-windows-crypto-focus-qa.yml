@@ -1,0 +1,45 @@
+name: FinAI Windows cryptographic recovery focused QA
+on:
+  pull_request:
+    paths:
+      - 'desktop/windows/EncryptedLedgerStore.cs'
+      - 'desktop/windows/EncryptedSyntheticOrderDrafts.cs'
+      - 'desktop/windows/PortableEncryptedLedgerBackup.cs'
+      - 'desktop/windows/OfflineInstallerUpgradeQa.cs'
+      - 'desktop/windows/Program.cs'
+      - '.github/workflows/finai-windows-crypto-focus-qa.yml'
+permissions:
+  contents: read
+jobs:
+  crypto-regression:
+    runs-on: windows-2025
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build native Windows crypto tests without web or installer
+        shell: pwsh
+        run: |
+          dotnet restore desktop/windows/EIntegrator.Desktop.csproj --runtime win-x64
+          if ($LASTEXITCODE -ne 0) { throw 'QA runtime restore failed' }
+          dotnet publish desktop/windows/EIntegrator.Desktop.csproj --no-restore -c Release -r win-x64 --self-contained true -p:PublishTrimmed=false -o dist/crypto-qa
+          if ($LASTEXITCODE -ne 0) { throw 'QA native compilation failed' }
+      - name: Verify actual synchronous SQLite3MC cryptography and portable recovery
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'dist/crypto-qa/EIntegrator.Desktop.exe').Path
+          foreach ($mode in @('--encrypted-ledger-self-test',
+                              '--ledger-recovery-self-test',
+                              '--synthetic-order-draft-self-test',
+                              '--qa-installer-seed',
+                              '--qa-installer-verify')) {
+            $result = Start-Process -FilePath $exe -ArgumentList $mode -Wait -PassThru
+            if ($result.ExitCode -ne 0) {
+              throw "FINAI_CRYPTO_QA_FAILURE mode=$mode phase_code=$($result.ExitCode)"
+            }
+            Write-Output "FINAI_CRYPTO_QA_PASS=$mode"
+          }
