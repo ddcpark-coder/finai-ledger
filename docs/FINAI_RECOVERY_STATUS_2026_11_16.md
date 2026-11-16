@@ -192,3 +192,31 @@ Laškoteka, STNG ter skupne cPanel/SSH/DNS storitve in drugi projekti ostajajo a
 5. **Resnični podatki:** prepoved do zaključka varnostnega, knjigovodskega in zakonodajnega QA.
 
 FinAI razvojni posegi so omejeni na GitHub repozitorij in začasne sintetične CI runnerje. Laškoteka, STNG, skupne nastavitve cPanel/SSH/DNS/SSL in vse tuje baze ostajajo nedotaknjene.
+
+
+---
+
+## NEXT-17 — avtorizirana sintetična sinhronizacija in pregled trgovinskih naročil
+
+Stanje 16. 11. 2026, razvoj GitHub FinAI. Brez sprememb na skupnem Hiper M.
+
+| Faza | GitHub main commit | Preverjena izvedba |
+|---|---|---|
+| [NEXT-17A / PR #142](https://github.com/ddcpark-coder/finai-ledger/pull/142) | `dbbbdc526da36115838ab5ea2d57feabec7316cb` | Vsak sintetični POST šifriranega mobilnega dogodka poleg sejne prijave, verified/2FA guard in `company.access` zahteva trenutno veljavno pravico `documents.write` za točno podjetje. Ločen GitHub CI na začasni SQLite-in-memory bazi in celoten Laravel Feature CI: **PASS**. |
+| [NEXT-17B / PR #143](https://github.com/ddcpark-coder/finai-ledger/pull/143) | `5919a5d3ed3f516113d01dffd1e48b9ecfbc8472` | Interna `SyntheticCommerceReview` aplikacijska storitev: `orders.read` PII-free seznam z ID kazalcem; `orders.write` omogoča samo testni stanji `reviewed` in `hold`, transakcijski audit, kontrola fingerprinta, ponovitev brez dvojnega audita. Brez zaloge, računa ali knjiženja. Laravel Feature CI: **PASS**. |
+
+### Meje dosežene avtomatizacije
+
+- NEXT-17A: **ni produkcijskega API deploya**. Avtomatizirani testi uporabljajo sintetične Laravel Feature zahtevke, ne povezanih resničnih Android/iPhone naprav; dejansko CSRF, prijava/MFA ter kriptografska identiteta posamezne mobilne naprave zahtevajo še posebej izveden celovit preizkus v namenskem FinAI okolju.
+- NEXT-17B: **ni javne trgovinske poti**. Bralna/odločitvena storitev je za zdaj samo v Laravel zaledni kodi, ne v javni administraciji; uporabniki še ne morejo upravljati realnih WooCommerce/Shopify naročil, saj ni pravih povezav in poverilnic.
+- Kode za knjiženje, izdajo računov, zadržanje zaloge, zunanje plačilo, FURS in spremembe realnih naročil nismo aktivirali.
+- Za spletno objavo ostaja nujen namenski preverjeno izoliran Hiper M OS/cPanel račun za FinAI z namensko MariaDB bazo, HTTPS, obnovitveno točko, SHA-256 in atomarnim povrnljivim preklopom. `laskot48` je samo read-only.
+
+### Naslednji razvojni koraki
+
+1. Dodati izključno interno demonstracijsko uporabniško površino za branje `review`, `hold` in `reviewed` naročil, strogo synthetic-only; brez javnega dostopa do živih trgovin.
+2. Pripraviti namenski end-to-end lokalni pregled prijave, CSRF/MFA in revokacije seje med dvema sintetičnima mobilnima napravama; pred tem ne trditi, da je produkcijska mobilna sinhronizacija dokončana.
+3. Pripraviti zaščitene ponudniške ključe in vnos realnih payloadov **samo po** vzpostavitvi izoliranega FinAI okolja, varnostnega, računovodskega in pravnega QA.
+4. Nadaljevati s ciljnim Windows 11 QA nepodpisanega testnega namestitvenega paketa, nadgradnje in prenosne obnove. Uporabnik izvaja svoj preizkus neodvisno od GitHub razvoja.
+
+Laškoteka, STNG, druge podatkovne baze in skupne nastavitve cPanel/SSH/DNS/SSL ostajajo nedotaknjene.
