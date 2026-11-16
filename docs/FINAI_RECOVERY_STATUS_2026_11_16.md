@@ -240,3 +240,33 @@ Laškoteka, STNG, druge podatkovne baze in skupne nastavitve cPanel/SSH/DNS/SSL 
 6. Pred resnično uporabo: funkcionalni scenariji realnih spletnih trgovin, fiskalne in računovodske kontrole, varnostni pregled, šifriranje/obnova in RS/EU skladnost.
 
 **Izvedeni posegi:** zgolj GitHub veje, PR in izolirani sintetični CI. Laškoteka, STNG, cPanel/SSH/DNS/SSL skupnih računov, drugih baz in drugih projektov niso bili spremenjeni.
+
+---
+
+## NEXT-18A/18B — dvosmerni mobilni preizkus ter zaostrena izolacija Hiper M
+
+Razvoj 16. 11. 2026 je izveden izključno v `ddcpark-coder/finai-ledger`, brez uporabe resničnih podatkov in brez pisanja na gostovanje.
+
+### NEXT-18A — dva neodvisna mobilna profila
+
+- [PR #148](https://github.com/ddcpark-coder/finai-ledger/pull/148), commit `441a4a6fc54ed0ee83111d7f1c3dabdd259fb2c0`, združen v `main`.
+- Izolirani Chromium/Playwright test uporablja **dva različna mobilna profila** z ločeno IndexedDB in Service Worker shrambo. Uporabnik A ustvari šifrirano sintetično dokazilo ter prenosni v2 HMAC paket; profil B zavrne napačno testno frazo in napačno podjetje, nato uspešno uvozi isti UUID, ostane izoliran od profila A in ga prebere po ponovnem odprtju **brez internetne povezave**.
+- Nobene HTTP pisalne zahteve ali samodejne sinhronizacije. Test je dodan v `field-offline-pwa-qa.yml`.
+- CI **PASS**: `FinAI isolated mobile field PWA QA` run **43879752170** in `FinAI desktop/mobile interaction QA` run **43879751887**.
+- **Ne trdimo, da sta bila testirana dejanska Android in iPhone.** Fizični dvojni uporabniški preizkus in realno omrežno preverjanje sta še odprta.
+
+### NEXT-18B — zavrnitev skupnega OS UID
+
+- [PR #149](https://github.com/ddcpark-coder/finai-ledger/pull/149), commit `f241e3bbd68028f2d8d3d76d24f9d68dbee6285c`, združen v `main`.
+- Varovani SSH prisilni ukaz zavrne ne samo uporabniško ime `laskot48`, temveč tudi **katerikoli drugi uporabniški naziv z enakim UID**. Dom in namenska korenska mapa `finai-deploy` morata biti v lasti dejanskega UID, nista simbolni povezavi in nista skupinsko ali javno zapisljiva.
+- CI **PASS**: SSH gate napadalni testi in statična FinAI gradnja v izoliranem GitHub okolju, run **43880111546**. Strežniška koraka **stage=skipped** in **promote=skipped**. Nobenih gesel, ključev, DNS, cPanel ali strežniških sprememb.
+- **Različen UID je samo nujen pogoj, ne popoln dokaz OS/cPanel izolacije.** Brez dokazano ločenih ACL, cPanel/OS identitete, ločene MariaDB, HTTPS, obnovitve, SHA256 in atomarne povrnitve ostaja pisalna objava blokirana.
+
+### Naslednje naloge
+
+1. Uporabniški QA na dveh fizičnih napravah s sintetičnimi podatki. Preveriti različna podjetja, napačno frazo, prenosni v2 paket, UUID, offline ponovni zagon, konflikt in izostanek avtomatičnega pošiljanja. Ne uporabljati resničnih podpisov.
+2. Pred prvim Hiper M objavljanjem pridobiti namenski, preverjeno izoliran FinAI OS/cPanel račun in dokumentirati celovit dokaz izolacije, vključno z dejanskimi OS/ACL pravicami ter namensko bazo. Skupni `laskot48` ostane izključno read-only.
+3. Ob uspešni infrastrukturi in QA pripraviti varovano prvo **sintetično** preizkusno objavo. Produkcijska računovodska obdelava, resnične trgovinske povezave, plačila, knjiženje in resnični podatki ostajajo izključeni do celovitega varnostnega, računovodskega in pravnega QA.
+4. Nadaljevati neodvisni Windows 11 offline pregled uporabnika in podpisovanje produkcijskih namestitvenih paketov šele po končnem QA.
+
+Laškoteka, STNG in skupne storitve ostajajo absolutno nedotaknjene.
