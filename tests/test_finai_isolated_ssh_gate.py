@@ -22,6 +22,8 @@ def archive(*items):
         for name, data, kind in items:
             info = tarfile.TarInfo(name)
             info.size = len(data)
+            if kind == "directory":
+                info.type = tarfile.DIRTYPE
             if kind == "symlink":
                 info.type = tarfile.SYMTYPE
                 info.linkname = "../../etc/passwd"
@@ -95,6 +97,88 @@ class GateTests(unittest.TestCase):
             self.assertEqual(gate.promote(digest, root), "PROMOTED")
             with self.assertRaises(gate.Denied):
                 gate.stage(data, "f" * 64, root)
+
+    def test_realistic_tar_root_directory_is_allowed_but_root_file_is_not(self):
+        data = archive(
+            ("./", b"", "directory"),
+            ("./index.html", b"<html>" + b"x" * 600, "regular"),
+            ("./_next/static/file.js", b"synthetic source", "regular"),
+        )
+        digest = hashlib.sha256(data).hexdigest()
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir()
+            self.assertEqual(gate.stage(data, digest, root), "STAGED")
+            self.assertTrue((root / "archives" / (digest + ".tar.gz")).is_file())
+            self.assertTrue(gate.verify_staged_release(root, digest))
+            self.assertEqual(gate.stage(data, digest, root), "STAGED_ALREADY_PRESENT")
+        forged_root = archive(
+            ("./", b"not a directory", "regular"),
+            ("./index.html", b"<html>" + b"x" * 600, "regular"),
+            ("./_next/static/file.js", b"synthetic source", "regular"),
+        )
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir()
+            with self.assertRaises(gate.Denied):
+                gate.stage(forged_root, hashlib.sha256(forged_root).hexdigest(), root)
+
+    def test_cannot_promote_or_restage_tampered_staged_assets(self):
+        data = valid_archive()
+        digest = hashlib.sha256(data).hexdigest()
+        for tamper in ("rewrite", "extra", "remove", "symlink"):
+            with tempfile.TemporaryDirectory() as parent:
+                root = Path(parent) / "finai-deploy"
+                root.mkdir()
+                self.assertEqual(gate.stage(data, digest, root), "STAGED")
+                (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
+                (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(
+                    str(root / "current") + "\n")
+                release = root / "releases" / digest
+                if tamper == "rewrite":
+                    (release / "_next/static/chunk.js").write_text("tampered")
+                elif tamper == "extra":
+                    (release / "unplanned.html").write_text("foreign")
+                elif tamper == "remove":
+                    (release / "_next/static/chunk.js").unlink()
+                else:
+                    foreign = Path(parent) / "outside.js"
+                    foreign.write_text("foreign")
+                    (release / "_next/static/chunk.js").unlink()
+                    (release / "_next/static/chunk.js").symlink_to(foreign)
+                with self.assertRaises((gate.Denied, OSError)):
+                    gate.verify_staged_release(root, digest)
+                with self.assertRaises((gate.Denied, OSError)):
+                    gate.stage(data, digest, root)
+                with self.assertRaises((gate.Denied, OSError)):
+                    gate.promote(digest, root)
+                self.assertFalse((root / "current").exists())
+
+    def test_pinned_original_tar_is_required_outside_web_docroot(self):
+        data = valid_archive()
+        digest = hashlib.sha256(data).hexdigest()
+        for attack in ("remove-archive", "replace-archive", "symlink-archive"):
+            with tempfile.TemporaryDirectory() as parent:
+                root = Path(parent) / "finai-deploy"
+                root.mkdir()
+                self.assertEqual(gate.stage(data, digest, root), "STAGED")
+                original = root / "archives" / (digest + ".tar.gz")
+                self.assertTrue(original.is_file())
+                original.unlink()
+                if attack == "replace-archive":
+                    original.write_bytes(b"bad-data")
+                elif attack == "symlink-archive":
+                    foreign = Path(parent) / "elsewhere"
+                    foreign.write_bytes(data)
+                    original.symlink_to(foreign)
+                (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
+                (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(
+                    str(root / "current") + "\n")
+                with self.assertRaises((gate.Denied, OSError)):
+                    gate.promote(digest, root)
+                with self.assertRaises((gate.Denied, OSError)):
+                    gate.stage(data, digest, root)
+                self.assertFalse((root / "current").exists())
 
     def test_traversal_and_link_archives_never_escape(self):
         for name, kind in (
