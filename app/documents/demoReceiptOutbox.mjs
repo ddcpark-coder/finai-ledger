@@ -5,7 +5,7 @@ import {deliverySample} from "./demoDeliveryProof.mjs";
 const DB_NAME="finai-synthetic-receipt-outbox-v2";
 const STORE="pending";
 export const SYNC_STATE=Object.freeze({
- queued:"queued",conflict:"conflict",acknowledged:"acknowledged"
+ queued:"queued",conflict:"conflict",acknowledged:"acknowledged",matched:"matched"
 });
 
 export function demoOutboxKey(companyId){
@@ -61,6 +61,26 @@ export function markSyncConflict(record,companyId,serverVersion){
  if(!Number.isSafeInteger(serverVersion)||serverVersion<0)
   throw new Error("Napačen odgovor o verziji na strežniku.");
  return {...pending,state:SYNC_STATE.conflict,serverVersion};
+}
+// Manual conflict review NEVER issues a POST or asserts that our original UUID
+// was acknowledged. It only recognizes identical ciphertext at the exact
+// already-observed server revision. Divergent or moving revisions stay blocked.
+export function reviewIdenticalDemoConflict(record,companyId,remote){
+ const pending=assertDemoPending(record,companyId);
+ if(pending.state!==SYNC_STATE.conflict)
+  throw new Error("Pregled je dovoljen samo za konfliktni sintetični dogodek.");
+ if(!remote||remote.company_id!==companyId||
+  remote.document_id!==pending.documentId||
+  remote.demo_only!==true||remote.real_sync_enabled!==false||
+  !Number.isSafeInteger(remote.version)||
+  remote.version!==pending.serverVersion||
+  remote.version<=pending.expectedVersion)
+  throw new Error("Strežniška različica se je spremenila; konflikt ostane odprt.");
+ validateDemoEnvelope(remote.envelope,companyId);
+ if(JSON.stringify(remote.envelope)!==JSON.stringify(pending.envelope))
+  throw new Error("Šifrirani kopiji se razlikujeta; obdrži lokalni dogodek za ročni pregled.");
+ // Matched is deliberately NOT acknowledged: no delivery ACK for clientEventId.
+ return {...pending,state:SYNC_STATE.matched};
 }
 export function markSyncAccepted(record,companyId,ack){
  const pending=assertDemoPending(record,companyId);
@@ -125,10 +145,15 @@ export async function updateDemoOutbox(record,companyId){
  assertDemoPending(record,companyId);
  return operation(companyId,"readwrite",(store,key,current)=>{
   if(!current||current.clientEventId!==record.clientEventId||
-   current.state!==SYNC_STATE.queued||
    current.expectedVersion!==record.expectedVersion||
+   current.serverVersion!==(record.state===SYNC_STATE.matched?record.serverVersion:null) &&
+    !(current.state===SYNC_STATE.queued && record.state===SYNC_STATE.conflict)||
    JSON.stringify(current.envelope)!==JSON.stringify(record.envelope)||
-   ![SYNC_STATE.acknowledged,SYNC_STATE.conflict].includes(record.state))
+   !(current.state===SYNC_STATE.queued &&
+      [SYNC_STATE.acknowledged,SYNC_STATE.conflict].includes(record.state) ||
+     current.state===SYNC_STATE.conflict &&
+      record.state===SYNC_STATE.matched &&
+      current.serverVersion===record.serverVersion))
    throw new Error("Čakalna vrsta se je vmes spremenila; osveži status.");
   store.put({id:key,value:record});
   return record;
