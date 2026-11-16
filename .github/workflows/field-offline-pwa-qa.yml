@@ -6,6 +6,8 @@ on:
       - "app/documents/syntheticSyncClient.mjs"
       - "app/documents/demoReceiptOutbox.mjs"
       - "tests/demoReceiptOutbox.test.mjs"
+      - "app/documents/demoOutboxPortable.mjs"
+      - "tests/demoOutboxPortable.test.mjs"
       - "tests/e2e/field-outbox.spec.cjs"
       - "app/documents/signatureProviderAdapter.mjs"
       - "tests/syntheticSyncClient.test.mjs"
@@ -41,6 +43,8 @@ jobs:
         run: node --test tests/syntheticSyncClient.test.mjs
       - name: Verify encrypted outbox retry and conflict invariants
         run: node --test tests/demoReceiptOutbox.test.mjs
+      - name: Verify encrypted portable mobile outbox company and checksum guards
+        run: node --test tests/demoOutboxPortable.test.mjs
       - name: Verify exact PDF and manifest integrity
         run: node --test tests/signatureProviderAdapter.test.mjs
       - name: Build standalone field PWA with pre-cache and PNG icons
