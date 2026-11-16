@@ -56,3 +56,19 @@ Vsaka izdaja zahteva: verzioniranje, podpis kode, nadgradnjo brez izgube lokalni
 Windows aplikacija ima v zgornji orodni vrstici tri dostopne gumbe **− / 100 % / +**, ki neodvisno od spletnega CSS nadzorujejo lokalno povečavo vmesnika WebView2 od **80 do 160 %** v korakih po 10 %. Sprememba je omejena na trenutno sejo aplikacije in ne vpliva na računovodske podatke, shrambo, operacijski sistem ali strežnik. Gumbi imajo dostopna slovenska imena za bralnike zaslona. Povečava v namizju je dodatna k prilagoditvam posameznih poslovnih podpogledov.
 
 Omejitve: ni individualnega shranjevanja namizne povečave med zagoni, ni univerzalnega preurejanja vseh notranjih oken ali končnega preverjenega WCAG AA; ciljni test je sestava Windows aplikacije in obstoječi offline/šifrirani ledger self-testi. Ni prisilne posodobitve obstoječe namestitve.
+
+
+## NEXT-13C — varovan izvorni Windows obrazec za sintetična naročila
+
+V zgornji orodni vrstici namizne aplikacije je gumb **Šifrirana naročila**. Odpre nativno Windows Forms okno, ki ne sprejema JavaScript sporočil in ne izvaja HTTP klicev. Uporabnik mora lokalni šifrirani trezor izrecno ustvariti oziroma se vanj prijaviti. Testni trezor je v zasebnem uporabniškem območju LocalApplicationData/e-integrator/Desktop/SyntheticOrderVault-v1 in vsebuje samo dve ustvarjeni izmišljeni podjetji in sintetične osnutke.
+
+Vnos zahteva lokalno 15-minutno sejo, izbiro podjetja, fiksni izmišljeni SKU, količino in ceno v centih. SQLite3MC šifrira podatke, DPAPI varuje ključ, HMAC zagotavlja preverjanje celovitosti in zapis spremembe doda revizijski dogodek. Native varnostna kopija AES-GCM ter obnova samo v še neobstoječi trezor ne prepisujeta podatkov. To ni povezano z resničnim ERP knjiženjem.
+
+## NEXT-13D — samostojna QA namestitvena izdaja
+
+Nov ciljni potek GitHub Actions finai-windows-installer-qa.yml izdela preizkusni Inno Setup paket z vsemi lokalnimi sredstvi, .NET runtime in Microsoftovim polnim podpisno preverjenim WebView2 offline installerjem.
+
+- GitHub Actions preverjen run: https://github.com/ddcpark-coder/finai-ledger/actions/runs/43850976824
+- Artefakt: finai-next13d-win-x64-offline-qa-unsigned; 7-dnevna hramba.
+- Nameščalnik FinAI je nepodpisan in primeren izključno za notranji sintetični QA.
+- Uporabljati na testnem Windows 11 računalniku; pred resničnimi podatki sta nujna preverjena offline namestitev in varna nadgradnja brez izgube lokalne baze, podpis izdaje ter neodvisen varnostni in računovodski pregled.
