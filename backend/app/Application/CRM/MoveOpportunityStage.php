@@ -24,6 +24,7 @@ final class MoveOpportunityStage
             if (! $opportunity) {
                 throw new \DomainException('CRM opportunity not found in company.');
             }
+            CrmReferenceGuard::leadReferences($companyId, $opportunity);
             if ($businessUnitId !== null) {
                 CrmReferenceGuard::linkedUnit($companyId,
                     $opportunityId, $businessUnitId);
