@@ -238,7 +238,7 @@ export default function FieldDemo(){
  const importQueue=()=>perform(async()=>{
    if(await readDemoOutbox(companyId))
      throw new Error("Lokalna vrsta ni prazna. Obstoječega dogodka ni dovoljeno prepisati.");
-   const input=document.createElement("input");
+   const input=window.document.createElement("input");
    input.type="file";input.accept=".json,application/json";
    const file=await new Promise(resolve=>{
      input.onchange=()=>resolve(input.files?.[0]??null);
