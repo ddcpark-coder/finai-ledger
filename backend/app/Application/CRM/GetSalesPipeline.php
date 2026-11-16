@@ -6,23 +6,33 @@ use Illuminate\Support\Facades\DB;
 
 final class GetSalesPipeline
 {
-    public function execute(int $companyId, ?int $ownerUserId = null): array
+    public function execute(int $companyId, int $actorId,
+        ?int $ownerUserId = null, ?int $businessUnitId = null): array
     {
-        $query = DB::table('crm_opportunities')
-            ->where('company_id', $companyId)
-            ->whereNotIn('stage', ['won', 'lost']);
+        CrmReferenceGuard::permission($companyId, $actorId, 'read');
 
-        if ($ownerUserId) {
-            $query->where('owner_user_id', $ownerUserId);
+        $query = DB::table('crm_opportunities as opportunity')
+            ->where('opportunity.company_id', $companyId)
+            ->whereNotIn('opportunity.stage', ['won', 'lost']);
+
+        if ($ownerUserId !== null) {
+            // A company-scoped filter, not permission to read another company's CRM.
+            $query->where('opportunity.owner_user_id', $ownerUserId);
         }
-
+        if ($businessUnitId !== null) {
+            CrmReferenceGuard::activeUnit($companyId, $businessUnitId);
+            $query->join('crm_opportunity_business_units as assignment',
+                'assignment.opportunity_id', '=', 'opportunity.id')
+                ->where('assignment.company_id', $companyId)
+                ->where('assignment.business_unit_id', $businessUnitId);
+        }
+        // Values remain decimal string estimates, never accounting journal totals.
         $rows = $query
-            ->select('stage')
+            ->select('opportunity.stage')
             ->selectRaw('COUNT(*) as opportunity_count')
-            ->selectRaw('SUM(value) as pipeline_value')
-            ->selectRaw('SUM(value * probability_percent / 100) as weighted_value')
-            ->groupBy('stage')
-            ->get();
+            ->selectRaw('SUM(opportunity.value) as pipeline_value')
+            ->selectRaw('SUM(opportunity.value * opportunity.probability_percent / 100) as weighted_value')
+            ->groupBy('opportunity.stage')->get();
 
         return $rows->map(fn ($row) => [
             'stage' => $row->stage,
