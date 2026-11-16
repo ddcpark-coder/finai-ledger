@@ -15,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 import pwd
 import re
+import stat
 import shutil
 import sys
 import tarfile
@@ -183,17 +184,40 @@ def promote(digest, root):
     return "PROMOTED"
 
 
+def require_dedicated_identity(user, uid, home, shared_uid=None):
+    """Reject OS aliases of a shared account before ANY staging operations.
+
+    This is necessary but NOT sufficient proof of independent cPanel isolation.
+    No protected project file, permission or credential is inspected.
+    """
+    if uid == 0 or user.pw_name in {"root", "laskot48"}:
+        raise Denied("dedicated FinAI nonroot UID required")
+    if shared_uid is not None and uid == shared_uid:
+        raise Denied("FinAI system UID aliases shared laskot48")
+    if not home.is_absolute() or home == Path("/") or home.is_symlink():
+        raise Denied("unsafe independent account home")
+    if not home.is_dir() or home.stat().st_uid != uid:
+        raise Denied("home directory must belong to independent FinAI UID")
+    if home.stat().st_mode & (stat.S_IWOTH | stat.S_IWGRP):
+        raise Denied("independent FinAI home is group/other writable")
+
+
 def main():
     user = pwd.getpwuid(os.getuid())
     home = Path(user.pw_dir)
     os.umask(0o022)
-    if os.getuid() == 0 or user.pw_name == "laskot48" or home.is_symlink():
-        raise Denied("dedicated nonroot account is required")
+    try:
+        shared_uid = pwd.getpwnam("laskot48").pw_uid
+    except KeyError:
+        shared_uid = None
+    require_dedicated_identity(user, os.getuid(), home, shared_uid)
     if Path(os.environ.get("HOME", "")).resolve() != home.resolve():
         raise Denied("unexpected HOME")
     root = home / "finai-deploy"
-    if not root.is_dir() or root.is_symlink() or root.stat().st_uid != os.getuid():
-        raise Denied("dedicated deployment root is not installed")
+    if not root.is_dir() or root.is_symlink() or root.stat().st_uid != os.getuid() or (
+        root.stat().st_mode & (stat.S_IWGRP | stat.S_IWOTH)
+    ):
+        raise Denied("private FinAI deployment root is not installed")
     operation, digest = parse(os.environ.get("SSH_ORIGINAL_COMMAND", ""))
     if operation == "status":
         current = root / "current"
