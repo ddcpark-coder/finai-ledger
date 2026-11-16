@@ -149,7 +149,7 @@ export async function importEncryptedDemoPending(record,companyId){
  if(record.state!==SYNC_STATE.queued||record.serverVersion!==null)
   throw new Error("Uvoz dovoljuje samo lokalno čakajoče demo dogodke.");
  if(typeof record.createdAt!=="string"||
-  !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(record.createdAt)||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.createdAt)||
   Number.isNaN(Date.parse(record.createdAt)))
   throw new Error("Čas lokalnega sintetičnega dogodka ni veljaven.");
  return operation(companyId,"readwrite",(store,key,current)=>{
