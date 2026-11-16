@@ -16,6 +16,32 @@ namespace EIntegrator.Desktop;
 /// </summary>
 internal sealed partial class EncryptedLedgerStore
 {
+    internal sealed record SyntheticCompany(string CompanyId, string Label);
+
+    /// <summary>
+    /// Company selector is native-only. Never return other tenants to the UI,
+    /// even if a caller knows another company's UUID.
+    /// </summary>
+    public IReadOnlyList<SyntheticCompany> ListSyntheticCompanies(Session session)
+    {
+        if (session is null || !session.IsActive || disposed ||
+            !ReferenceEquals(session.Owner, this))
+            throw new UnauthorizedAccessException("Expired or invalid local session");
+        using var db = OpenDb();
+        using var query = db.CreateCommand();
+        query.CommandText = """
+            SELECT c.company_id,c.label
+            FROM companies c JOIN memberships m ON m.company_id=c.company_id
+            WHERE m.user_id=$user ORDER BY c.label,c.company_id;
+            """;
+        query.Parameters.AddWithValue("$user", session.UserId);
+        var results = new List<SyntheticCompany>();
+        using var reader = query.ExecuteReader();
+        while (reader.Read())
+            results.Add(new SyntheticCompany(reader.GetString(0), reader.GetString(1)));
+        return results;
+    }
+
     internal sealed record SyntheticOrderDraft(
         string DraftId, string CompanyId, string Sku, int Quantity,
         long UnitPriceCents, long TotalCents, string CreatedUtc);
@@ -263,6 +289,10 @@ internal sealed partial class EncryptedLedgerStore
                 store.AddUser(admin,companyA,"qa.order.viewer",viewerPassword,"viewer");
                 var viewer=store.Authenticate("qa.order.viewer",viewerPassword)
                     ?? throw new InvalidDataException("Synthetic viewer login failed");
+                if(store.ListSyntheticCompanies(admin).Count!=2 ||
+                   store.ListSyntheticCompanies(viewer).Count!=1 ||
+                   store.ListSyntheticCompanies(viewer)[0].CompanyId!=companyA)
+                    return false;
                 var key=Guid.NewGuid().ToString("D");
                 if(store.ListSyntheticOrderDrafts(admin,companyA).Count!=0)
                     return false; // Opening older schema v1 never creates table.
@@ -301,7 +331,8 @@ internal sealed partial class EncryptedLedgerStore
                     ledger.ListSyntheticOrderDrafts(admin,companyB).Count!=0)
                     return false;
                 admin.Revoke();
-                if(!Rejected(()=>ledger.ListSyntheticOrderDrafts(admin,companyA)))
+                if(!Rejected(()=>ledger.ListSyntheticOrderDrafts(admin,companyA)) ||
+                   !Rejected(()=>ledger.ListSyntheticCompanies(admin)))
                     return false;
             }
             return true;
