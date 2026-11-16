@@ -117,7 +117,7 @@ def main():
     checked(owner, "GET", "/api/me", 401)
     checked(owner, "POST", "/two-factor-challenge", 422, {"code": "000000"})
     secret = (root / ".finai-next17d-totp-synthetic").read_text().strip()
-    checked(owner, "POST", "/two-factor-challenge", 200, {"code": totp(secret)})
+    checked(owner, "POST", "/two-factor-challenge", 204, {"code": totp(secret)})
     assert checked(owner, "GET", "/api/me", 200)["data"]["email"] == "owner@example.test"
     # Even the owner of the same company cannot read the OTHER member's proof.
     own = checked(owner, "GET", doc + "/latest", 200)["data"]
@@ -137,10 +137,10 @@ def main():
     print("PASS: tenant revocation enforced on existing session without affecting others")
 
     owner.csrf()
-    checked(owner, "POST", "/logout", 200, {})
+    checked(owner, "POST", "/logout", 204, {})
     checked(owner, "GET", "/api/me", 401)
     writer.csrf()
-    checked(writer, "POST", "/logout", 200, {})
+    checked(writer, "POST", "/logout", 204, {})
     checked(writer, "GET", "/api/me", 401)
     checked(writer, "POST", doc, 401, record)
     print("PASS: session logout denies further synthetic API writes")
