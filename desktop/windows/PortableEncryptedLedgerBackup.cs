@@ -48,7 +48,9 @@ internal static class PortableEncryptedLedgerBackup
             File.Exists(output) || Directory.Exists(output))
             throw new IOException("A new backup destination directory/file is required");
 
+        QaPhase = 31; // encrypted snapshot acquisition
         var (cipherDatabase, rawKey) = source.CaptureCipherSnapshot(MaxDatabaseBytes);
+        QaPhase = 32; // snapshot acquired
         var payload = new byte[PayloadPrefixLength + cipherDatabase.Length];
         var salt = RandomNumberGenerator.GetBytes(SaltLength);
         var nonce = RandomNumberGenerator.GetBytes(NonceLength);
@@ -83,6 +85,7 @@ internal static class PortableEncryptedLedgerBackup
                     packet.AsSpan(HeaderLength, TagLength),
                     packet.AsSpan(0, HeaderLength));
             }
+            QaPhase = 33; // authenticated AES-GCM packet ready
             // Never write unencrypted key, SQL pages or recovery phrase to disk.
             temporary = Path.Combine(parent, ".finai-ledger-" +
                 Guid.NewGuid().ToString("N") + ".tmp");
@@ -99,6 +102,7 @@ internal static class PortableEncryptedLedgerBackup
                 writer.Flush(flushToDisk: true);
             }
             File.Move(temporary, output, overwrite: false);
+            QaPhase = 34; // portable encrypted archive committed
             temporary = null;
         }
         finally
