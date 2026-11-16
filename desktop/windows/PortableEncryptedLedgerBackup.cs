@@ -202,6 +202,7 @@ internal static class PortableEncryptedLedgerBackup
         catch (InvalidDataException) { return true; }
         catch (InvalidOperationException) { return true; }
         catch (IOException) { return true; }
+        catch (UnauthorizedAccessException) { return true; } // Revoked session is expected denial.
     }
 
     /// <summary>Synthetic, real SQLite3MC / DPAPI recovery test, no remote calls.</summary>
