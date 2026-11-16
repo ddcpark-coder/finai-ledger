@@ -15,6 +15,8 @@ namespace EIntegrator.Desktop;
 /// </summary>
 internal static class PortableEncryptedLedgerBackup
 {
+    internal static int QaPhase { get; private set; }
+
     private static readonly byte[] Magic = "FNAILED2"u8.ToArray();
     private const byte Version = 1;
     private const int Rounds = 600_000;
@@ -201,6 +203,7 @@ internal static class PortableEncryptedLedgerBackup
     /// <summary>Synthetic, real SQLite3MC / DPAPI recovery test, no remote calls.</summary>
     public static bool SelfTest()
     {
+        QaPhase = 1;
         var root = Path.Combine(Path.GetTempPath(),
             "finai-ledger-recovery-qa-" + Guid.NewGuid().ToString("N"));
         const string passphrase = "synthetic-ledger-recovery-phrase-2026-not-real";
@@ -212,6 +215,7 @@ internal static class PortableEncryptedLedgerBackup
             Directory.CreateDirectory(root);
             var home = Path.Combine(root, "original");
             string companyId, journalId;
+            QaPhase = 2;
             using (var ledger = EncryptedLedgerStore.CreateNew(home, "qa.admin", adminPhrase))
             {
                 var admin = ledger.Authenticate("qa.admin", adminPhrase)
@@ -225,6 +229,7 @@ internal static class PortableEncryptedLedgerBackup
                      new EncryptedLedgerStore.Line("2600", 0, 12345)]);
                 if (!ledger.VerifyRecoveryIntegrity()) return false;
                 var backup = Path.Combine(root, "synthetic-ledger.finai");
+                QaPhase = 3;
                 Export(ledger, backup, passphrase);
                 if (Encoding.UTF8.GetString(File.ReadAllBytes(backup))
                     .Contains(marker, StringComparison.Ordinal)) return false;
@@ -233,7 +238,9 @@ internal static class PortableEncryptedLedgerBackup
 
             var backupPath = Path.Combine(root, "synthetic-ledger.finai");
             var recovered = Path.Combine(root, "recovered");
+            QaPhase = 4;
             RestoreIntoNewDirectory(backupPath, recovered, passphrase);
+            QaPhase = 5;
             using (var ledger = EncryptedLedgerStore.OpenExisting(recovered))
             {
                 var admin = ledger.Authenticate("qa.admin", adminPhrase);
@@ -242,6 +249,7 @@ internal static class PortableEncryptedLedgerBackup
                 admin.Revoke();
                 if (!MustReject(() => ledger.Lines(admin, companyId, journalId))) return false;
             }
+            QaPhase = 6;
             // Wrong password and tampered/truncated headers cannot create a target.
             var wrong = Path.Combine(root, "wrong");
             if (!MustReject(() => RestoreIntoNewDirectory(backupPath, wrong, wrongPhrase)) ||
@@ -265,6 +273,7 @@ internal static class PortableEncryptedLedgerBackup
             if (!MustReject(() => RestoreIntoNewDirectory(corrupted, target, passphrase)) ||
                 Directory.Exists(target)) return false;
 
+            QaPhase = 7;
             if (!MustReject(() => RestoreIntoNewDirectory(backupPath, recovered, passphrase)))
                 return false;
             // Backups MUST NOT contain raw DPAPI key as a standalone sidecar.
