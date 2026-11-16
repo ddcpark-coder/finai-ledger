@@ -24,7 +24,6 @@ jobs:
       APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
       APP_URL: http://127.0.0.1:8765
       DB_CONNECTION: sqlite
-      DB_DATABASE: ${{ runner.temp }}/finai-next17d-qa.sqlite
       SESSION_DRIVER: file
       SESSION_ENCRYPT: 'true'
       SESSION_SECURE_COOKIE: 'false'
@@ -45,6 +44,8 @@ jobs:
           tools: composer:v2
       - name: Install reviewed PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Pin disposable DB path strictly under the isolated runner temporary directory
+        run: echo "DB_DATABASE=$RUNNER_TEMP/finai-next17d-qa.sqlite" >> "$GITHUB_ENV"
       - name: Prepare disposable synthetic SQLite and session storage
         run: |
           test "$CI" = true && test "$GITHUB_ACTIONS" = true
