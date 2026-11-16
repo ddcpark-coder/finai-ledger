@@ -112,6 +112,12 @@ internal static class Program
         using var running = new System.Threading.Mutex(true,
             @"Local\FinAI_EIntegrator_Desktop_QA_v1", out bool first);
         if (!first) return 17;
+        if (args.Length == 1 && args[0] == "--upgrade-preservation-self-test")
+        {
+            try { return OfflineUpgradePreservationQa.SelfTest() ? 0 : 18; }
+            catch (Exception) { return 19; }
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;
