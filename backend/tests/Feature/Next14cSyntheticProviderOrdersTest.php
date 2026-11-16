@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Application\Integrations\StageSyntheticProviderOrder;
+use App\Application\Integrations\SyntheticCommerceReview;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -56,6 +57,17 @@ final class Next14cSyntheticProviderOrdersTest extends TestCase
                 'role_id' => $roleId, 'permission_id' => $permission,
             ]);
         }
+        // Read permission is distinct from write, enabling true reviewer-only
+        // actors to inspect the PII-free inbox without changing any order.
+        $readPermission = DB::table('permissions')->where('key', 'orders.read')->value('id');
+        if (! $readPermission) {
+            $readPermission = DB::table('permissions')->insertGetId([
+                'key' => 'orders.read', 'name' => 'Synthetic commerce review read',
+            ]);
+        }
+        DB::table('permission_role')->insert([
+            'role_id' => $roleId, 'permission_id' => $readPermission,
+        ]);
         $actor->companies()->attach($company->id, [
             'role_id' => $roleId, 'status' => 'active', 'joined_at' => now(),
         ]);
@@ -274,4 +286,116 @@ final class Next14cSyntheticProviderOrdersTest extends TestCase
             $company->id, $actor->id, 'shopify', $raw, $headers, $warehouse));
         $this->assertDatabaseCount('commerce_order_events', 0);
     }
+
+    public function test_synthetic_commerce_reviewer_can_read_but_only_writer_can_decide_and_audit_once(): void
+    {
+        $company = $this->company('Synthetic A');
+        $other = $this->company('Synthetic B');
+        $writer = $this->actor($company, 'writer', true);
+        $reader = $this->actor($company, 'reader', false);
+        $outsider = $this->actor($other, 'outsider', true);
+        $review = app(SyntheticCommerceReview::class);
+
+        $created = [];
+        foreach (['shopify', 'woocommerce'] as $provider) {
+            $warehouse = $this->fixtures($company, $provider);
+            [$raw, $headers] = $this->signed($provider, $this->payload($provider));
+            $created[$provider] = $this->send(
+                $company->id, $writer->id, $provider, $raw, $headers, $warehouse);
+        }
+        $this->assertDatabaseCount('commerce_order_events', 2);
+        $this->assertDatabaseCount('audit_logs', 2);
+
+        $page = $review->list($company->id, $reader->id, limit: 1);
+        $this->assertCount(1, $page['items']);
+        $this->assertNotNull($page['next_cursor']);
+        $this->assertTrue($page['items'][0]['demo_only']);
+        $this->assertFalse($page['items'][0]['posting']);
+        $this->assertArrayNotHasKey('normalized_json', $page['items'][0]);
+        $this->assertArrayNotHasKey('customer', $page['items'][0]);
+        $next = $review->list($company->id, $reader->id,
+            afterId: $page['next_cursor'], limit: 1);
+        $this->assertCount(1, $next['items']);
+        $this->assertNull($next['next_cursor']);
+
+        $this->rejects(fn () => $review->decide(
+            $company->id, $reader->id, $created['shopify']['id'], 'reviewed'));
+        $this->rejects(fn () => $review->list(
+            $company->id, $outsider->id));
+        $this->rejects(fn () => $review->decide(
+            $other->id, $outsider->id, $created['shopify']['id'], 'reviewed'));
+
+        $done = $review->decide(
+            $company->id, $writer->id, $created['shopify']['id'], 'reviewed');
+        $this->assertSame('reviewed', $done['status']);
+        $this->assertFalse($done['posting']);
+        $this->assertFalse($done['inventory_reserved']);
+        $this->assertFalse($done['invoice_created']);
+        $this->assertFalse($done['replayed']);
+        $this->assertTrue($review->decide(
+            $company->id, $writer->id, $created['shopify']['id'], 'reviewed')['replayed']);
+        $this->rejects(fn () => $review->decide(
+            $company->id, $writer->id, $created['shopify']['id'], 'hold'));
+        $this->assertSame('hold', $review->decide(
+            $company->id, $writer->id, $created['woocommerce']['id'], 'hold')['status']);
+
+        $this->assertDatabaseCount('commerce_order_events', 2);
+        $this->assertDatabaseCount('audit_logs', 4); // staging + one decision each
+        $statuses = $review->list($company->id, $reader->id)['items'];
+        $this->assertSame(['reviewed', 'hold'],
+            array_column($statuses, 'status'));
+        // A signed duplicate must preserve its actual held/reviewed disposition.
+        [$raw, $headers] = $this->signed('shopify', $this->payload('shopify'));
+        $warehouse = DB::table('warehouses')->where('company_id', $company->id)
+            ->orderBy('id')->value('id');
+        $this->assertSame('reviewed', $this->send(
+            $company->id, $writer->id, 'shopify', $raw, $headers, $warehouse)['status']);
+        $this->assertDatabaseCount('audit_logs', 4);
+    }
+
+    public function test_synthetic_commerce_review_rejects_tampering_and_audit_failure_rolls_back(): void
+    {
+        $company = $this->company('Synthetic A');
+        $writer = $this->actor($company, 'writer', true);
+        $warehouse = $this->fixtures($company, 'shopify');
+        [$raw, $headers] = $this->signed('shopify', $this->payload('shopify'));
+        $created = $this->send(
+            $company->id, $writer->id, 'shopify', $raw, $headers, $warehouse);
+        $review = app(SyntheticCommerceReview::class);
+        $this->rejects(fn () => $review->decide(
+            $company->id, $writer->id, $created['id'], 'approved'));
+        $this->rejects(fn () => $review->list($company->id, $writer->id, limit: 200));
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        // Deliberately fail the audit insert inside a single SQLite test
+        // transaction: the review status must remain unchanged.
+        Schema::drop('audit_logs');
+        try {
+            $review->decide($company->id, $writer->id, $created['id'], 'hold');
+            $this->fail('Missing audit table must reject synthetic review.');
+        } catch (\Illuminate\Database\QueryException) {
+            $this->assertDatabaseHas('commerce_order_events', [
+                'id' => $created['id'], 'company_id' => $company->id,
+                'status' => 'review',
+            ]);
+        }
+        DB::table('commerce_order_events')->where('id', $created['id'])
+            ->update(['fingerprint' => str_repeat('0', 64)]);
+        $this->rejects(fn () => $review->list($company->id, $writer->id));
+        $this->rejects(fn () => $review->decide(
+            $company->id, $writer->id, $created['id'], 'reviewed'));
+    }
+
+    public function test_synthetic_commerce_review_flag_blocks_read_and_write_even_with_membership(): void
+    {
+        $company = $this->company('Synthetic A');
+        $writer = $this->actor($company, 'writer', true);
+        $review = app(SyntheticCommerceReview::class);
+        config()->set('finai.synthetic_commerce_staging_enabled', false);
+        $this->rejects(fn () => $review->list($company->id, $writer->id));
+        $this->rejects(fn () => $review->decide(
+            $company->id, $writer->id, 1, 'hold'));
+        $this->assertDatabaseCount('commerce_order_events', 0);
+    }
+
 }
