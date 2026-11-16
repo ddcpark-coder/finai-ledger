@@ -146,8 +146,6 @@ export async function updateDemoOutbox(record,companyId){
  return operation(companyId,"readwrite",(store,key,current)=>{
   if(!current||current.clientEventId!==record.clientEventId||
    current.expectedVersion!==record.expectedVersion||
-   current.serverVersion!==(record.state===SYNC_STATE.matched?record.serverVersion:null) &&
-    !(current.state===SYNC_STATE.queued && record.state===SYNC_STATE.conflict)||
    JSON.stringify(current.envelope)!==JSON.stringify(record.envelope)||
    !(current.state===SYNC_STATE.queued &&
       [SYNC_STATE.acknowledged,SYNC_STATE.conflict].includes(record.state) ||
