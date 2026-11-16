@@ -36,7 +36,7 @@ test("review list is same-origin manual GET with credentials, no client POST",as
  assert.equal(calls[0].opt.method,"GET");
  assert.equal(calls[0].opt.credentials,"include");
  assert.match(calls[0].url,/companies\/1\/demo\/commerce-review\?after_id=0&limit=20/);
- assert.throws(()=>client.list(0),/Neveljavno/);
+ await assert.rejects(client.list(0),/Neveljavno/);
  await assert.rejects(client.list(1,{limit:51}),/stran/);
 });
 
