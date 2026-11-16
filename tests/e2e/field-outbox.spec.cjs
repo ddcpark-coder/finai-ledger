@@ -64,3 +64,47 @@ test("public static preview has no enabled network sync, even when queue control
  await expect(page.getByRole("button",{name:"Preveri testno različico"})).toBeDisabled();
  await expect(page.getByRole("button",{name:"Ročno preveri ujemanje konflikta"})).toBeDisabled();
 });
+
+
+test("offline portable v2 reimport requires correct phrase and preserves event UUID",async({page,context})=>{
+ const writes=[];
+ page.on("request",r=>{
+  if(["POST","PUT","PATCH","DELETE"].includes(r.method()))writes.push(r.url());
+ });
+ const phrase="synthetic-mobile-portable-not-real-2026";
+ await page.goto("/field/");
+ await signSynthetic(page);
+ await page.getByLabel("Lokalno testno geslo").fill(phrase);
+ await page.getByRole("button",{name:"Shrani šifrirano"}).click();
+ await expect(page.getByText("Šifrirana kopija obstaja na tej napravi.")).toBeVisible();
+ await page.getByRole("button",{name:"Uvrsti šifriran demo v vrsto"}).click();
+ const state=page.getByRole("status",{name:"Lokalna sinhronizacijska vrsta"});
+ await expect(state).toContainText("queued");
+ const id=(await state.textContent()).match(/[a-f0-9]{8}-[a-f0-9-]{27}/i)?.[0];
+ expect(id).toBeTruthy();
+ await page.getByLabel("Lokalno testno geslo").fill(phrase);
+ const downloadWait=page.waitForEvent("download");
+ await page.getByRole("button",{name:"Izvozi šifrirano vrsto"}).click();
+ const download=await downloadWait;
+ const saved=await download.path();
+ expect(saved).toBeTruthy();
+ page.once("dialog",d=>d.accept());
+ await page.getByRole("button",{name:"Odstrani iz vrste"}).click();
+ await expect(state).toContainText("prazna");
+ // A wrong phrase must never insert, transmit or replace even synthetic data.
+ await page.getByLabel("Lokalno testno geslo").fill("incorrect-synthetic-local-phrase-2026");
+ const wrongPicker=page.waitForEvent("filechooser");
+ await page.getByRole("button",{name:"Uvozi šifrirano vrsto"}).click();
+ await (await wrongPicker).setFiles(saved);
+ await expect(page.getByText(/Napačna fraza ali spremenjen podpisani demo dogodek/)).toBeVisible();
+ await expect(state).toContainText("prazna");
+ await page.getByLabel("Lokalno testno geslo").fill(phrase);
+ const rightPicker=page.waitForEvent("filechooser");
+ await page.getByRole("button",{name:"Uvozi šifrirano vrsto"}).click();
+ await (await rightPicker).setFiles(saved);
+ await expect(state).toContainText(id);
+ await expect(page.getByText(/Uvoz v2: HMAC in AES-GCM dokazilo sta preverjena/)).toBeVisible();
+ await expect(page.getByRole("button",{name:"Ročno pošlji šifriran demo"})).toBeDisabled();
+ await expect(page.getByLabel("Lokalno testno geslo")).toHaveValue("");
+ expect(writes).toEqual([]);
+});
