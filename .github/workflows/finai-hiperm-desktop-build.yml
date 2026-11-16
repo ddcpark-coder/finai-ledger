@@ -81,29 +81,29 @@ jobs:
           if ($exe.Length -lt 100000) { throw 'Unexpectedly small executable' }
           if (-not (Test-Path dist/windows/Microsoft.Web.WebView2.Core.dll)) { throw 'Missing WebView2 dependency' }
           if (-not (Test-Path dist/windows/wwwroot/offline/index.html)) { throw 'Missing offline UI asset' }
-          & dist/windows/EIntegrator.Desktop.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "Offline SQLite/DPAPI persistence self-test failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_SQLITE_DPAPI_REOPEN=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --ledger-self-test
-          if ($LASTEXITCODE -ne 0) { throw "Offline ledger sandbox invariants failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--ledger-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "Offline ledger sandbox invariants failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_LEDGER_INVARIANTS=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --backup-self-test
-          if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02B authenticated draft recovery failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--backup-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "OFFLINE-02B authenticated draft recovery failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_DRAFT_BACKUP_RECOVERY=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --encrypted-ledger-self-test
-          if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02C encrypted SQLite, local auth and tenant gate failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--encrypted-ledger-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "OFFLINE-02C encrypted SQLite, local auth and tenant gate failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_ENCRYPTED_SQLITE3MC_LEDGER=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --ledger-recovery-self-test
-          if ($LASTEXITCODE -ne 0) { throw "OFFLINE-02D full encrypted ledger backup/recovery rejected, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--ledger-recovery-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "OFFLINE-02D full encrypted ledger backup/recovery rejected, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_LEDGER_RECOVERY=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --synthetic-order-draft-self-test
-          if ($LASTEXITCODE -ne 0) { throw "NEXT13B encrypted synthetic order draft/recovery failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--synthetic-order-draft-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "NEXT13B encrypted synthetic order draft/recovery failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_ENCRYPTED_ORDER_DRAFTS=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --delivery-queue-self-test
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic delivery queue integrity test failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--delivery-queue-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "Synthetic delivery queue integrity test failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_SYNTHETIC_DELIVERY_QUEUE=PASS'
-          & dist/windows/EIntegrator.Desktop.exe --mobile-import-self-test
-          if ($LASTEXITCODE -ne 0) { throw "Encrypted synthetic mobile import validation failed, code $LASTEXITCODE" }
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--mobile-import-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "Encrypted synthetic mobile import validation failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_WINDOWS_MOBILE_SYNTHETIC_IMPORT=PASS'
           Write-Output 'FINAI_WINDOWS_DESKTOP_COMPILE=PASS'
           Write-Output "exe_sha256=$((Get-FileHash $exe.FullName -Algorithm SHA256).Hash)"
