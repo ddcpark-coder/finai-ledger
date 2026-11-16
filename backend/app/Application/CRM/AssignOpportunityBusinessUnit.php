@@ -19,6 +19,7 @@ final class AssignOpportunityBusinessUnit
             if (! $opportunity) {
                 throw new \DomainException('CRM opportunity not found in company.');
             }
+            CrmReferenceGuard::leadReferences($companyId, $opportunity);
             $old = DB::table('crm_opportunity_business_units')
                 ->where('opportunity_id', $opportunityId)
                 ->lockForUpdate()->first();
