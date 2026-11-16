@@ -5,6 +5,8 @@ import Link from "next/link";
 import BusinessBriefCompact from "../next11/BusinessBriefCompact";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "../documents/demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "../documents/demoDeliveryPdf.mjs";
+import {makePrintableDelivery} from "../documents/printableDelivery.mjs";
+import DeliveryPrintPreview from "../documents/DeliveryPrintPreview";
 import {createUnsignedPdfManifest,verifyUnsignedPdfManifest} from "../documents/signatureProviderAdapter.mjs";
 import {
  encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
@@ -121,6 +123,7 @@ export default function FieldDemo(){
  const [signature,setSignature]=useState("");
  const [consent,setConsent]=useState(false);
  const [proof,setProof]=useState(null);
+ const [printable,setPrintable]=useState(null);
  const [password,setPassword]=useState("");
  const [hasLocalCopy,setHasLocalCopy]=useState(false);
  const [status,setStatus]=useState("");
@@ -174,7 +177,7 @@ export default function FieldDemo(){
  },[companyId]);
  const changeCompany=value=>{
   setCompanyId(value);setSigner("Sintetični prejemnik");setSignature("");
-  setConsent(false);setProof(null);setPassword("");setHasLocalCopy(false);setStatus("");
+  setConsent(false);setProof(null);setPrintable(null);setPassword("");setHasLocalCopy(false);setStatus("");
   setPdfBundle(null);setQueued(null);
   setSyncState("local-only");setSyncVersion(null);setSyncMessage("");
  };
@@ -187,7 +190,7 @@ export default function FieldDemo(){
  const finalize=()=>perform(async()=>{
   const result=await finalizeDemoDelivery({document,companyId,signer,signature,accepted:consent});
   if(!await verifyDemoDelivery(result,companyId))throw new Error("Dokazila ni mogoče preveriti.");
-  setProof(result);setPdfBundle(null);setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
+  setProof(result);setPrintable(null);setPdfBundle(null);setStatus("Podpis je sintetičen in povezan z zamrznjeno dobavnico. Ni pravno kvalificiran.");
  });
  const save=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej zaključi demonstracijski podpis.");
@@ -201,7 +204,7 @@ export default function FieldDemo(){
  const restore=()=>perform(async()=>{
   const envelope=await readEncryptedDemoProof(companyId);
   const restored=await decryptDemoProof(envelope,companyId,password);
-  setProof(restored);setPdfBundle(null);setSignature(restored.signatureDataUrl);
+  setProof(restored);setPrintable(null);setPdfBundle(null);setSignature(restored.signatureDataUrl);
   setSigner(restored.signer);setConsent(true);setPassword("");
   setStatus("Lokalno dokazilo je dešifrirano in preverjeno.");
  });
@@ -303,6 +306,11 @@ export default function FieldDemo(){
    setSyncVersion(latest.version);
    setSyncMessage("Testna šifrirana kopija je obnovljena in lokalno preverjena. Brez avtomatskega prepisovanja.");
  });
+ const openPrint=()=>perform(async()=>{
+  if(!proof)throw new Error("Najprej preveri sintetično dokazilo.");
+  setPrintable(await makePrintableDelivery(proof,companyId));
+  setStatus("Pripravljen je lokalni predogled za tisk. To ni elektronsko podpisan PDF.");
+ });
  const pdf=()=>perform(async()=>{
   if(!proof)throw new Error("Najprej preveri dokazilo.");
   const bytes=await createDemoDeliveryPdf(proof,companyId);
@@ -366,7 +374,7 @@ export default function FieldDemo(){
     <button type="button" onClick={finalize}
      disabled={busy||Boolean(proof)||!signature||!consent}>Zaključi demo prevzem</button>
     {proof&&<button className="secondary" type="button" onClick={()=>{
-     setProof(null);setSignature("");setConsent(false);setStatus("");setPdfBundle(null);
+     setProof(null);setPrintable(null);setSignature("");setConsent(false);setStatus("");setPdfBundle(null);
     }}>Nov lokalni podpis</button>}
    </div>
    {proof&&<p className="small">SHA-256 dokazila: {proof.evidenceSha256}</p>}
@@ -385,6 +393,7 @@ export default function FieldDemo(){
    </div>
    <div className="row">
     <button className="secondary" type="button" disabled={!proof||busy} onClick={pdf}>Prenesi demo PDF</button>
+    <button className="secondary" type="button" disabled={!proof||busy} onClick={openPrint}>Predogled za tisk</button>
     <button className="secondary" type="button" disabled={!proof||busy} onClick={json}>Izvozi dokazilo JSON</button>
      <button className="secondary" type="button" disabled={!pdfBundle||busy} onClick={exportManifest}>
       Izvozi SHA-256 manifest PDF
@@ -392,6 +401,7 @@ export default function FieldDemo(){
    </div>
    {status&&<p className="message" role="status">{status}</p>}
   </section>
+  <DeliveryPrintPreview printable={printable} onClose={()=>setPrintable(null)}/>
   <section className="card" aria-label="Ročna testna sinhronizacija">
    <h2>4. Sinhronizacija naprav (razvojni preizkus)</h2>
    <p className="small">Šifrirano demo dokazilo lahko uvrstiš v lokalno vrsto brez omrežja. Pošiljanje je izključno ročno in na javnem gostovanju varnostno izključeno.</p>
