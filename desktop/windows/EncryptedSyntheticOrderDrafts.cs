@@ -16,6 +16,8 @@ namespace EIntegrator.Desktop;
 /// </summary>
 internal sealed partial class EncryptedLedgerStore
 {
+    internal static int SyntheticOrderQaPhase { get; private set; }
+
     internal sealed record SyntheticCompany(string CompanyId, string Label);
 
     /// <summary>
@@ -269,6 +271,7 @@ internal sealed partial class EncryptedLedgerStore
 
     public static bool SyntheticOrderDraftSelfTest()
     {
+        SyntheticOrderQaPhase = 1;
         var root=Path.Combine(Path.GetTempPath(),
             "finai-next13b-drafts-"+Guid.NewGuid().ToString("N"));
         const string adminPassword="SYNTHETIC-QA-LOCAL-NOT-REAL-2026";
@@ -280,6 +283,7 @@ internal sealed partial class EncryptedLedgerStore
             Directory.CreateDirectory(root);
             var home=Path.Combine(root,"home");
             var backup=Path.Combine(root,"encrypted-drafts.finai");
+            SyntheticOrderQaPhase = 2;
             using(var store=CreateNew(home,"qa.order.admin",adminPassword))
             {
                 var admin=store.Authenticate("qa.order.admin",adminPassword)
@@ -296,6 +300,7 @@ internal sealed partial class EncryptedLedgerStore
                 var key=Guid.NewGuid().ToString("D");
                 if(store.ListSyntheticOrderDrafts(admin,companyA).Count!=0)
                     return false; // Opening older schema v1 never creates table.
+                SyntheticOrderQaPhase = 3;
                 draftId=store.SaveSyntheticOrderDraft(admin,companyA,key,"SYN-TAB-10070",3,12500);
                 if(store.SaveSyntheticOrderDraft(admin,companyA,key,"SYN-TAB-10070",3,12500)!=draftId ||
                     !Rejected(()=>store.SaveSyntheticOrderDraft(admin,companyA,key,
@@ -312,6 +317,7 @@ internal sealed partial class EncryptedLedgerStore
                 var record=store.ListSyntheticOrderDrafts(viewer,companyA)[0];
                 if(record.DraftId!=draftId || record.TotalCents!=37500)
                     return false;
+                SyntheticOrderQaPhase = 4;
                 PortableEncryptedLedgerBackup.Export(store,backup,backupPassword);
             }
             // Neither encrypted database nor portable encrypted archive leaks demo SKU.
@@ -320,7 +326,9 @@ internal sealed partial class EncryptedLedgerStore
                Encoding.UTF8.GetString(File.ReadAllBytes(backup))
                 .Contains("SYN-TAB-10070",StringComparison.Ordinal))return false;
             var restored=Path.Combine(root,"restored");
+            SyntheticOrderQaPhase = 5;
             PortableEncryptedLedgerBackup.RestoreIntoNewDirectory(backup,restored,backupPassword);
+            SyntheticOrderQaPhase = 6;
             using(var ledger=OpenExisting(restored))
             {
                 var admin=ledger.Authenticate("qa.order.admin",adminPassword);
@@ -335,6 +343,7 @@ internal sealed partial class EncryptedLedgerStore
                    !Rejected(()=>ledger.ListSyntheticCompanies(admin)))
                     return false;
             }
+            SyntheticOrderQaPhase = 7;
             return true;
         }
         finally
