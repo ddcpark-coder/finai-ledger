@@ -60,11 +60,11 @@ internal static class Program
         {
             try
             {
-                return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 9;
+                return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 50 + PortableEncryptedLedgerBackup.QaPhase;
             }
             catch (Exception)
             {
-                return 10; // No plaintext, key material or paths in test output.
+                return 100 + PortableEncryptedLedgerBackup.QaPhase; // Only phase number, never plaintext.
             }
         }
 
@@ -82,8 +82,8 @@ internal static class Program
 
         if (args.Length == 1 && args[0] == "--synthetic-order-draft-self-test")
         {
-            try { return EncryptedLedgerStore.SyntheticOrderDraftSelfTest() ? 0 : 15; }
-            catch (Exception) { return 16; } // Never print private cipher or test data.
+            try { return EncryptedLedgerStore.SyntheticOrderDraftSelfTest() ? 0 : 60 + EncryptedLedgerStore.SyntheticOrderQaPhase; }
+            catch (Exception) { return 120 + EncryptedLedgerStore.SyntheticOrderQaPhase; } // Phase only, never keys or paths.
         }
 
         if (args.Length == 1 && args[0] == "--qa-installer-seed")
