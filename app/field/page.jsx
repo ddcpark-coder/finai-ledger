@@ -231,9 +231,11 @@ export default function FieldDemo(){
    if(!current)throw new Error("Vrsta je prazna.");
    if(current.state!==SYNC_STATE.queued)
      throw new Error("Prenos dovoljuje samo čakajoč šifrirani sintetični dogodek.");
-   const portable=await packPortableDemoOutbox(current,companyId);
+   if(password.length<12)throw new Error("Za varen izvoz vnesi lokalno testno frazo.");
+   const portable=await packPortableDemoOutbox(current,companyId,password);
    download(portable,current.documentId+"-encrypted-demo-queue-portable.json","application/json");
-   setSyncMessage("Izvožen je šifriran sintetični dogodek brez gesel ali čistega podpisa.");
+   setPassword("");
+   setSyncMessage("Izvožen je šifriran in HMAC-overjen paket v2. Fraza ni shranjena ali poslana.");
  });
  const importQueue=()=>perform(async()=>{
    if(await readDemoOutbox(companyId))
@@ -247,10 +249,11 @@ export default function FieldDemo(){
    });
    if(!file)return;
    if(file.size>302000)throw new Error("Prenosni sintetični paket je prevelik.");
-   const record=await unpackPortableDemoOutbox(await file.text(),companyId);
+   if(password.length<12)throw new Error("Za varen uvoz vnesi lokalno testno frazo.");
+   const record=await unpackPortableDemoOutbox(await file.text(),companyId,password);
    const imported=await importEncryptedDemoPending(record,companyId);
-   setQueued(imported);setSyncState("ready");
-   setSyncMessage("Izvirni šifrirani testni dogodek je uvožen z istim UUID. Ni bil poslan.");
+   setQueued(imported);setSyncState("ready");setPassword("");
+   setSyncMessage("Uvoz v2: HMAC in AES-GCM dokazilo sta preverjena; UUID ohranjen. Ni bil poslan.");
  });
  const reviewConflict=()=>perform(async()=>{
    if(!syncEnabled||!online)
@@ -442,7 +445,7 @@ export default function FieldDemo(){
   <DeliveryPrintPreview printable={printable} onClose={()=>setPrintable(null)}/>
   <section className="card" aria-label="Ročna testna sinhronizacija">
    <h2>4. Sinhronizacija naprav (razvojni preizkus)</h2>
-   <p className="small">Šifrirano demo dokazilo lahko uvrstiš v lokalno vrsto brez omrežja. Pošiljanje je izključno ročno in na javnem gostovanju varnostno izključeno.</p>
+   <p className="small">Šifrirano demo dokazilo lahko uvrstiš v lokalno vrsto brez omrežja. Prenosna datoteka v2 pred izvozom in uvozom zahteva lokalno testno frazo, preveri HMAC celotnega dogodka in AES-GCM dokazilo. Stari paket v1 je zavrnjen. Pošiljanje je izključno ročno in na javnem gostovanju varnostno izključeno.</p>
    <p className="small">Vključi se samo na lokalnem razvojno prijavljenem FinAI strežniku.
      Ni samodejnega pošiljanja, produkcijske sinhronizacije ali prenosa na javni račun.
      Druga naprava potrebuje prijavo istega uporabnika in isto lokalno testno geslo.</p>
@@ -453,8 +456,8 @@ export default function FieldDemo(){
      {syncVersion!==null?" Strežniška različica: "+syncVersion+"." : ""}</p>
    <div className="row">
     <button type="button" className="secondary" disabled={!hasLocalCopy||busy||Boolean(queued)} onClick={queueProof}>Uvrsti šifriran demo v vrsto</button>
-    <button type="button" className="secondary" disabled={!queued||busy||queued.state!==SYNC_STATE.queued} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
-    <button type="button" className="secondary" disabled={Boolean(queued)||busy} onClick={importQueue}>Uvozi šifrirano vrsto</button>
+    <button type="button" className="secondary" disabled={!queued||busy||password.length<12||queued.state!==SYNC_STATE.queued} onClick={exportQueue}>Izvozi šifrirano vrsto</button>
+    <button type="button" className="secondary" disabled={Boolean(queued)||busy||password.length<12} onClick={importQueue}>Uvozi šifrirano vrsto</button>
     <button type="button" className="secondary" disabled={!queued||busy} onClick={removeQueue}>Odstrani iz vrste</button>
     <button type="button" className="secondary"
      disabled={!syncEnabled||!online||busy||queued?.state!==SYNC_STATE.conflict}
