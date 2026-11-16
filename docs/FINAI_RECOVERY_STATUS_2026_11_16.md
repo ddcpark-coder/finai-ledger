@@ -166,3 +166,29 @@ Ciljni CI na glavi PR #137 `dd65e4ef`:
 5. Računovodski, varnostni in zakonodajni QA pred sprejemanjem resničnih podatkov.
 
 Laškoteka, STNG ter skupne cPanel/SSH/DNS storitve in drugi projekti ostajajo absolutno izključeni iz FinAI pisalnih posegov.
+
+---
+
+## Nadaljevanje 16. 11. 2026 — mobilna avtentikacija v2 in ponovljena naročila
+
+| PR | Glavni commit | Ciljni rezultat |
+|---|---|---|
+| [#139](https://github.com/ddcpark-coder/finai-ledger/pull/139) | `c3d392db` | NEXT-13H: nova mobilna prenosna ovojnica **v2** zahteva lokalno frazo, PBKDF2-SHA256 (250.000 iteracij) in domensko ločen HMAC-SHA256 nad celotnim sintetičnim dogodkom, skupaj z originalnim UUID, podjetjem in pričakovano strežniško revizijo. Pred uvozom/izvozom se **dešifrira in preveri** pripadajoče AES-GCM dokazilo. Neoverjeni v1 paketi so zavrnjeni. |
+| [#140](https://github.com/ddcpark-coder/finai-ledger/pull/140) | `e5497799` | NEXT-14D: isti sintetični Shopify/WooCommerce zunanji order pod novim dostavnim ID vrne prvi ID in `replayed=true` samo ob **identičnem fingerprintu**; drugačni podatki so zavrnjeni brez novega zapisa ali audita. |
+
+### Preverjeno
+
+- NEXT-13H PR #139: pet ciljnih CI tokov je **PASS**, vključno z mobilnim Playwright uvozom z napačno/pravilno frazo, zavrnitvijo starih v1 in sprememb UUID/verzije ter brez HTTP pisanja.
+- NEXT-14D PR #140: Laravel Foundation/Feature CI **PASS**, vključno s posodobljenim zgodnjim Next11 testom, ki zdaj preveri isto naročilo in isti ID ob novem dogodku. Spremenjeni zneski ostanejo fail-closed.
+- Zadnji preverjeni glavni web Actions run `43864749559`: statična spletna gradnja **PASS**, izolirani varnostni gate **PASS**, `stage=skipped`, `promote=skipped`. To **ne** pomeni objave na gostovanju.
+- Stari odprti BACKEND PR #33 je zaprt kot nadomeščen, saj je njegov `--apply` skript premalo strogo preverjal OS UID in bi bil lahko nevaren na skupnem uporabniku `laskot48`. Nadomestil ga je strogo bralni namenski OS preflight na glavni veji.
+
+### Nadaljevanje
+
+1. **Windows 11 preizkus uporabnika:** namestitev na testno napravo brez interneta, originalni lokalni trezor, ponovna namestitev brez izgube sintetičnih osnutkov, ločeni podjetji, test prenosne obnove. Trenutni namestitveni program je nepodpisani QA, ne produkcijska izdaja.
+2. **Mobilni QA:** po v2 prenosu preveriti prenos med dvema realnima testnima napravama z isto testno frazo, brez produkcijskega prenosa in brez resničnih podatkov. V1 paket je potrebno znova izvoziti na izvorni napravi, ne mu dovoliti tihega uvoza.
+3. **Spletne trgovine:** ločen provider emulator in varovan testni strežnik ter prihodnje povezovanje pravih payloadov samo ob dokazani izolaciji podjetij, varni hrambi poverilnic, računovodskih pravilih ter zakonodajnem QA.
+4. **Spletna produkcija:** samostojen preverjeno izoliran Hiper M OS/cPanel račun FinAI, namenska MariaDB baza, HTTPS, lastna obnovitvena točka, preverjeni dokazi lastništva in povrnljivi preklop. `laskot48` ostane samo za branje.
+5. **Resnični podatki:** prepoved do zaključka varnostnega, knjigovodskega in zakonodajnega QA.
+
+FinAI razvojni posegi so omejeni na GitHub repozitorij in začasne sintetične CI runnerje. Laškoteka, STNG, skupne nastavitve cPanel/SSH/DNS/SSL in vse tuje baze ostajajo nedotaknjene.
