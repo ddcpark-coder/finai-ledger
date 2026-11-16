@@ -62,6 +62,10 @@ internal static class Program
             {
                 return PortableEncryptedLedgerBackup.SelfTest() ? 0 : 50 + PortableEncryptedLedgerBackup.QaPhase;
             }
+            catch (IOException) { return 200 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (System.Security.Cryptography.CryptographicException) { return 300 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (Microsoft.Data.Sqlite.SqliteException) { return 400 + PortableEncryptedLedgerBackup.QaPhase; }
+            catch (InvalidOperationException) { return 500 + PortableEncryptedLedgerBackup.QaPhase; }
             catch (Exception)
             {
                 return 100 + PortableEncryptedLedgerBackup.QaPhase; // Only phase number, never plaintext.
