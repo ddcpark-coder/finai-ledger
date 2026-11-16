@@ -248,7 +248,7 @@ export default function DocumentsWorkspace({context,companyId}){
       </button>
       <button type="button" className="secondary" disabled={!completed||!proof||pdfBusy}
        onClick={openPrint}>Predogled dobavnice za tisk</button>
-      {pdfError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{pdfError}</p>
+      {pdfError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{pdfError}</p>}
       <button type="button" className="secondary" disabled={!completed||!proof} onClick={exportProof}>Izvozi demo dokazilo (.json)</button>
       <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
       <button type="button" className="secondary" disabled title="Integracija s kvalificiranim podpisom še ni na voljo">Kvalificiran podpis (v pripravi)</button>
