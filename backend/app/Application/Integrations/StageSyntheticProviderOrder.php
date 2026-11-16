@@ -4,7 +4,6 @@ namespace App\Application\Integrations;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Provider-shaped SYNTHETIC orders only. Not a real Woo/Shopify decoder:
