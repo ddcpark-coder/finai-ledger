@@ -80,6 +80,12 @@ internal static class Program
             catch (Exception) { return 14; } // No disclosure of imported encrypted bytes.
         }
 
+        if (args.Length == 1 && args[0] == "--synthetic-order-draft-self-test")
+        {
+            try { return EncryptedLedgerStore.SyntheticOrderDraftSelfTest() ? 0 : 15; }
+            catch (Exception) { return 16; } // Never print private cipher or test data.
+        }
+
         ApplicationConfiguration.Initialize();
         Application.Run(new MainWindow());
         return 0;

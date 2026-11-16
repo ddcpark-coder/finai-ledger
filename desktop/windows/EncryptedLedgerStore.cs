@@ -15,7 +15,7 @@ namespace EIntegrator.Desktop;
 /// Every SQL connection requires a locally DPAPI-protected random database key.
 /// Uses SQLite3 Multiple Ciphers, never stock unencrypted SQLite.
 /// </summary>
-internal sealed class EncryptedLedgerStore : IDisposable
+internal sealed partial class EncryptedLedgerStore : IDisposable
 {
     internal sealed record Line(string Account, long DebitCents, long CreditCents);
 
@@ -696,6 +696,9 @@ internal sealed class EncryptedLedgerStore : IDisposable
             using var reader = keys.ExecuteReader();
             if (reader.Read()) throw new InvalidDataException("Foreign key integrity failure");
         }
+
+        // Optional NEXT13B encrypted order-draft extension, including older v1 stores.
+        VerifySyntheticOrderDraftIntegrity(db);
 
         using var companies = db.CreateCommand();
         companies.CommandText = "SELECT company_id FROM companies ORDER BY company_id;";
