@@ -129,7 +129,7 @@ def main():
     import subprocess
     env = os.environ.copy()
     subprocess.run(["php", "tests/fixtures/Next17dHttpSeed.php", "revoke-owner"],
-                   cwd="backend", env=env, check=True, capture_output=True)
+                   env=env, check=True, capture_output=True)
     checked(owner, "GET", doc + "/latest", 403)
     checked(owner, "POST", doc, 403, {**record,
         "client_event_id": "1069a8cb-93c6-4a6f-8a8c-5fb138f7a802"})
