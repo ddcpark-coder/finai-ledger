@@ -21,21 +21,10 @@ final class StageVerifiedSyntheticCommerceWebhook
             ! config('finai.synthetic_commerce_staging_enabled', false)) {
             throw new \DomainException('Synthetic commerce signing is disabled.');
         }
-        if (! in_array($provider, ['shopify', 'woocommerce'], true) ||
-            strlen($rawBody) < 2 || strlen($rawBody) > 8192 ||
-            strlen($temporaryTestSecret) < 20 || strlen($temporaryTestSecret) > 256 ||
-            strlen($signatureBase64) !== 44 ||
-            ! preg_match('/^[A-Za-z0-9+\/]{43}=$/D', $signatureBase64)) {
-            throw new \DomainException('Invalid synthetic commerce signature input.');
+        if (! in_array($provider, ['shopify', 'woocommerce'], true)) {
+            throw new \DomainException('Unexpected synthetic commerce provider.');
         }
-        $supplied = base64_decode($signatureBase64, true);
-        if ($supplied === false || strlen($supplied) !== 32) {
-            throw new \DomainException('Invalid synthetic webhook signature.');
-        }
-        $expected = hash_hmac('sha256', $rawBody, $temporaryTestSecret, true);
-        if (! hash_equals($expected, $supplied)) {
-            throw new \DomainException('Synthetic commerce webhook signature failed.');
-        }
+        self::assertSignature($rawBody, $signatureBase64, $temporaryTestSecret);
         try {
             $payload = json_decode($rawBody, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
@@ -66,4 +55,24 @@ final class StageVerifiedSyntheticCommerceWebhook
         return app(StageSyntheticCommerceOrder::class)
             ->execute($companyId, $actorId, $payload);
     }
+    /**
+     * Reused by header-specific synthetic adapters BEFORE they decode any
+     * payload or stage an event. Must always verify exact raw bytes.
+     */
+    public static function assertSignature(string $rawBody, string $signatureBase64,
+        string $temporaryTestSecret): void
+    {
+        if (strlen($rawBody) < 2 || strlen($rawBody) > 8192 ||
+            strlen($temporaryTestSecret) < 20 || strlen($temporaryTestSecret) > 256 ||
+            strlen($signatureBase64) !== 44 ||
+            ! preg_match('/^[A-Za-z0-9+\/]{43}=$/D', $signatureBase64)) {
+            throw new \DomainException('Invalid synthetic commerce signature input.');
+        }
+        $supplied = base64_decode($signatureBase64, true);
+        if ($supplied === false || strlen($supplied) !== 32 ||
+            ! hash_equals(hash_hmac('sha256', $rawBody, $temporaryTestSecret, true), $supplied)) {
+            throw new \DomainException('Synthetic commerce webhook signature failed.');
+        }
+    }
+
 }
