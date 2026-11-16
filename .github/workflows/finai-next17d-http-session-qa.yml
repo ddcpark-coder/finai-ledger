@@ -1,0 +1,69 @@
+name: FinAI real loopback session CSRF MFA and mobile tenant QA
+on:
+  pull_request:
+    paths:
+      - 'backend/tests/fixtures/Next17dHttpSeed.php'
+      - 'backend/tests/fixtures/next17d_http_security.py'
+      - 'backend/app/Application/Documents/SyntheticReceiptSync.php'
+      - 'backend/app/Http/Middleware/RequirePrivilegedTwoFactor.php'
+      - 'backend/routes/api.php'
+      - '.github/workflows/finai-next17d-http-session-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  localhost-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+      APP_URL: http://127.0.0.1:8765
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ runner.temp }}/finai-next17d-qa.sqlite
+      SESSION_DRIVER: file
+      SESSION_ENCRYPT: 'true'
+      SESSION_SECURE_COOKIE: 'false'
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      SANCTUM_STATEFUL_DOMAINS: 127.0.0.1:8765
+      FINAI_SYNTHETIC_RECEIPT_SYNC_ENABLED: 'true'
+      FINAI_AUTH_RELEASE_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Install reviewed PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Prepare disposable synthetic SQLite and session storage
+        run: |
+          test "$CI" = true && test "$GITHUB_ACTIONS" = true
+          test "$RUNNER_TEMP" != '' && test -d "$RUNNER_TEMP"
+          cp .env.example .env
+          mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache/data storage/logs
+          test ! -e "$DB_DATABASE"
+          touch "$DB_DATABASE"
+          php artisan migrate --path=database/migrations/2026_11_01_000001_create_identity_access_tables.php --force --no-interaction
+          php artisan migrate --path=database/migrations/2026_11_12_000021_create_synthetic_receipt_sync_events.php --force --no-interaction
+          php tests/fixtures/Next17dHttpSeed.php seed
+      - name: Exercise real HTTP sessions, CSRF, 2FA and mobile revocation on 127.0.0.1
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8765 > "$RUNNER_TEMP/finai-next17d-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8765/up >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8765/up >/dev/null
+          python3 tests/fixtures/next17d_http_security.py
