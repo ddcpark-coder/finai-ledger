@@ -2,6 +2,7 @@
 import {useMemo,useState} from "react";
 import {demoBusinessUnits} from "./demoBusinessModel.mjs";
 import {compactDemoBusinessBrief} from "./compactBusinessBrief.mjs";
+import OfflineBusinessScenario from "../next13/OfflineBusinessScenario";
 
 const euros=cents=>(cents/100).toLocaleString("sl-SI",{
   style:"currency",currency:"EUR",maximumFractionDigits:2
@@ -74,5 +75,6 @@ export default function BusinessBriefCompact({companyId,mode="mobile"}){
      Prikazane vrednosti so generirane lokalno, brez omrežja.
     </p>
    </div>}
+  <OfflineBusinessScenario companyId={companyId} unitId={effectiveUnit}/>
  </section>;
 }
