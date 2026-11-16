@@ -398,4 +398,76 @@ final class Next14cSyntheticProviderOrdersTest extends TestCase
         $this->assertDatabaseCount('commerce_order_events', 0);
     }
 
+
+    public function test_local_synthetic_review_http_ui_requires_session_read_and_write_role(): void
+    {
+        $company = $this->company('Synthetic A');
+        $foreign = $this->company('Synthetic B');
+        $writer = $this->actor($company, 'writer', true);
+        $reader = $this->actor($company, 'reader', false);
+        $outsider = $this->actor($foreign, 'outsider', true);
+        $warehouse = $this->fixtures($company, 'shopify');
+        [$raw, $headers] = $this->signed('shopify', $this->payload('shopify'));
+        $staged = $this->send(
+            $company->id, $writer->id, 'shopify', $raw, $headers, $warehouse);
+        $url = '/api/companies/'.$company->id.'/demo/commerce-review';
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertUnauthorized();
+
+        $this->actingAs($reader);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.items.0.status', 'review')
+            ->assertJsonPath('data.items.0.demo_only', true)
+            ->assertJsonPath('data.items.0.posting', false)
+            ->assertJsonMissingPath('data.items.0.normalized_json');
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertForbidden();
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        $this->actingAs($outsider);
+        $this->getJson($url)->assertForbidden();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'hold',
+        ])->assertForbidden();
+
+        $this->actingAs($writer);
+        $this->getJson($url.'?after_id=-1')->assertUnprocessable();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'posted',
+        ])->assertUnprocessable();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'reviewed')
+            ->assertJsonPath('data.posting', false)
+            ->assertJsonPath('data.invoice_created', false);
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertOk()->assertJsonPath('data.replayed', true);
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'hold',
+        ])->assertStatus(409);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.items.0.status', 'reviewed');
+        $this->assertDatabaseCount('commerce_order_events', 1);
+        $this->assertDatabaseCount('audit_logs', 2);
+
+        config()->set('finai.synthetic_commerce_staging_enabled', false);
+        $this->getJson($url)->assertNotFound();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertNotFound();
+        config()->set('finai.synthetic_commerce_staging_enabled', true);
+        app()->instance('env', 'production');
+        $this->getJson($url)->assertNotFound();
+        $this->postJson($url.'/'.$staged['id'].'/decision', [
+            'decision' => 'reviewed',
+        ])->assertNotFound();
+    }
+
+
 }
