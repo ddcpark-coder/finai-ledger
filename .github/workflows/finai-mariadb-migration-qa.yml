@@ -1,0 +1,99 @@
+name: FinAI disposable MariaDB migration QA
+
+on:
+  pull_request:
+    paths:
+      - "backend/database/migrations/**"
+      - "backend/.env.example"
+      - ".github/workflows/finai-mariadb-migration-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-mariadb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: finai_ci_disposable
+          MARIADB_USER: finai_ci_disposable
+          MARIADB_PASSWORD: synthetic-ci-only
+          MARIADB_ROOT_PASSWORD: synthetic-root-ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: finai_ci_disposable
+      DB_USERNAME: finai_ci_disposable
+      DB_PASSWORD: synthetic-ci-only
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      FINAI_AUTH_RELEASE_ENABLED: "false"
+      FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED: "false"
+      FINAI_SYNTHETIC_CRM_PERSISTENCE_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, pdo_mysql, openssl, fileinfo
+          tools: composer:v2
+      - name: Install reviewed locked Laravel packages
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Migrate all FinAI schemas in disposable MariaDB and verify replay
+        run: |
+          set -euo pipefail
+          test "$CI" = true
+          test "$APP_ENV" = testing
+          test "$DB_HOST" = 127.0.0.1
+          test "$DB_DATABASE" = finai_ci_disposable
+          test "$DB_USERNAME" = finai_ci_disposable
+          cp .env.example .env
+          php artisan migrate --force --no-interaction
+          php artisan migrate --force --no-interaction
+      - name: Verify all migration records, FK and key table existence
+        run: |
+          php -r '
+          $pdo = new PDO("mysql:host=127.0.0.1;dbname=finai_ci_disposable;charset=utf8mb4",
+              "finai_ci_disposable","synthetic-ci-only",
+              [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+          $files = glob("database/migrations/*.php");
+          $expected = count($files);
+          $count = (int) $pdo->query("SELECT COUNT(*) FROM migrations")->fetchColumn();
+          if ($expected < 25 || $expected !== $count) {
+              throw new RuntimeException("Migration record count mismatch");
+          }
+          foreach (["companies","users","crm_opportunity_business_units",
+                    "synthetic_crm_opportunities","business_units",
+                    "commerce_order_events","journals"] as $name) {
+              $query=$pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?");
+              $query->execute([$name]);
+              if ((int)$query->fetchColumn() !== 1) {
+                  throw new RuntimeException("Expected FinAI schema component missing");
+              }
+          }
+          if ((int)$pdo->query("SELECT @@FOREIGN_KEY_CHECKS")->fetchColumn() !== 1)
+              throw new RuntimeException("Foreign key enforcement disabled");
+          echo "FINAI_DISPOSABLE_MARIADB_SCHEMA=PASS\n";
+          '
