@@ -74,3 +74,33 @@ Projekt naj se nadaljuje od tega dokumenta in aktualne veje `main`, ne iz predpo
 - NEXT-16: šele po dejanski aktivaciji novega FinAI OS/cPanel računa opraviti read-only sistemski pregled, pregled SQL pravic, DNS/SSL in obnovitvene točke. Brez teh dokazov zavrni strežniške pisalne operacije.
 
 Absolutno: nobeno FinAI dejanje ne sme spreminjati Laškoteke, STNG, skupnih SSH/cPanel/DNS nastavitev ali `laskot48`.
+
+
+---
+
+## Dopolnitev 16. 11. 2026 — NEXT-13C, NEXT-14B in NEXT-13D
+
+Razvoj se nadaljuje na glavni veji main; vse spremembe ostajajo sintetične in lokalne ali na izoliranih GitHub CI runnerjih.
+
+| PR | Commit v main | Funkcija in preverjanje |
+|---|---|---|
+| [#128](https://github.com/ddcpark-coder/finai-ledger/pull/128) | 30030322 | NEXT-13C: izvorno Windows Forms okno za šifrirano lokalno prijavo, izbor članom dostopnih podjetij, sintetične naročilne osnutke in šifrirano obnovo. Windows CI PASS. |
+| [#129](https://github.com/ddcpark-coder/finai-ledger/pull/129) | 62702bb4 | NEXT-14B: ločena Shopify/WooCommerce sprejemna adapterja sintetičnih dogodkov, surovi HMAC in varovana vezava ID dostave. Laravel CI PASS. |
+| [#130](https://github.com/ddcpark-coder/finai-ledger/pull/130) | 8d5b446d | NEXT-13D: avtomatizirana izdelava nepodpisanega Windows offline QA namestitvenega paketa. Windows installer CI PASS. |
+
+### Windows namestitveni artefakt (testni, nepodpisan)
+
+- [GitHub Actions run #43850976824](https://github.com/ddcpark-coder/finai-ledger/actions/runs/43850976824).
+- Ime artefakta: finai-next13d-win-x64-offline-qa-unsigned, ID 14216429169, ZIP velikosti približno 254 MB; predviden iztek 23. 11. 2026.
+- SHA-256 priloženega setup.exe po Windows CI: 67506ED873750612ACF4368A0ED51C30F4D4DEBC265630492DB5448289985485.
+- Ločena SHA-256 vsota GitHub ZIP artefakta: 45410adbeff57e9d7d15ff0ba7dd983291933c4b07e57e8e0cf241bbb2d6958c. Ne zamenjuj obeh vrednosti.
+- Izgradnja statičnega UI, win-x64 .NET, šifriranje osnutkov, prenosna obnova in podpis Microsoft WebView2 so prestali preverjanje. Dejanska namestitev na čist Windows 11 brez interneta, ročni GUI test in nadgradnja s hrambo podatkov niso še potrjeni.
+
+### Prednostno nadaljevanje in obvezne omejitve
+
+1. NEXT-13E: ročno preveriti namestitev na čistem Windows 11 brez interneta, uporabniško prijavo, izolacijo podjetij in nadgradnjo brez izgube lokalne baze. Nadaljevati z izoliranimi sintetičnimi primeri.
+2. NEXT-14C: dekodiranje resničnih ponudniških formatov šele po vzpostavitvi namenskega FinAI testnega strežnika, varovane hrambe ključev ter varnosti osebnih podatkov. Testni adapterji trenutno sprejmejo samo sintetični FinAI JSON.
+3. NEXT-16: ločen FinAI OS/cPanel račun Hiper M, lastna MariaDB, HTTPS, preverjena obnova, DNS in povrnljiv deploy. Na skupnem laskot48 nobeno FinAI pisanje ni dovoljeno.
+4. Pred realnimi poslovnimi podatki: računovodska, varnostna in pravna revizija.
+
+Laškoteka, STNG, skupne nastavitve cPanel/SSH/DNS in drugi projekti niso bili spreminjani.
