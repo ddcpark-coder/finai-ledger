@@ -9,6 +9,7 @@ on:
       - "app/documents/demoOutboxPortable.mjs"
       - "tests/demoOutboxPortable.test.mjs"
       - "tests/e2e/field-outbox.spec.cjs"
+      - "tests/e2e/field-two-device-transfer.spec.cjs"
       - "app/documents/signatureProviderAdapter.mjs"
       - "tests/syntheticSyncClient.test.mjs"
       - "tests/signatureProviderAdapter.test.mjs"
@@ -70,7 +71,7 @@ jobs:
       - name: Verify installed shell works offline on desktop and mobile
         env:
           BASE_URL: http://127.0.0.1:3000
-        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs tests/e2e/field-outbox.spec.cjs
+        run: npx playwright test tests/e2e/field-offline-pwa.spec.cjs tests/e2e/field-pdf-manifest.spec.cjs tests/e2e/field-outbox.spec.cjs tests/e2e/field-two-device-transfer.spec.cjs
       - name: Failure artifacts only
         if: failure()
         uses: actions/upload-artifact@v4
