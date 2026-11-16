@@ -4,6 +4,8 @@ import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useRef,useState} from "react";
 import {deliverySample,finalizeDemoDelivery,verifyDemoDelivery} from "./demoDeliveryProof.mjs";
 import {createDemoDeliveryPdf} from "./demoDeliveryPdf.mjs";
+import {makePrintableDelivery} from "./printableDelivery.mjs";
+import DeliveryPrintPreview from "./DeliveryPrintPreview";
 import {
  encryptDemoProof,decryptDemoProof,storeEncryptedDemoProof,
  readEncryptedDemoProof,deleteEncryptedDemoProof
@@ -61,6 +63,7 @@ export default function DocumentsWorkspace({context,companyId}){
  const [completed,setCompleted]=useState(false);
  const [sent,setSent]=useState(false);
  const [proof,setProof]=useState(null);
+ const [printable,setPrintable]=useState(null);
  const [proofBusy,setProofBusy]=useState(false);
  const [proofError,setProofError]=useState("");
  const [pdfBusy,setPdfBusy]=useState(false);
@@ -81,7 +84,7 @@ export default function DocumentsWorkspace({context,companyId}){
    setSelected(docs.find(d=>d.companyId===companyId)??null);
    setSigner("Sintetični prejemnik");setEmail("demo@example.test");
    setSignature("");setCompleted(false);setSent(false);
-   setProof(null);setProofError("");setPdfError("");setAccepted(false);
+   setProof(null);setPrintable(null);setProofError("");setPdfError("");setAccepted(false);
    setVaultPassword("");setVaultMessage("");
  },[companyId]);
  const finish=async()=>{
@@ -94,7 +97,7 @@ export default function DocumentsWorkspace({context,companyId}){
      });
      if(!(await verifyDemoDelivery(evidence,companyId)))
        throw new Error("Celovitosti demonstracijskega dokazila ni bilo mogoče potrditi.");
-     setProof(evidence);setCompleted(true);
+     setProof(evidence);setPrintable(null);setCompleted(true);
    }catch(error){setProofError(error.message||"Zaključevanje ni uspelo.");}
    finally{setProofBusy(false);}
  };
@@ -115,7 +118,7 @@ export default function DocumentsWorkspace({context,companyId}){
    try{
      const encrypted=await readEncryptedDemoProof(companyId);
      const restored=await decryptDemoProof(encrypted,companyId,vaultPassword);
-     setProof(restored);setSigner(restored.signer);
+     setProof(restored);setPrintable(null);setSigner(restored.signer);
      setSignature(restored.signatureDataUrl);setAccepted(true);setCompleted(true);
      setVaultPassword("");
      setVaultMessage("Sintetično dokazilo je uspešno dešifrirano in ponovno preverjeno.");
@@ -147,6 +150,13 @@ export default function DocumentsWorkspace({context,companyId}){
    }catch(error){setPdfError(error.message||"PDF ni bil ustvarjen.");}
    finally{setPdfBusy(false);}
  };
+ const openPrint=async()=>{
+   if(!completed||!proof||pdfBusy)return;
+   setPdfBusy(true);setPdfError("");
+   try{setPrintable(await makePrintableDelivery(proof,companyId));}
+   catch(error){setPrintable(null);setPdfError(error.message||"Predogled ni uspel.");}
+   finally{setPdfBusy(false);}
+ };
  const exportProof=()=>{
    if(!completed||!proof)return;
    const blob=new Blob([JSON.stringify(proof,null,2)],{type:"application/json"});
@@ -170,7 +180,7 @@ export default function DocumentsWorkspace({context,companyId}){
  useEffect(()=>{
    if(visibleDocs.length&&!visibleDocs.some(row=>row.title===selected?.title)){
      setSelected(visibleDocs[0]);setCompleted(false);setSent(false);
-     setSignature("");setProof(null);setAccepted(false);setProofError("");setPdfError("");
+     setSignature("");setProof(null);setPrintable(null);setAccepted(false);setProofError("");setPdfError("");
    }
  },[section,subView,companyId,selected?.title]);
 
@@ -236,6 +246,8 @@ export default function DocumentsWorkspace({context,companyId}){
       <button type="button" className="secondary" disabled={!completed||!proof||pdfBusy} onClick={exportPdf}>
         {pdfBusy?"Pripravljam PDF …":"Prenesi demo PDF s sliko podpisa"}
       </button>
+      <button type="button" className="secondary" disabled={!completed||!proof||pdfBusy}
+       onClick={openPrint}>Predogled dobavnice za tisk</button>
       {pdfError&&<p role="alert" style={{color:"var(--danger)",fontSize:11}}>{pdfError}</p>}
       <button type="button" className="secondary" disabled={!completed||!proof} onClick={exportProof}>Izvozi demo dokazilo (.json)</button>
       <button type="button" className="secondary" disabled title="Dejansko pošiljanje e-pošte še ni vključeno">Pošlji kopijo (v pripravi)</button>
@@ -274,5 +286,6 @@ export default function DocumentsWorkspace({context,companyId}){
     </div>
    </aside>:<aside className="docCard delivery"><h3>{activeSelected?.title??"—"}</h3><small>{activeSelected?.type??"Dokument"} · {activeSelected?.status??"—"}</small><div className="deliverySec"><h4>Dokumentni pogled</h4><p style={{fontSize:10,color:"var(--muted)"}}>Izbrano: {section} / {subView}. Ko je ustrezen dokument na voljo, ga izberi s seznama. Podpisovanje je dostopno samo pri dobavnicah za podpis.</p></div></aside>}
   </AdaptivePaneGrid>
+  <DeliveryPrintPreview printable={printable} onClose={()=>setPrintable(null)}/>
  </section>
 }
