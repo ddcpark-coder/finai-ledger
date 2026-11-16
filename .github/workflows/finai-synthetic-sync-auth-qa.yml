@@ -1,0 +1,31 @@
+name: FinAI synthetic sync permission QA
+on:
+  pull_request:
+    paths:
+      - 'backend/app/Application/Documents/SyntheticReceiptSync.php'
+      - 'backend/tests/Feature/SyntheticReceiptSyncTest.php'
+      - '.github/workflows/finai-synthetic-sync-auth-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env
+      - name: Test authorized synthetic tenant sync
+        run: php artisan test --filter=SyntheticReceiptSyncTest --no-ansi --stop-on-failure
