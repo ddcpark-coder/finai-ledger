@@ -138,7 +138,12 @@ export async function diagnoseFieldDevice({
 export function validateFieldDiagnostic(report){
  const expected=["secure","crypto","indexeddb","service-worker",
   "offline-cache","persistence","network"];
- if(report?.format!==FORMAT||report.synthetic_only!==true||
+ if(!report||typeof report!=="object"||Array.isArray(report)||
+  Object.keys(report).sort().join("|")!==
+   "checks|format|outcome|production_approved|real_data_allowed|server_contacted|synthetic_only|timestamp"||
+  typeof report.timestamp!=="string"||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(report.timestamp)||
+  report?.format!==FORMAT||report.synthetic_only!==true||
   report.real_data_allowed!==false||report.production_approved!==false||
   report.server_contacted!==false||
   !["fail","review","pass"].includes(report.outcome)||
