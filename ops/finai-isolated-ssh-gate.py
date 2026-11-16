@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 import pwd
 import re
 import stat
+import stat
 import shutil
 import sys
 import tarfile
@@ -82,6 +83,10 @@ def extract_verified_archive(archive_path, directory):
     seen = set()
     with tarfile.open(archive_path, "r:gz") as tar:
         for member in tar:
+            # GNU tar -C out . includes a harmless top-level './' directory.
+            # Never let a root *file* or any traversal pass validation.
+            if member.isdir() and member.name in {".", "./"}:
+                continue
             name = validate_name(member.name)
             rel = name.as_posix()
             if member.isdir():
@@ -121,6 +126,101 @@ def extract_verified_archive(archive_path, directory):
         raise Denied("missing static frontend entrypoint or assets")
 
 
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while True:
+            block = stream.read(1024 * 1024)
+            if not block:
+                break
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def verify_staged_release(root, digest):
+    """Verify all static files against the preserved SHA256-pinned original tar.
+
+    Merely retaining a local manifest would NOT bind release contents to the
+    original CI artifact; this check uses the immutable tar digest as the root
+    of trust. No writes or traversals outside the private FinAI release tree.
+    """
+    if not DIGEST.fullmatch(digest):
+        raise Denied("invalid release digest")
+    archive = root / "archives" / (digest + ".tar.gz")
+    release = root / "releases" / digest
+    if (archive.is_symlink() or not archive.is_file() or
+            release.is_symlink() or not release.is_dir() or
+            sha256_file(archive) != digest):
+        raise Denied("original pinned release archive missing or changed")
+    expected = set()
+    total = count = 0
+    has_index = has_assets = False
+    with tarfile.open(archive, "r:gz") as tar:
+        for member in tar:
+            if member.isdir() and member.name in {".", "./"}:
+                continue
+            relative = validate_name(member.name)
+            target = release / relative
+            # Every component must be a real directory, never a symlink.
+            parent = target.parent
+            while parent != release:
+                meta = parent.lstat()
+                if not stat.S_ISDIR(meta.st_mode):
+                    raise Denied("release path contains non-directory or symlink")
+                parent = parent.parent
+            if member.isdir():
+                if not stat.S_ISDIR(target.lstat().st_mode):
+                    raise Denied("staged directory was modified")
+                continue
+            if not member.isfile():
+                raise Denied("original archive contains link or special file")
+            rel = relative.as_posix()
+            if rel in expected:
+                raise Denied("duplicate original archive member")
+            expected.add(rel)
+            count += 1
+            total += member.size
+            if (count > MAX_FILES or total > MAX_EXPANDED or
+                    member.size > MAX_SINGLE_FILE):
+                raise Denied("original archive exceeds release bounds")
+            if not stat.S_ISREG(target.lstat().st_mode):
+                raise Denied("staged release member is not a regular file")
+            if target.stat().st_size != member.size:
+                raise Denied("staged release file length differs")
+            source = tar.extractfile(member)
+            if source is None:
+                raise Denied("invalid original release member")
+            with source, target.open("rb") as live:
+                while True:
+                    original = source.read(1024 * 1024)
+                    actual = live.read(1024 * 1024)
+                    if original != actual:
+                        raise Denied("staged asset differs from pinned release")
+                    if not original:
+                        break
+            if rel == "index.html" and member.size > 500:
+                has_index = True
+            if rel.startswith("_next/") and rel.endswith((".js", ".css")):
+                has_assets = True
+    if not has_index or not has_assets:
+        raise Denied("missing original frontend entrypoint or static assets")
+    actual = set()
+    for directory, subdirs, files in os.walk(release, followlinks=False):
+        folder = Path(directory)
+        for name in subdirs:
+            if not stat.S_ISDIR((folder / name).lstat().st_mode):
+                raise Denied("staged release contains linked directory")
+        for name in files:
+            file = folder / name
+            if not stat.S_ISREG(file.lstat().st_mode):
+                raise Denied("staged release contains nonregular member")
+            actual.add(file.relative_to(release).as_posix())
+    if actual != expected:
+        raise Denied("staged release has added, removed or modified assets")
+    return True
+
+
 def stage(archive_bytes, digest, root):
     """Accept exact SHA256-pinned CI artifact; write ONLY inside FinAI root."""
     if not DIGEST.fullmatch(digest) or len(archive_bytes) > MAX_ARCHIVE:
@@ -130,10 +230,12 @@ def stage(archive_bytes, digest, root):
     root = secure_path(root)
     releases = secure_path(root / "releases")
     releases.mkdir(mode=0o700, parents=True, exist_ok=True)
+    archives = secure_path(root / "archives")
+    archives.mkdir(mode=0o700, parents=True, exist_ok=True)
+    pinned_archive = archives / (digest + ".tar.gz")
     destination = releases / digest
     if destination.exists() or destination.is_symlink():
-        if not destination.is_dir() or destination.is_symlink() or not (destination / "index.html").is_file():
-            raise Denied("staged release path conflicts")
+        verify_staged_release(root, digest)
         return "STAGED_ALREADY_PRESENT"
     staging = Path(tempfile.mkdtemp(prefix=".finai-stage-", dir=root))
     try:
@@ -143,8 +245,18 @@ def stage(archive_bytes, digest, root):
         output = staging / "out"
         output.mkdir(mode=0o700)
         extract_verified_archive(archive, output)
-        archive.unlink()
+        # Preserve original CI digest-pinned compressed bytes OUTSIDE the
+        # docroot. Promotion must compare actual files against these bytes.
+        if pinned_archive.is_symlink():
+            raise Denied("pinned archive location is linked")
+        if pinned_archive.exists():
+            if not pinned_archive.is_file() or sha256_file(pinned_archive) != digest:
+                raise Denied("pinned archive location was modified")
+        else:
+            archive.rename(pinned_archive)
+            pinned_archive.chmod(0o600)
         output.rename(destination)
+        verify_staged_release(root, digest)
         return "STAGED"
     finally:
         shutil.rmtree(staging, ignore_errors=True)
@@ -158,6 +270,9 @@ def promote(digest, root):
     target = secure_path(releases / digest)
     if not target.is_dir() or not (target / "index.html").is_file():
         raise Denied("requested release is not staged")
+    # A release directory that existed once is not automatically immutable.
+    # Verify every file against the digest-pinned original tar before switch.
+    verify_staged_release(root, digest)
     if not (root / "ALLOW_PRODUCTION").is_file() or (
         root / "ALLOW_PRODUCTION"
     ).read_text(encoding="utf8").strip() != LIVE_MARKER:
