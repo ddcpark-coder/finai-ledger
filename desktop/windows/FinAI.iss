@@ -22,6 +22,14 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupLogging=yes
+; Abort upgrades while the app is running; never force-close a cipher session.
+AppMutex=Local\FinAI_EIntegrator_Desktop_QA_v1
+CloseApplications=no
+RestartApplications=no
+UsePreviousAppDir=yes
+; The encrypted stores live outside {app} under user-local Desktop and are
+; deliberately not installed, removed or migrated by this installer.
+
 ; Data is intentionally held outside {app}: LocalApplicationData/e-integrator/Desktop.
 ; No [InstallDelete], [UninstallDelete], migrations or cache reset on upgrades.
 CloseApplications=yes
