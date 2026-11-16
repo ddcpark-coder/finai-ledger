@@ -24,6 +24,44 @@ final class StageSyntheticProviderDelivery
         if (! in_array($provider, ['shopify', 'woocommerce'], true)) {
             throw new \DomainException('Unsupported synthetic provider.');
         }
+        $context = self::verifySignedHeaderContext(
+            $provider, $rawBody, $headers, $temporaryTestSecret);
+        $deliveryEventId = $context['eventId'];
+        $signature = $context['signature'];
+
+        try {
+            $payload = json_decode($rawBody, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new \DomainException('Signed synthetic provider body is not JSON.');
+        }
+        if (! is_array($payload) || array_is_list($payload) ||
+            ($payload['provider'] ?? null) !== $provider ||
+            ($payload['eventId'] ?? null) !== $deliveryEventId) {
+            throw new \DomainException('Signed synthetic event does not match provider delivery.');
+        }
+
+        // Existing strict contract re-checks signed timestamp, tenant permissions,
+        // SKU mapping and idempotency, then stages only review / posting=false.
+        // Do not pass any real customer, address, payment, tax or external token.
+        return app(StageVerifiedSyntheticCommerceWebhook::class)->execute(
+            $companyId, $actorId, $provider, $rawBody, $signature,
+            $temporaryTestSecret);
+    }
+
+    /**
+     * Test-only signed provider headers. Returns a server-generated synthetic
+     * delivery identity; never accepts customer/secret values as metadata.
+     */
+    public static function verifySignedHeaderContext(string $provider, string $rawBody,
+        array $headers, string $temporaryTestSecret): array
+    {
+        if (! app()->environment('local', 'testing') ||
+            ! config('finai.synthetic_commerce_staging_enabled', false)) {
+            throw new \DomainException('Synthetic provider header verification is disabled.');
+        }
+        if (! in_array($provider, ['shopify', 'woocommerce'], true)) {
+            throw new \DomainException('Unsupported synthetic provider.');
+        }
         $header = self::normalizeHeaders($headers);
         $expected = $provider === 'shopify'
             ? [
@@ -66,23 +104,8 @@ final class StageSyntheticProviderDelivery
         StageVerifiedSyntheticCommerceWebhook::assertSignature(
             $rawBody, $signature, $temporaryTestSecret);
 
-        try {
-            $payload = json_decode($rawBody, true, 32, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            throw new \DomainException('Signed synthetic provider body is not JSON.');
-        }
-        if (! is_array($payload) || array_is_list($payload) ||
-            ($payload['provider'] ?? null) !== $provider ||
-            ($payload['eventId'] ?? null) !== $deliveryEventId) {
-            throw new \DomainException('Signed synthetic event does not match provider delivery.');
-        }
 
-        // Existing strict contract re-checks signed timestamp, tenant permissions,
-        // SKU mapping and idempotency, then stages only review / posting=false.
-        // Do not pass any real customer, address, payment, tax or external token.
-        return app(StageVerifiedSyntheticCommerceWebhook::class)->execute(
-            $companyId, $actorId, $provider, $rawBody, $signature,
-            $temporaryTestSecret);
+        return ['eventId' => $deliveryEventId, 'signature' => $signature];
     }
 
     private static function normalizeHeaders(array $headers): array
