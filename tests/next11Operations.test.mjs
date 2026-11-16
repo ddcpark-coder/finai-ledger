@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  demoNetworkState,networkStockTotals,transferDemoStock,
- demoShopSample,normalizeDemoShopOrder,stageDemoShopOrder
+ demoShopSample,normalizeDemoShopOrder,stageDemoShopOrder,decideDemoShopOrder
 } from "../app/next11/demoOperations.mjs";
 
 test("company-scoped business units and warehouses never share IDs or stock",()=>{
@@ -107,4 +107,21 @@ test("commerce event UUID cannot be reused for a different amount and stale vers
   externalOrderId:"SYN-ANOTHER-ORDER"
  },0),/Zastarela/);
  assert.equal(first.stagedOrders.length,1);
+});
+
+test("shop review demo holds/reviews only synthetic orders without inventory changes",()=>{
+ const initial=demoNetworkState(1);
+ const state=stageDemoShopOrder(initial,1,demoShopSample(1,"shopify"),0);
+ const stock=networkStockTotals(state,1);
+ const order=state.stagedOrders[0];
+ const reviewed=decideDemoShopOrder(state,1,order.eventId,"reviewed");
+ assert.equal(reviewed.stagedOrders[0].status,"reviewed");
+ assert.equal(reviewed.stagedOrders[0].posting,false);
+ assert.deepEqual(networkStockTotals(reviewed,1),stock);
+ assert.equal(reviewed.events.length,0);
+ assert.equal(decideDemoShopOrder(reviewed,1,order.eventId,"reviewed").replayed,true);
+ assert.throws(()=>decideDemoShopOrder(reviewed,1,order.eventId,"hold"),/zaključena/);
+ assert.throws(()=>decideDemoShopOrder(state,2,order.eventId,"hold"));
+ assert.throws(()=>decideDemoShopOrder(state,1,order.eventId,"posted"));
+ assert.equal(state.stagedOrders[0].status,"review");
 });

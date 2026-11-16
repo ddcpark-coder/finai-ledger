@@ -154,3 +154,23 @@ export function stageDemoShopOrder(state,companyId,event,expectedVersion){
   // No stock movement or financial posting from a staged e-commerce event.
   return {...next,replayed:false};
 }
+
+
+// NEXT17C: UI-only volatile demonstration of the backend review state machine.
+// No network, database, inventory, payment, invoicing or finance side effects.
+export function decideDemoShopOrder(state,companyId,eventId,decision){
+ assertState(state,companyId);
+ if(!IDS.test(eventId??"")||!["reviewed","hold"].includes(decision))
+  throw new RangeError("Nedovoljena sintetična odločitev.");
+ const previous=state.stagedOrders.find(order=>order.eventId===eventId);
+ if(!previous||previous.companyId!==companyId||previous.posting!==false)
+  throw new RangeError("Sintetično naročilo ne pripada izbranemu podjetju.");
+ if(previous.status===decision)return {...clone(state),replayed:true};
+ if(previous.status!=="review")
+  throw new Error("Odločitev je zaključena; nasprotna sprememba ni dovoljena.");
+ const next=clone(state);
+ const changed=next.stagedOrders.find(order=>order.eventId===eventId);
+ changed.status=decision;
+ next.version++;
+ return {...next,replayed:false};
+}

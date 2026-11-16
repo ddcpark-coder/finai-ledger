@@ -1,8 +1,9 @@
 "use client";
 import {useMemo,useState} from "react";
+import SyntheticCommerceReviewDesk from "./SyntheticCommerceReviewDesk";
 import {
  demoNetworkState,networkStockTotals,transferDemoStock,
- demoShopSample,stageDemoShopOrder
+ demoShopSample,stageDemoShopOrder,decideDemoShopOrder
 } from "./demoOperations.mjs";
 
 const shell={padding:13,border:"1px solid var(--line)",borderRadius:14,
@@ -48,6 +49,14 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
      ?"Isti testni dogodek je že v vrsti; brez podvajanja."
      :"Naročilo je pripravljeno za ročni pregled, ne za fakturiranje.");
   }catch(error){setNotice(error.message)}
+ };
+ const reviewDemo=(eventId,decision)=>{
+  try{
+   const next=decideDemoShopOrder(state,companyId,eventId,decision);
+   setState(next);
+   setNotice("Samo lokalni demo: "+(decision==="hold"?"zadržano":"pregledano")+
+     ". Brez knjiženja, zalog ali strežniškega zapisa.");
+  }catch(error){setNotice(error.message);}
  };
  const reset=()=>{setState(demoNetworkState(companyId));
    setNotice("Testno stanje je ponastavljeno.");};
@@ -125,19 +134,8 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
     <button className="primary" type="button" onClick={addShop}
        style={{fontSize:10}}>Pripravi sintetično naročilo za pregled</button>
    </div>
-   <div style={{marginTop:13,padding:10,border:"1px solid var(--line)",
-      background:"var(--bg2)",borderRadius:10}}>
-    <b style={{fontSize:11}}>Pregledna vrsta: {state.stagedOrders.length} naročil</b>
-    {state.stagedOrders.map(order=><div key={order.eventId}
-     style={{fontSize:10,marginTop:8,borderTop:"1px solid var(--line)",paddingTop:8}}>
-     <b>{order.provider} · {order.externalOrderId}</b>
-     <span style={{display:"block",color:"var(--muted)"}}>
-      {order.lines.map(x=>x.sku+" × "+x.quantity).join(", ")} ·
-      {(order.totalCents/100).toLocaleString("sl-SI",{style:"currency",currency:"EUR"})}
-      · status: samo pregled · brez knjiženja
-     </span>
-    </div>)}
-   </div>
+   <SyntheticCommerceReviewDesk companyId={companyId}
+     previewOrders={state.stagedOrders} onPreviewDecision={reviewDemo}/>
   </>}
   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:10}}>
    <button type="button" className="secondary" onClick={()=>setShowEvents(x=>!x)}
