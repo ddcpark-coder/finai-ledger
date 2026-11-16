@@ -50,9 +50,10 @@ internal sealed class MainWindow : Form
         BackColor = Color.FromArgb(7, 17, 29);
         ForeColor = Color.White;
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 8, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 1, ColumnCount = 9, Padding = new Padding(16, 8, 16, 8), BackColor = Color.FromArgb(12, 30, 45) };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 168f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135f));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95f));
@@ -68,6 +69,20 @@ internal sealed class MainWindow : Form
         {
             Text = "Shrani kopijo", Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat,
             BackColor = Color.FromArgb(29, 55, 72), ForeColor = Color.White
+        };
+        var secureOrders = new Button
+        {
+            Text = "Šifrirana naročila", Dock = DockStyle.Fill,
+            FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(27, 84, 91),
+            ForeColor = Color.White,
+            AccessibleName = "Odpri izvorno Windows okno za šifrirane sintetične osnutke"
+        };
+        secureOrders.Click += (_, _) =>
+        {
+            // Native dialog only. Passwords and cipher sessions are NEVER
+            // exposed to the WebView2 message protocol.
+            using var dialog = new SyntheticOrdersDialog();
+            dialog.ShowDialog(this);
         };
         var restore = new Button
         {
@@ -93,12 +108,13 @@ internal sealed class MainWindow : Form
         zoomReset.Click += (_, _) => SetDisplayZoom(1.0);
         top.Controls.Add(brand, 0, 0);
         top.Controls.Add(status, 1, 0);
-        top.Controls.Add(export, 2, 0);
-        top.Controls.Add(restore, 3, 0);
-        top.Controls.Add(refresh, 4, 0);
-        top.Controls.Add(zoomOut, 5, 0);
-        top.Controls.Add(zoomReset, 6, 0);
-        top.Controls.Add(zoomIn, 7, 0);
+        top.Controls.Add(secureOrders, 2, 0);
+        top.Controls.Add(export, 3, 0);
+        top.Controls.Add(restore, 4, 0);
+        top.Controls.Add(refresh, 5, 0);
+        top.Controls.Add(zoomOut, 6, 0);
+        top.Controls.Add(zoomReset, 7, 0);
+        top.Controls.Add(zoomIn, 8, 0);
 
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
