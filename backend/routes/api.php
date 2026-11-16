@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\WorkspacePreferencesController;
 use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
 use App\Http\Controllers\Api\SyntheticReceiptSyncController;
+use App\Http\Controllers\Api\SyntheticCommerceReviewController;
 use App\Http\Controllers\Api\SyntheticLedgerScenarioController;
 use App\Http\Controllers\Api\SyntheticCrmPipelineController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
@@ -60,6 +61,15 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::post('/companies/{companyId}/demo/sync-receipts/{documentId}',
         [SyntheticReceiptSyncController::class, 'store'])
         ->whereNumber('companyId')->where('documentId', '[A-Z0-9-]+');
+
+    // Local/testing only + explicit flag + session/verified/TOTP + company RBAC.
+    // PII-free synthetic staged orders. No live webhook or booking route.
+    Route::get('/companies/{companyId}/demo/commerce-review',
+        [SyntheticCommerceReviewController::class, 'index'])
+        ->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/commerce-review/{orderId}/decision',
+        [SyntheticCommerceReviewController::class, 'decide'])
+        ->whereNumber('companyId')->whereNumber('orderId');
 
     // Local/testing ONLY: isolated synthetic ledger and inventory transaction scenario.
     // No production journal/inventory writes and no real posting endpoints.
