@@ -30,7 +30,14 @@ class Browser:
         self.opener = build_opener(HTTPCookieProcessor(self.jar))
 
     def request(self, method, path, payload=None, token=True):
-        headers = {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"}
+        # Sanctum recognizes first-party SPA sessions by Origin/Referer;
+        # real browsers send these headers, unlike a bare urllib request.
+        headers = {
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": base,
+            "Referer": base + "/",
+        }
         if payload is not None:
             headers["Content-Type"] = "application/json"
         if token:
