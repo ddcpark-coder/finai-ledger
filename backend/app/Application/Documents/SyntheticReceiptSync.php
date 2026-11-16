@@ -2,6 +2,7 @@
 
 namespace App\Application\Documents;
 
+use App\Application\Integrations\CompanyWorkflowAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,8 @@ final class SyntheticReceiptSync
         3 => 'SYNTH-DOB-2026-C001',
     ];
 
-    private function authorize(int $userId, int $companyId, string $documentId): void
+    private function authorize(int $userId, int $companyId, string $documentId,
+        bool $write = false): void
     {
         abort_unless(app()->environment(['local', 'testing'])
             && config('finai.synthetic_receipt_sync_enabled', false), 404);
@@ -23,6 +25,16 @@ final class SyntheticReceiptSync
             && self::DOCUMENTS[$companyId] === $documentId, 404);
         $user = User::findOrFail($userId);
         abort_unless(Gate::forUser($user)->allows('company.access', $companyId), 403);
+        if ($write) {
+            // Membership alone permits viewing the user's own demo envelope;
+            // uploading requires separate, ACTIVE tenant-scoped documents.write.
+            try {
+                CompanyWorkflowAccess::requirePermission(
+                    $companyId, $userId, 'documents.write');
+            } catch (\DomainException) {
+                abort(403, 'Document write permission required.');
+            }
+        }
     }
 
     public function status(int $userId, int $companyId, string $documentId): array
@@ -75,7 +87,7 @@ final class SyntheticReceiptSync
         int $userId, int $companyId, string $documentId,
         string $eventId, int $expectedVersion, array $envelope
     ): array {
-        $this->authorize($userId, $companyId, $documentId);
+        $this->authorize($userId, $companyId, $documentId, write: true);
         abort_unless($envelope['format'] === 'finai-mobile-synthetic-vault-v1'
             && (int) $envelope['companyId'] === $companyId
             && $envelope['documentId'] === $documentId
