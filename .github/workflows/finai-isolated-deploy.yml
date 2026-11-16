@@ -10,6 +10,7 @@ on:
       - "ops/finai-isolated-*.sh"
       - "ops/finai-ci-isolated-ssh.sh"
       - "tests/test_finai_isolated_ssh_gate.py"
+      - "tests/test_finai_isolated_readonly_preflight.py"
       - "tests/test_finai_static_release_verify.py"
       - "ops/finai-static-release-verify.py"
       - "ops/finai-ftps-offline-release-plan.py"
@@ -59,6 +60,7 @@ jobs:
           bash -n ops/finai-isolated-install-key.sh
           bash -n ops/finai-ci-isolated-ssh.sh
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_ssh_gate.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_isolated_readonly_preflight.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_ftps_offline_release_plan.py' -v
           echo "FINAI_RESTRICTED_SSH_GATE_TESTS=PASS"
