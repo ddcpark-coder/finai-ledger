@@ -12,7 +12,7 @@ const row=(companyId,data)=>({
  demo_only:true,company_id:companyId,deal_id:data[0],
  unit_code:data[1],stage:data[2],value_cents:data[3],version:data[4]
 });
-function installSyntheticApi(page,{conflict=false}={}){
+async function installSyntheticApi(page,{conflict=false}={}){
  const records=new Map(Object.entries(fixtures).map(([id,list])=>
   [Number(id),list.map(x=>[...x])]));
  const writes=[],reads=[];
