@@ -1,5 +1,6 @@
 "use client";
 import BusinessChainPanel from "../business/BusinessChainPanel";
+import SharedDemoBusinessPulse from "../next11/SharedDemoBusinessPulse";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {DEMO_WOO_ORDERS,importSyntheticCmsOrders} from "../integrations/cmsOrderAdapter.mjs";
 import {useEffect,useMemo,useState} from "react";
@@ -61,6 +62,7 @@ export default function SalesOrdersWorkspace({context,companyId}){
  <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Naročila · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
  <div className="flow"><div className="on">Potrjeno</div><div className="on">Izvedba</div><div>Pripravljeno</div><div>Dobavnica</div><div>Račun</div><div>Zaključeno</div></div>
  <BusinessChainPanel companyId={companyId} moduleKey="orders"/>
+ <SharedDemoBusinessPulse companyId={companyId} mode="orders"/>
  <section aria-label="CMS integracija – demonstracija WooCommerce"
    style={{border:"1px solid var(--line)",borderRadius:12,padding:12,marginBottom:10,background:"var(--panel)"}}>
    <h3 style={{fontSize:13,margin:"0 0 7px"}}>CMS / WooCommerce – prikaz integracije naročil</h3>
