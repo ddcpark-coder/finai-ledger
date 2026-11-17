@@ -47,6 +47,7 @@ jobs:
       - name: Verify explicit manual sync and conflict resolution on desktop and mobile
         env:
           BASE_URL: "http://127.0.0.1:3000"
+          FINAI_NEXT23_MOCKED_LOOPBACK: "1"
         run: npx playwright test tests/e2e/next23-controlled-crm-sync.spec.cjs --project=desktop-chromium --project=mobile-chromium
       - name: Upload isolated synthetic screenshots on failure only
         if: failure()
