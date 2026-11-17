@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\SyntheticReceiptSyncController;
 use App\Http\Controllers\Api\SyntheticCommerceReviewController;
 use App\Http\Controllers\Api\SyntheticLedgerScenarioController;
 use App\Http\Controllers\Api\SyntheticCrmPipelineController;
+use App\Http\Controllers\Api\UnifiedSyntheticBusinessGraphController;
 use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,15 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
     Route::post('/companies/{companyId}/demo/crm/opportunities/{dealId}/advance',
         [SyntheticCrmPipelineController::class, 'advance'])
         ->whereNumber('companyId')->where('dealId', 'SYN-CRM-[A-Z0-9-]+');
+
+    // NEXT22: read-only unified CRM/order/audit view and non-posting stock plans.
+    // Local/testing + three explicit flags + existing session/verified/TOTP/RBAC.
+    Route::get('/companies/{companyId}/demo/business-graph',
+        [UnifiedSyntheticBusinessGraphController::class, 'index'])
+        ->whereNumber('companyId');
+    Route::post('/companies/{companyId}/demo/business-graph/stock-plans',
+        [UnifiedSyntheticBusinessGraphController::class, 'plan'])
+        ->whereNumber('companyId');
 
     // Synthetic-only, explicit feature flag; never an accounting or OCR endpoint.
     Route::get('/companies/{companyId}/demo/incoming-invoices',
