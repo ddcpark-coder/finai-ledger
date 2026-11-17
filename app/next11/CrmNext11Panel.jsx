@@ -254,7 +254,7 @@ export default function CrmNext11Panel({companyId}){
      {a.id} · {a.subject} · {a.dealId}</p>)}
   </div>}
   {syncConflict&&<p role="alert" style={{fontSize:10,color:"var(--muted)"}}>
-   Zaznan je konflikt različic; spreminjanje faz je blokirano do ročne
+   Konflikt različic: spreminjanje faz je blokirano do ročne
    preveritve strežniških zapisov ali ponastavitve lokalne predstavitve.
   </p>}
   {notice&&<p role="status" style={{color:"var(--muted)",fontSize:10,marginTop:10}}>
