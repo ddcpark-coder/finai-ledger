@@ -18,7 +18,7 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
  await integrations.getByRole("button",{name:"Pripravi sintetično naročilo za pregled"}).click();
  await expect(integrations).toContainText("SYN-WOO-ORDER-1-001");
  let pulse=page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"});
- await expect(pulse).toContainText("Trgovinska naročila");
+ await expect(pulse).toContainText("Naročila iz Integracij");
  await expect(pulse).toContainText("1.375,00");
 
  await sidebar.getByRole("button",{name:/Zaloge/}).click();
