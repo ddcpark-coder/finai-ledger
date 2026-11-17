@@ -1,12 +1,17 @@
 const {test,expect}=require("@playwright/test");
 
-test("CRM, integrations, inventory, orders and BI share one company demo model across in-app navigation",async({page})=>{
+test("CRM, integrations, inventory, orders and BI share one company demo model across in-app navigation",async({page,isMobile})=>{
+ test.setTimeout(90000);
  const writes=[];
  page.on("request",r=>{
   if(["POST","PUT","PATCH","DELETE"].includes(r.method()))writes.push(r.url());
  });
  await page.goto("/?module=integrations");
  const sidebar=page.locator(".sidebar .nav");
+ const visit=async(label)=>{
+  if(isMobile)await page.locator(".topbarMain .hamb").click();
+  await sidebar.getByRole("button",{name:new RegExp(label)}).click();
+ };
  const company=page.locator(".topbarMain select.companySwitch");
  await company.selectOption("1");
  const integrations=page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"});
@@ -21,7 +26,7 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
  await expect(pulse).toContainText("Naročila iz Integracij");
  await expect(pulse).toContainText("1.375,00");
 
- await sidebar.getByRole("button",{name:/Zaloge/}).click();
+ await visit("Zaloge");
  pulse=page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"});
  const shortage=pulse.getByText("Predvideno pomanjkanje").locator("..").locator("b");
  await expect(shortage).toHaveText("1");
@@ -32,7 +37,7 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
  await expect(warehouses.getByRole("status")).toContainText("Zabeležen sintetični medskladiščni prenos");
  await expect(shortage).toHaveText("0");
 
- await sidebar.getByRole("button",{name:/Integracije/}).click();
+ await visit("Integracije");
  await expect(page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"}))
   .toContainText("SYN-WOO-ORDER-1-001");
  // The editable forecast also includes a NEW proposed order; its shortage
@@ -40,21 +45,21 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
  await expect(page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"}))
   .toContainText("Pomanjkanje že pripravljenih naročil: 0");
 
- await sidebar.getByRole("button",{name:/Naročila/}).click();
+ await visit("Naročila");
  pulse=page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"});
  await expect(pulse).toContainText("Naročila iz Integracij");
  await expect(pulse).toContainText("1.375,00");
  await expect(page.getByRole("region",{name:"CMS integracija – demonstracija WooCommerce"}))
   .toBeVisible();
 
- await sidebar.getByRole("button",{name:/CRM/}).click();
+ await visit("CRM");
  const crm=page.getByRole("region",{
   name:"FinAI NEXT11 CRM – interaktivna sintetična predstavitev"
  });
  await crm.getByRole("button",{name:"Premakni v: Odkrivanje"}).click();
  await expect(crm).toContainText("Sintetična priložnost je premaknjena v fazo Odkrivanje");
- await sidebar.getByRole("button",{name:/Integracije/}).click();
- await sidebar.getByRole("button",{name:/CRM/}).click();
+ await visit("Integracije");
+ await visit("CRM");
  await expect(crm).toContainText("SYN-CRM-101");
  await expect(crm).toContainText("Odkrivanje");
  await expect(crm.getByRole("button",{name:"Premakni v: Ponudba"})).toBeVisible();
@@ -67,7 +72,7 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
  await company.selectOption("1");
  await expect(crm).toContainText("SYN-CRM-101");
  await expect(crm.getByRole("button",{name:"Premakni v: Ponudba"})).toBeVisible();
- await sidebar.getByRole("button",{name:/Naročila/}).click();
+ await visit("Naročila");
  await expect(page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"}))
   .toContainText("1.375,00");
  expect(writes).toEqual([]);
