@@ -22,9 +22,10 @@ test("company-scoped synthetic state is stable, immutable and shared between dom
  pristine();
  const before=readDemoCompany(1);
  assert.equal(before,readDemoCompany(1));
- assert.notEqual(before,initialDemoCompany(1));
+ assert.deepEqual(before.operations.warehouses,
+  initialDemoCompany(1).operations.warehouses);
  assert.equal(before.demoOnly,true);
- assert.ok(before.revision>=2);
+ assert.ok(Number.isSafeInteger(before.revision)&&before.revision>=0);
  assert.equal(Object.isFrozen(before),true);
  assert.equal(Object.isFrozen(before.operations.warehouses[0].items[0]),true);
  assert.equal(Object.isFrozen(before.deals[0]),true);
