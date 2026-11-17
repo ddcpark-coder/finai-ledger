@@ -121,7 +121,7 @@ export default function CrmNext11Panel({companyId}){
    <div><h3 style={{margin:0,fontSize:13}}>CRM 360 · interaktivni prodajni lijak</h3>
     <p style={{fontSize:10,color:"var(--muted)",margin:"6px 0"}}>
      {connected?"Sintetični podatki v izolirani lokalni CRM bazi; brez povezav s produkcijo.":
-      "Sintetični podatki; spremembe veljajo samo do ponovnega odprtja tega pogleda."}</p></div>
+      "Sintetični podatki so med moduli skupni do osvežitve strani."}</p></div>
    <div style={{display:"flex",gap:8}}>
     <label style={{fontSize:10,color:"var(--muted)"}}>Poslovna enota
      <select aria-label="Filtriraj CRM po poslovni enoti" value={effectiveUnit}
