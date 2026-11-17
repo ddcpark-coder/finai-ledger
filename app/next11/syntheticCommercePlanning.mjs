@@ -11,6 +11,18 @@ const allKeys=[
  "lines","posting","provider","status","totalCents","version","warehouseId"
 ].sort().join("|");
 
+/** Locale-safe input to avoid floating-point money rounding on every edit. */
+export function demoEuroPriceCents(text){
+ if(typeof text!=="string"||
+  !/^\\d{1,6}(?:[.,]\\d{1,2})?$/.test(text))
+  throw new RangeError("Neveljavna cena (EUR; največ dve decimalki).");
+ const [euros,cents=""]=text.replace(",",".").split(".");
+ const amount=Number(euros)*100+Number(cents.padEnd(2,"0"));
+ if(!Number.isSafeInteger(amount)||amount<1||amount>100000000)
+  throw new RangeError("Testna cena mora biti pozitivna.");
+ return amount;
+}
+
 function checkState(state,companyId){
  networkStockTotals(state,companyId); // already validates company/warehouse ownership.
  for(const order of state.stagedOrders){
