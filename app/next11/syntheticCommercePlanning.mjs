@@ -75,6 +75,11 @@ export function forecastDemoCommerceStock(state,companyId,proposed=null){
  checkState(state,companyId);
  let extra=null;
  if(proposed){
+  // An upstream preview must never silently normalize a claimed posted,
+  // reserved or production order into a harmless-looking demo event.
+  if(proposed.posting!==undefined&&proposed.posting!==false||
+     proposed.inventoryReserved!==undefined&&proposed.inventoryReserved!==false)
+   throw new RangeError("Nedovoljeno knjiženje ali rezervacija v sintetičnem predlogu.");
   extra=normalizeDemoShopOrder(companyId,state,proposed);
   if(state.stagedOrders.some(o=>o.eventId===extra.eventId||
     o.provider===extra.provider&&o.externalOrderId===extra.externalOrderId))
