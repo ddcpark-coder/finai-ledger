@@ -5,7 +5,7 @@ import {
  decideDemoShopOrder,demoShopSample,transferDemoStock
 } from "../app/next11/demoOperations.mjs";
 import {
- buildDemoCommerceScenario,forecastDemoCommerceStock
+ buildDemoCommerceScenario,forecastDemoCommerceStock,demoEuroPriceCents
 } from "../app/next11/syntheticCommercePlanning.mjs";
 
 const option=(overrides={})=>({
@@ -145,4 +145,15 @@ test("inter-warehouse transfer alters the next scenario forecast without posting
  assert.deepEqual(networkStockTotals(state,1,"TAB-10070"),before);
  assert.equal(state.stagedOrders.length,0);
  assert.equal(state.events.length,1);
+});
+
+test("instant EUR input converts exactly to integer cents without floating-point drift",()=>{
+ assert.equal(demoEuroPriceCents("125,00"),12500);
+ assert.equal(demoEuroPriceCents("125.05"),12505);
+ assert.equal(demoEuroPriceCents("0,01"),1);
+ assert.equal(demoEuroPriceCents("1"),100);
+ assert.equal(demoEuroPriceCents("999999,99"),99999999);
+ for(const invalid of ["", "0","-1","12.345","1e5","abc","1 500,00",
+  "1000000","0,00","NaN"])
+  assert.throws(()=>demoEuroPriceCents(invalid));
 });
