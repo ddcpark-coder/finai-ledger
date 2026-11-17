@@ -3,7 +3,7 @@ import {useMemo,useState} from "react";
 import SyntheticCommerceReviewDesk from "./SyntheticCommerceReviewDesk";
 import {
  demoNetworkState,networkStockTotals,transferDemoStock,
- demoShopSample,stageDemoShopOrder,decideDemoShopOrder
+ stageDemoShopOrder,decideDemoShopOrder
 } from "./demoOperations.mjs";
 import {
  buildDemoCommerceScenario,forecastDemoCommerceStock,demoEuroPriceCents
