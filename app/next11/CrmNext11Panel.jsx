@@ -2,6 +2,9 @@
 
 import {useEffect,useMemo,useState} from "react";
 import {createSyntheticCrmClient,syntheticCrmAvailable} from "./syntheticCrmClient.mjs";
+import SharedDemoBusinessPulse from "./SharedDemoBusinessPulse";
+import {useSharedDemoCompany} from "./useSharedDemoCompany";
+import {changeDemoCompany,resetDemoCompanyDomain,readDemoCompany} from "./sharedDemoCompany.mjs";
 import {
   DEMO_PIPELINE_STAGES,advanceDemoOpportunity,buildDemoCrmActivity,
   demoBusinessUnits,demoCrmPipeline,demoCrmSummary
@@ -14,8 +17,8 @@ const box={background:"var(--panel)",border:"1px solid var(--line)",
  borderRadius:13,padding:12,marginBottom:12};
 
 export default function CrmNext11Panel({companyId}){
- const [deals,setDeals]=useState(()=>demoCrmPipeline(companyId));
- const [activities,setActivities]=useState([]);
+ const shared=useSharedDemoCompany(companyId);
+ const deals=shared.deals,activities=shared.activities;
  const [selectedId,setSelectedId]=useState(null);
  const [unitId,setUnitId]=useState("all");
  const [notice,setNotice]=useState("");
@@ -24,7 +27,7 @@ export default function CrmNext11Panel({companyId}){
  const [busy,setBusy]=useState(false);
  useEffect(()=>{setLocalAvailable(syntheticCrmAvailable());},[]);
  useEffect(()=>{
-  setDeals(demoCrmPipeline(companyId));setActivities([]);setSelectedId(null);
+  setSelectedId(null);
   setConnected(false);setNotice("");
  },[companyId]);
  const connectLocal=async()=>{
@@ -42,9 +45,19 @@ export default function CrmNext11Panel({companyId}){
     return !row||row.unitId!==original.unitId||
      row.valueCents!==original.valueCents;
    }))throw new Error("Lokalna CRM baza ni skladna s sintetičnimi primeri.");
-   setDeals(source.map(original=>{
-    const row=byId.get(original.id);
-    return {...original,stage:row.stage,version:row.version};
+   const latest=readDemoCompany(companyId).deals;
+   if(latest.some(deal=>{
+     const row=byId.get(deal.id);
+     return !row||row.version<deal.version;
+   }))throw new Error("Starejša lokalna CRM kopija ne sme prepisati novejšega prikaza.");
+   changeDemoCompany(companyId,"crm",current=>({
+    deals:current.deals.map(original=>{
+     const row=byId.get(original.id);
+     return {...original,stage:row.stage,version:row.version,
+       probability:DEMO_PIPELINE_STAGES.indexOf(row.stage)>=0?
+       [10,30,60,80,100][DEMO_PIPELINE_STAGES.indexOf(row.stage)]:
+       original.probability};
+    }),activities:current.activities
    }));
    setConnected(true);
    setNotice("Sintetični CRM je povezan z izolirano lokalno bazo. Samo ročno sprožena dejanja.");
@@ -68,12 +81,18 @@ export default function CrmNext11Panel({companyId}){
     if(saved.id!==selected.id||saved.unitId!==selected.unitId||
        saved.valueCents!==selected.valueCents)
       throw new Error("Neskladen odgovor CRM strežnika.");
-    setDeals(current=>current.map(d=>d.id===saved.id?
-     {...d,stage:saved.stage,version:saved.version}:d));
+    changeDemoCompany(companyId,"crm",current=>({
+     deals:current.deals.map(d=>d.id===saved.id?
+      {...d,stage:saved.stage,version:saved.version,
+       probability:[10,30,60,80,100][DEMO_PIPELINE_STAGES.indexOf(saved.stage)]}:d),
+     activities:current.activities
+    }));
    }else{
-    setDeals(current=>advanceDemoOpportunity(
-     current,companyId,selected.id,next,selected.version
-    ));
+    changeDemoCompany(companyId,"crm",current=>({
+     deals:advanceDemoOpportunity(
+      current.deals,companyId,selected.id,next,selected.version
+     ),activities:current.activities
+    }));
    }
    setNotice("Sintetična priložnost je premaknjena v fazo "+next+".");
   }catch(error){setNotice(error.message);}
@@ -83,13 +102,15 @@ export default function CrmNext11Panel({companyId}){
   try{
    const record=buildDemoCrmActivity(companyId,selected.id,deals,
     "SYN-ACT-"+String(activities.length+1));
-   setActivities(current=>[...current,record]);
+   changeDemoCompany(companyId,"crm",current=>({
+    deals:current.deals,activities:[...current.activities,record]
+   }));
    setNotice("Dodan je testni CRM opomnik; ni sinhroniziran na strežnik.");
   }catch(error){setNotice(error.message);}
  };
  const reset=()=>{
   if(busy)return;
-  setConnected(false);setDeals(demoCrmPipeline(companyId));setActivities([]);
+  setConnected(false);resetDemoCompanyDomain(companyId,"crm");
   setNotice("Ponastavljen je samo prikaz v brskalniku; podatki lokalne testne baze niso izbrisani.");
   setSelectedId(null);
  };
@@ -100,7 +121,7 @@ export default function CrmNext11Panel({companyId}){
    <div><h3 style={{margin:0,fontSize:13}}>CRM 360 · interaktivni prodajni lijak</h3>
     <p style={{fontSize:10,color:"var(--muted)",margin:"6px 0"}}>
      {connected?"Sintetični podatki v izolirani lokalni CRM bazi; brez povezav s produkcijo.":
-      "Sintetični podatki; spremembe veljajo samo do ponovnega odprtja tega pogleda."}</p></div>
+      "Sintetični podatki so med moduli skupni do osvežitve strani."}</p></div>
    <div style={{display:"flex",gap:8}}>
     <label style={{fontSize:10,color:"var(--muted)"}}>Poslovna enota
      <select aria-label="Filtriraj CRM po poslovni enoti" value={effectiveUnit}
@@ -125,6 +146,7 @@ export default function CrmNext11Panel({companyId}){
    <span>Vrednost: <b>{euro(summary.totalValueCents)}</b></span>
    <span>Utežena vrednost: <b>{euro(summary.weightedValueCents)}</b></span>
   </div>
+  <SharedDemoBusinessPulse companyId={companyId} mode="crm"/>
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(165px,1fr))",
     gap:7,alignItems:"stretch"}}>
    {DEMO_PIPELINE_STAGES.map(stage=><div key={stage}
@@ -148,7 +170,7 @@ export default function CrmNext11Panel({companyId}){
     <div style={{flex:1,minWidth:180}}>
       <b style={{fontSize:11}}>{selected.name}</b>
       <p style={{fontSize:9,color:"var(--muted)",margin:"5px 0 0"}}>
-       {selected.partner} · {selected.unitId} · verzija {selected.version}
+       {selected.partner} · {selected.id} · {selected.unitId} · verzija {selected.version}
       </p>
     </div>
     <button type="button" className="primary" onClick={progress} disabled={!next||busy}

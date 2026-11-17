@@ -1,8 +1,11 @@
 "use client";
 import {useMemo,useState} from "react";
 import SyntheticCommerceReviewDesk from "./SyntheticCommerceReviewDesk";
+import SharedDemoBusinessPulse from "./SharedDemoBusinessPulse";
+import {useSharedDemoCompany} from "./useSharedDemoCompany";
+import {changeDemoCompany,resetDemoCompanyDomain} from "./sharedDemoCompany.mjs";
 import {
- demoNetworkState,networkStockTotals,transferDemoStock,
+ networkStockTotals,transferDemoStock,
  stageDemoShopOrder,decideDemoShopOrder
 } from "./demoOperations.mjs";
 import {
@@ -16,7 +19,8 @@ const control={padding:"7px 9px",borderRadius:8,color:"var(--text)",
 const small={fontSize:10,color:"var(--muted)"};
 
 export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
- const [state,setState]=useState(()=>demoNetworkState(companyId));
+ const shared=useSharedDemoCompany(companyId);
+ const state=shared.operations;
  const [sourceId,setSourceId]=useState(state.warehouses[0]?.id??"");
  const [targetId,setTargetId]=useState(state.warehouses[1]?.id??"");
  const [sku,setSku]=useState("TAB-10070");
@@ -64,7 +68,9 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
      quantity:1,eventId:"SYN-XFER-"+String(state.version+1),
      expectedVersion:state.version
    });
-   setState(next);
+   changeDemoCompany(companyId,"operations",current=>({
+     operations:next
+   }));
    setNotice("Zabeležen sintetični medskladiščni prenos 1 enote.");
   }catch(error){setNotice(error.message)}
  };
@@ -72,7 +78,9 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
   try{
    if(!preview.scenario)throw new Error(preview.error||"Neveljaven sintetični vnos.");
    const next=stageDemoShopOrder(state,companyId,preview.scenario,state.version);
-   setState(next);
+   changeDemoCompany(companyId,"operations",current=>({
+     operations:next
+   }));
    setNotice(next.replayed
      ?"Isti testni dogodek je že v vrsti; brez podvajanja."
      :"Naročilo je pripravljeno za ročni pregled, ne za fakturiranje.");
@@ -81,13 +89,17 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
  const reviewDemo=(eventId,decision)=>{
   try{
    const next=decideDemoShopOrder(state,companyId,eventId,decision);
-   setState(next);
+   changeDemoCompany(companyId,"operations",current=>({
+     operations:next
+   }));
    setNotice("Samo lokalni demo: "+(decision==="hold"?"zadržano":"pregledano")+
      ". Brez knjiženja, zalog ali strežniškega zapisa.");
   }catch(error){setNotice(error.message);}
  };
- const reset=()=>{setState(demoNetworkState(companyId));
-   setNotice("Testno stanje je ponastavljeno.");};
+ const reset=()=>{
+   resetDemoCompanyDomain(companyId,"operations");
+   setNotice("Ponastavljena so samo sintetična naročila in skladišča podjetja.");
+ };
  return <section style={shell}
    aria-label={mode==="warehouses"?"Večskladiščni demo in poslovne enote":"Simulacija integracij spletnih trgovin"}>
   <div style={{display:"flex",alignItems:"start",gap:12,
@@ -223,6 +235,7 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
        Predlagani prenosi niso izvedeni samodejno.</p>}
     </>}
     <p style={{...small,margin:"9px 0 0"}}>
+     Pomanjkanje že pripravljenih naročil: <b>{storedForecast.shortageUnits}</b>.
      V pregledni vrsti: <b>{storedForecast.orderCount}</b> naročil;
      načrtovana testna vrednost <b>{formatMoney(storedForecast.activeCents)}</b>,
      zadržano <b>{formatMoney(storedForecast.heldCents)}</b>.
@@ -230,6 +243,7 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
      samo za to demonstracijsko sejo in ne za stanje v ERP-ju.
     </p>
    </section>
+   <SharedDemoBusinessPulse companyId={companyId} mode="orders"/>
    <SyntheticCommerceReviewDesk companyId={companyId}
      previewOrders={state.stagedOrders} onPreviewDecision={reviewDemo}/>
   </>}
