@@ -536,7 +536,7 @@ export default function Page(){
        {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext} companyId={company}/>}
        {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
        {section==="Zaloge"&&<OperationsNetworkPanel key={company+"-stock"} companyId={company} mode="warehouses"/>}
-       {section==="Zaloge"&&<InventoryWorkspace context={activeContext}/>}
+       {section==="Zaloge"&&<InventoryWorkspace context={activeContext} companyId={company}/>}
        {section==="Integracije"&&<OperationsNetworkPanel key={company+"-commerce"} companyId={company} mode="commerce"/>}
        {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
 
