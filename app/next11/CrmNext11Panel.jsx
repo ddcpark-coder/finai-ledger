@@ -170,7 +170,7 @@ export default function CrmNext11Panel({companyId}){
     <div style={{flex:1,minWidth:180}}>
       <b style={{fontSize:11}}>{selected.name}</b>
       <p style={{fontSize:9,color:"var(--muted)",margin:"5px 0 0"}}>
-       {selected.partner} · {selected.unitId} · verzija {selected.version}
+       {selected.partner} · {selected.id} · {selected.unitId} · verzija {selected.version}
       </p>
     </div>
     <button type="button" className="primary" onClick={progress} disabled={!next||busy}
