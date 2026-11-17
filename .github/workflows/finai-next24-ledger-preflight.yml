@@ -1,0 +1,22 @@
+name: FinAI NEXT24 synthetic ledger preflight QA
+on:
+  pull_request:
+    paths:
+      - "app/next11/syntheticLedgerPreflight.mjs"
+      - "tests/next24SyntheticLedgerPreflight.test.mjs"
+      - ".github/workflows/finai-next24-ledger-preflight.yml"
+permissions:
+  contents: read
+jobs:
+  journal-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Targeted pure synthetic ledger validation
+        run: node --test tests/next24SyntheticLedgerPreflight.test.mjs
