@@ -223,7 +223,7 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
             $this->assertContains($audit['entity_ref'], $all);
             $this->assertStringStartsWith('SYN:C'.$a->id.':AUDIT:', $audit['ref']);
         }
-        $this->assertSame(0, DB::table('inventory_movements')->count() ?? 0);
+        $this->assertFalse(Schema::hasTable('inventory_movements'));
         $this->assertDatabaseCount('synthetic_stock_plans', 1);
         $this->assertDatabaseCount('audit_logs', 5); // 2 CRM + 2 orders + 1 plan
 
