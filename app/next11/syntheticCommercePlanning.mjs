@@ -109,6 +109,10 @@ export function forecastDemoCommerceStock(state,companyId,proposed=null){
   row.shortage=Math.max(0,-row.forecastAvailable);
  }
  const recommendations=[];
+ // A donor's spare quantity can only be proposed ONCE across all shortages.
+ const donorRemaining=new Map(rows.map(row=>[
+  key(row.warehouseId,row.sku),Math.max(0,row.forecastAvailable)
+ ]));
  for(const short of rows.filter(x=>x.shortage>0)){
   let remaining=short.shortage;
   for(const candidate of rows){
@@ -116,13 +120,15 @@ export function forecastDemoCommerceStock(state,companyId,proposed=null){
      candidate.sku!==short.sku)continue;
    // Recommendations must not consume stock that is already reserved or
    // needed for pending/reviewed orders in the donor warehouse.
-   const transferable=Math.max(0,candidate.forecastAvailable);
+   const donorKey=key(candidate.warehouseId,candidate.sku);
+   const transferable=donorRemaining.get(donorKey)??0;
    const quantity=Math.min(remaining,transferable);
    if(quantity>0){
     recommendations.push({
      fromWarehouseId:candidate.warehouseId,toWarehouseId:short.warehouseId,
      sku:short.sku,quantity,informationalOnly:true
     });
+    donorRemaining.set(donorKey,transferable-quantity);
     remaining-=quantity;
     if(remaining===0)break;
    }
