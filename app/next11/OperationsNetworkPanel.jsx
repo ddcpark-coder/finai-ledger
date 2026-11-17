@@ -235,6 +235,7 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
        Predlagani prenosi niso izvedeni samodejno.</p>}
     </>}
     <p style={{...small,margin:"9px 0 0"}}>
+     Pomanjkanje že pripravljenih naročil: <b>{storedForecast.shortageUnits}</b>.
      V pregledni vrsti: <b>{storedForecast.orderCount}</b> naročil;
      načrtovana testna vrednost <b>{formatMoney(storedForecast.activeCents)}</b>,
      zadržano <b>{formatMoney(storedForecast.heldCents)}</b>.
