@@ -278,7 +278,7 @@ final class UnifiedSyntheticBusinessGraph
         $ids = [
             'synthetic_crm_opportunity' => $deals->pluck('id')->map(fn ($id): string => (string) $id)->all(),
             'commerce_order_event' => array_map(
-                fn (array $item): string => explode(':', $item['ref'])[4], $orders),
+                fn (array $item): string => explode(':', $item['ref'])[3], $orders),
             'synthetic_stock_plan' => $planRows->pluck('id')->map(fn ($id): string => (string) $id)->all(),
         ];
         $audits = DB::table('audit_logs')
