@@ -1,0 +1,57 @@
+name: FinAI NEXT23 manual synthetic CRM synchronization QA
+on:
+  pull_request:
+    paths:
+      - "app/next11/syntheticCrmReconciliation.mjs"
+      - "app/next11/CrmNext11Panel.jsx"
+      - "app/next11/SyntheticCommerceReviewDesk.jsx"
+      - "tests/next23SyntheticCrmReconciliation.test.mjs"
+      - "tests/e2e/next23-controlled-crm-sync.spec.cjs"
+      - ".github/workflows/finai-next23-crm-sync-qa.yml"
+permissions:
+  contents: read
+jobs:
+  crm-sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate company isolation, stale versions and race-safe CRM merge
+        run: node --test tests/next23SyntheticCrmReconciliation.test.mjs tests/next12SyntheticCrmClient.test.mjs
+      - name: Install synthetic frontend and browser runner
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install chromium
+      - name: Build locally gated frontend with synthetic loopback API only
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_FINAI_SYNTHETIC_CRM_API_BASE: "http://127.0.0.1:3000/api"
+        run: |
+          npm run build
+          test -s out/index.html
+      - name: Serve isolated synthetic interface on loopback
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-next23-preview.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify explicit manual sync and conflict resolution on desktop and mobile
+        env:
+          BASE_URL: "http://127.0.0.1:3000"
+        run: npx playwright test tests/e2e/next23-controlled-crm-sync.spec.cjs --project=desktop-chromium --project=mobile-chromium
+      - name: Upload isolated synthetic screenshots on failure only
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-next23-synthetic-conflict-qa
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
