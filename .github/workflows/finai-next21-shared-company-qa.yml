@@ -1,0 +1,63 @@
+name: FinAI NEXT21 shared business targeted desktop and mobile QA
+on:
+  pull_request:
+    paths:
+      - "app/next11/sharedDemoCompany.mjs"
+      - "app/next11/useSharedDemoCompany.js"
+      - "app/next11/SharedDemoBusinessPulse.jsx"
+      - "app/next11/CrmNext11Panel.jsx"
+      - "app/next11/OperationsNetworkPanel.jsx"
+      - "app/next11/BusinessIntelligencePanel.jsx"
+      - "app/crm/CrmWorkspace.jsx"
+      - "app/inventory/InventoryWorkspace.jsx"
+      - "app/orders/SalesOrdersWorkspace.jsx"
+      - "app/page.jsx"
+      - "tests/sharedDemoCompany.test.mjs"
+      - "tests/e2e/next21-shared-company.spec.cjs"
+      - ".github/workflows/finai-next21-shared-company-qa.yml"
+permissions:
+  contents: read
+jobs:
+  shared-business:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test isolated company data mutations and projections
+        run: node --test tests/sharedDemoCompany.test.mjs
+      - name: Install app and browser runner without production secrets
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm install --no-save --no-audit --no-fund --package-lock=false @playwright/test@1.56.1
+          npx playwright install chromium
+      - name: Compile isolated static FinAI preview
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm run build
+          test -s out/index.html
+      - name: Serve static synthetic preview only on loopback
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory out > /tmp/finai-next21-browser.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify real desktop/mobile navigation, shared state and tenant reset
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test tests/e2e/next21-shared-company.spec.cjs --project=desktop-chromium --project=mobile-chromium
+      - name: Upload artifacts only on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finai-next21-focused-browser-failures
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 7
