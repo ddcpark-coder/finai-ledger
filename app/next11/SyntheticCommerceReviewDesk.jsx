@@ -41,8 +41,20 @@ export default function SyntheticCommerceReviewDesk({companyId,previewOrders,onP
   if(!available)throw new Error("Brez lokalne prijave ni spreminjanja naročil.");
   if(!window.confirm("Potrdim "+(decision==="hold"?"zadržanje":"pregled")+
    " izključno sintetičnega naročila #"+id+"?"))return;
-  await createSyntheticCommerceReviewClient().decide(companyId,id,decision);
-  const page=await createSyntheticCommerceReviewClient().list(companyId);
+  const api=createSyntheticCommerceReviewClient();
+  try{
+   await api.decide(companyId,id,decision);
+  }catch(error){
+   if(error?.status!==409)throw error;
+   // A competing reviewer might have already made the terminal choice.
+   // A read-only refresh displays the server decision, without a retry POST
+   // or ever copying it to the separate browser-only demo order queue.
+   const latest=await api.list(companyId);
+   setItems(latest.items);setNextCursor(latest.next_cursor);setLoaded(true);
+   setMessage("Konflikt pregleda: strežniško stanje je bilo ponovno prebrano. Odločitev ni bila ponovljena.");
+   return;
+  }
+  const page=await api.list(companyId);
   setItems(page.items);setNextCursor(page.next_cursor);setLoaded(true);
   setMessage("Sintetična odločitev je revizijsko zabeležena. Ni knjiženja ali rezervacij.");
  });
@@ -54,7 +66,8 @@ export default function SyntheticCommerceReviewDesk({companyId,previewOrders,onP
   </p>
   <h5 style={{fontSize:12,margin:"15px 0 6px"}}>Lokalni demonstracijski predogled</h5>
   <p style={{fontSize:10,color:"var(--muted)"}}>
-   Odločitve se hranijo samo v pomnilniku tega zaslona. Ponastavitev demo podatke izbriše.
+   Lokalni demo je v tem zavihku skupen med moduli in se ponastavi ob osvežitvi
+   strani. Strežniški pregled spodaj je ločen in ima svojo revizijo.
   </p>
   {!previewOrders.length&&<p style={{fontSize:11}}>
    Zgornji gumb »Pripravi sintetično naročilo za pregled« doda vzorčni zapis.
