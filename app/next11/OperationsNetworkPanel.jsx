@@ -5,6 +5,9 @@ import {
  demoNetworkState,networkStockTotals,transferDemoStock,
  demoShopSample,stageDemoShopOrder,decideDemoShopOrder
 } from "./demoOperations.mjs";
+import {
+ buildDemoCommerceScenario,forecastDemoCommerceStock,demoEuroPriceCents
+} from "./syntheticCommercePlanning.mjs";
 
 const shell={padding:13,border:"1px solid var(--line)",borderRadius:14,
  background:"var(--panel)",marginBottom:12};
@@ -18,6 +21,10 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
  const [targetId,setTargetId]=useState(state.warehouses[1]?.id??"");
  const [sku,setSku]=useState("TAB-10070");
  const [provider,setProvider]=useState("woocommerce");
+ const [shopWarehouseId,setShopWarehouseId]=useState(state.warehouses[0]?.id??"");
+ const [shopSku,setShopSku]=useState(state.warehouses[0]?.items[0]?.sku??"");
+ const [shopQuantity,setShopQuantity]=useState(1);
+ const [shopPrice,setShopPrice]=useState("125,00");
  const [notice,setNotice]=useState("");
  const [showEvents,setShowEvents]=useState(false);
  const source=state.warehouses.find(w=>w.id===sourceId);
@@ -29,6 +36,27 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
  },[source,target]);
  const effectiveSku=common.includes(sku)?sku:common[0]??"";
  const total=networkStockTotals(state,companyId);
+ const shopWarehouse=state.warehouses.find(w=>w.id===shopWarehouseId);
+ const shopItems=shopWarehouse?.items??[];
+ const activeShopSku=shopItems.some(i=>i.sku===shopSku)
+  ?shopSku:(shopItems[0]?.sku??"");
+ const storedForecast=useMemo(()=>forecastDemoCommerceStock(state,companyId),
+  [state,companyId]);
+ const preview=useMemo(()=>{
+  try{
+   const scenario=buildDemoCommerceScenario(state,companyId,{
+    provider,warehouseId:shopWarehouseId,sku:activeShopSku,
+    quantity:shopQuantity,unitPriceCents:demoEuroPriceCents(shopPrice)
+   });
+   return {scenario,forecast:forecastDemoCommerceStock(state,companyId,scenario),
+    error:null};
+  }catch(error){return {scenario:null,forecast:null,error:error.message}}
+ },[state,companyId,provider,shopWarehouseId,activeShopSku,shopQuantity,shopPrice]);
+ const previewStock=preview.forecast?.rows.find(
+  row=>row.warehouseId===shopWarehouseId&&row.sku===activeShopSku);
+ const formatMoney=cents=>(cents/100).toLocaleString("sl-SI",{
+  style:"currency",currency:"EUR"
+ });
  const move=()=>{
   try{
    const next=transferDemoStock(state,companyId,{
@@ -42,8 +70,8 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
  };
  const addShop=()=>{
   try{
-   const sample=demoShopSample(companyId,provider);
-   const next=stageDemoShopOrder(state,companyId,sample,state.version);
+   if(!preview.scenario)throw new Error(preview.error||"Neveljaven sintetični vnos.");
+   const next=stageDemoShopOrder(state,companyId,preview.scenario,state.version);
    setState(next);
    setNotice(next.replayed
      ?"Isti testni dogodek je že v vrsti; brez podvajanja."
@@ -131,9 +159,77 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
       <option value="shopify">Shopify</option>
      </select>
     </label>
+    <label style={small}>Skladišče dobave
+     <select aria-label="Skladišče naročila" value={shopWarehouseId}
+      onChange={e=>{const id=e.target.value;setShopWarehouseId(id);
+       setShopSku(state.warehouses.find(w=>w.id===id)?.items[0]?.sku??"")}}
+      style={{...control,display:"block"}}>
+      {state.warehouses.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}
+     </select>
+    </label>
+    <label style={small}>Artikel (SKU)
+     <select aria-label="SKU naročila" value={activeShopSku}
+      onChange={e=>setShopSku(e.target.value)} style={{...control,display:"block"}}>
+      {shopItems.map(i=><option key={i.sku} value={i.sku}>{i.sku}</option>)}
+     </select>
+    </label>
+    <label style={small}>Količina
+     <input aria-label="Količina naročila" type="number" min="1" max="100"
+      step="1" value={shopQuantity} onChange={e=>setShopQuantity(Number(e.target.value))}
+      style={{...control,display:"block",width:80}}/>
+    </label>
+    <label style={small}>Cena / enoto (EUR)
+     <input aria-label="Cena na enoto v EUR" inputMode="decimal"
+      value={shopPrice} onChange={e=>setShopPrice(e.target.value)}
+      style={{...control,display:"block",width:105}}/>
+    </label>
     <button className="primary" type="button" onClick={addShop}
-       style={{fontSize:10}}>Pripravi sintetično naročilo za pregled</button>
+      disabled={!preview.scenario}
+      style={{fontSize:10}}>Pripravi sintetično naročilo za pregled</button>
    </div>
+   <section aria-label="Predogled zaloge za testno naročilo"
+    style={{padding:12,marginTop:12,border:"1px solid var(--line)",
+     borderRadius:10,background:"var(--bg2)"}}>
+    <b style={{fontSize:12}}>Takojšnji izračun naročila in razpoložljivosti</b>
+    {preview.error?<p role="alert" style={{...small,marginTop:8}}>
+     {preview.error}</p>:<>
+     <p style={{...small,margin:"9px 0"}}>
+      Osnovna testna vrednost: <b>{formatMoney(preview.scenario.totalCents)}</b>
+      {" · "}Izbrano skladišče / SKU: <b>{shopWarehouse?.name} / {activeShopSku}</b>.
+      Brez obračuna DDV, zalogovne rezervacije ali računa.
+     </p>
+     {previewStock&&<div role="status" aria-label="Napoved razpoložljive zaloge"
+       style={{display:"flex",gap:14,flexWrap:"wrap",fontSize:11}}>
+      <span>Dejansko na voljo v demu: <b>{previewStock.available}</b></span>
+      <span>Obstoječe testne potrebe: <b>{previewStock.requested}</b></span>
+      <span>Novi predlog: <b>{previewStock.preview}</b></span>
+      <span>Po predlogu: <b>{previewStock.forecastAvailable}</b></span>
+      <span style={{fontWeight:700}}>Pomanjkanje:
+       {" "}{previewStock.shortage}</span>
+     </div>}
+     {preview.forecast.recommendations.length>0&&<div style={{marginTop:9}}>
+      <b style={small}>Predlog medskladiščne prerazporeditve (brez izvedbe)</b>
+      <ul style={{...small,margin:"5px 0"}}>
+       {preview.forecast.recommendations.map((entry,index)=><li key={index}>
+        {entry.quantity} × {entry.sku}:
+        {" "}{state.warehouses.find(w=>w.id===entry.fromWarehouseId)?.name}
+        {" → "}{state.warehouses.find(w=>w.id===entry.toWarehouseId)?.name}
+       </li>)}
+      </ul>
+     </div>}
+     {previewStock?.shortage>0&&
+      <p style={{...small,margin:"7px 0 0"}}>
+       Opozorilo: priporočeni prenos lahko pokrije le del manjkajoče zaloge.
+       Predlagani prenosi niso izvedeni samodejno.</p>}
+    </>}
+    <p style={{...small,margin:"9px 0 0"}}>
+     V pregledni vrsti: <b>{storedForecast.orderCount}</b> naročil;
+     načrtovana testna vrednost <b>{formatMoney(storedForecast.activeCents)}</b>,
+     zadržano <b>{formatMoney(storedForecast.heldCents)}</b>.
+     Status »pregledano« ne rezervira fizične zaloge. Rezultat velja
+     samo za to demonstracijsko sejo in ne za stanje v ERP-ju.
+    </p>
+   </section>
    <SyntheticCommerceReviewDesk companyId={companyId}
      previewOrders={state.stagedOrders} onPreviewDecision={reviewDemo}/>
   </>}
