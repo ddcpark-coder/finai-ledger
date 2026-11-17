@@ -32,6 +32,7 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
           NEXT_PUBLIC_FINAI_SYNTHETIC_CRM_API_BASE: "http://127.0.0.1:3000/api"
+          NEXT_PUBLIC_FINAI_SYNTHETIC_COMMERCE_API_BASE: "http://127.0.0.1:3000/api"
         run: |
           npm run build
           test -s out/index.html
