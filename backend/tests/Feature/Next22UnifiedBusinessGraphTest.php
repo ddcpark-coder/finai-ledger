@@ -92,7 +92,7 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
         ]);
     }
 
-    private function seed(Company $company, User $actor,
+    private function scenarioFixtures(Company $company, User $actor,
         string $provider = 'shopify'): array
     {
         $this->unit($company);
@@ -194,8 +194,8 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
         $b = $this->company('B');
         $alice = $this->actor($a, 'alice', $this->permissions());
         $bob = $this->actor($b, 'bob', $this->permissions());
-        [$fromA, $toA, $orderA] = $this->seed($a, $alice);
-        [$fromB, $toB, $orderB] = $this->seed($b, $bob);
+        [$fromA, $toA, $orderA] = $this->scenarioFixtures($a, $alice);
+        [$fromB, $toB, $orderB] = $this->scenarioFixtures($b, $bob);
         $this->actingAs($alice);
         $url = $this->url($a);
         $first = $this->postJson($url.'/stock-plans',
@@ -240,7 +240,7 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
         $this->enableGraph();
         $a = $this->company('A');
         $actor = $this->actor($a, 'alice', $this->permissions());
-        [$source, $target, $order] = $this->seed($a, $actor);
+        [$source, $target, $order] = $this->scenarioFixtures($a, $actor);
         $input = $this->command($source, $target, $order);
         $this->actingAs($actor);
         $url = $this->url($a).'/stock-plans';
@@ -272,8 +272,8 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
         $b = $this->company('B');
         $alice = $this->actor($a, 'alice', $this->permissions());
         $bob = $this->actor($b, 'bob', $this->permissions());
-        [$srcA, $dstA, $orderA] = $this->seed($a, $alice);
-        [$srcB, $dstB, $orderB] = $this->seed($b, $bob);
+        [$srcA, $dstA, $orderA] = $this->scenarioFixtures($a, $alice);
+        [$srcB, $dstB, $orderB] = $this->scenarioFixtures($b, $bob);
 
         $this->actingAs($alice);
         $url = $this->url($a);
@@ -303,7 +303,7 @@ final class Next22UnifiedBusinessGraphTest extends TestCase
         $this->enableGraph();
         $company = $this->company('A');
         $alice = $this->actor($company, 'alice', $this->permissions());
-        [$src, $dst, $orderId] = $this->seed($company, $alice);
+        [$src, $dst, $orderId] = $this->scenarioFixtures($company, $alice);
         $this->actingAs($alice);
         $url = $this->url($company);
         $input = $this->command($src, $dst, $orderId);
