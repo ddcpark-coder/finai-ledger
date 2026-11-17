@@ -196,6 +196,22 @@ final class UnifiedSyntheticBusinessGraph
         ];
         $canonical = self::canonical($companyId, (int) $row->actor_user_id,
             $input, (int) $row->synthetic_crm_opportunity_id);
+        // A malformed FK or tenant reassignment must never create an
+        // apparent cross-company canonical reference in the response.
+        foreach (['source_warehouse_id', 'target_warehouse_id'] as $warehouseKey) {
+            if (! DB::table('warehouses')->where('company_id', $companyId)
+                ->where('id', $row->$warehouseKey)->exists()) {
+                throw new \DomainException('Cross-company synthetic plan warehouse.');
+            }
+        }
+        if (! DB::table('commerce_order_events')
+            ->where('company_id', $companyId)
+            ->where('id', $row->commerce_order_event_id)->exists() ||
+            ! DB::table('synthetic_crm_opportunities')
+                ->where('company_id', $companyId)
+                ->where('id', $row->synthetic_crm_opportunity_id)->exists()) {
+            throw new \DomainException('Cross-company synthetic plan link.');
+        }
         if ((int) $row->company_id !== $companyId ||
             ! is_string($row->fingerprint) ||
             ! hash_equals($row->fingerprint,
@@ -281,7 +297,9 @@ final class UnifiedSyntheticBusinessGraph
                 fn (array $item): string => explode(':', $item['ref'])[3], $orders),
             'synthetic_stock_plan' => $planRows->pluck('id')->map(fn ($id): string => (string) $id)->all(),
         ];
-        $audits = DB::table('audit_logs')
+        $audits = collect();
+        if (array_filter($ids, fn (array $rows): bool => $rows !== []) !== []) {
+            $audits = DB::table('audit_logs')
             ->where('company_id', $companyId)
             ->whereIn('event_type', self::AUDIT_TYPES)
             ->where(function ($query) use ($ids): void {
@@ -295,6 +313,7 @@ final class UnifiedSyntheticBusinessGraph
                 }
             })
             ->orderByDesc('id')->limit($limit)->get();
+        }
         $audit = $audits->map(function (object $row) use ($companyId): array {
             $kind = match ($row->entity_type) {
                 'commerce_order_event' => 'order',
