@@ -1,6 +1,7 @@
 "use client";
 
 import {useMemo,useState} from "react";
+import SharedDemoBusinessPulse from "./SharedDemoBusinessPulse";
 import {
  demoBusinessUnits,demoFinancialSeries,demoFinancialSummary
 } from "./demoBusinessModel.mjs";
@@ -44,6 +45,7 @@ export default function BusinessIntelligencePanel({companyId}){
     </select>
    </label>
   </div>
+  <SharedDemoBusinessPulse companyId={companyId} unitId={effectiveUnit} mode="summary"/>
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",
    gap:9,marginBottom:14}}>
    {[["Prihodki",summary.revenueCents],
