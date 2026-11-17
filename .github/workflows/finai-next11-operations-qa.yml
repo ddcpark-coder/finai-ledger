@@ -13,6 +13,7 @@ on:
       - "app/orders/SalesOrdersWorkspace.jsx"
       - "app/inventory/InventoryWorkspace.jsx"
       - "tests/syntheticCommerceReviewClient.test.mjs"
+      - "tests/syntheticBusinessGraphClient.test.mjs"
       - ".github/workflows/finai-next11-operations-qa.yml"
   workflow_dispatch:
 permissions:
@@ -29,7 +30,7 @@ jobs:
         with:
           node-version: "22"
       - name: Verify stock conservation, tenant scope and shop staging
-        run: node --test tests/next11Operations.test.mjs tests/contextRoute.test.mjs tests/syntheticCommerceReviewClient.test.mjs tests/next20CommerceStockPlanning.test.mjs tests/sharedDemoCompany.test.mjs
+        run: node --test tests/next11Operations.test.mjs tests/contextRoute.test.mjs tests/syntheticCommerceReviewClient.test.mjs tests/next20CommerceStockPlanning.test.mjs tests/sharedDemoCompany.test.mjs tests/syntheticBusinessGraphClient.test.mjs
       - name: Compile standalone synthetic Integracije user interface
         env:
           NEXT_TELEMETRY_DISABLED: "1"
