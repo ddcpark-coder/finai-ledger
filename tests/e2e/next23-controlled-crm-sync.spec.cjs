@@ -164,3 +164,36 @@ test("commerce reviewer conflict performs GET-only refresh and never retries ter
  expect(posts).toBe(1);
  await expect(desk.getByRole("button",{name:"Pregledano (test)"})).toHaveCount(0);
 });
+
+
+test("company changed during pending CRM GET cannot apply stale tenant data or leave UI busy",async({page})=>{
+ let resolveRequest,releaseRequest;
+ const requested=new Promise(resolve=>{resolveRequest=resolve});
+ const held=new Promise(resolve=>{releaseRequest=resolve});
+ let networkWrites=0;
+ page.on("request",req=>{
+  if(["POST","PUT","PATCH","DELETE"].includes(req.method()))
+   networkWrites++;
+ });
+ await page.route("**/api/companies/1/demo/crm/opportunities",async route=>{
+  resolveRequest();
+  await held;
+  return route.fulfill({status:200,contentType:"application/json",
+   body:JSON.stringify({demo_only:true,data:fixtures[1].map(x=>row(1,x))})});
+ });
+ await page.goto("/?module=crm");
+ const company=page.locator(".topbarMain select.companySwitch");
+ const crm=page.getByRole("region",{
+  name:"FinAI NEXT11 CRM – interaktivna sintetična predstavitev"
+ });
+ await crm.getByRole("button",{name:"Poveži lokalno testno CRM bazo"}).click();
+ await requested;
+ await company.selectOption("2");
+ await expect(crm).toContainText("SYN-CRM-201");
+ releaseRequest();
+ await expect(crm.getByRole("button",{
+  name:"Poveži lokalno testno CRM bazo"
+ })).toBeEnabled();
+ await expect(crm).not.toContainText("SYN-CRM-101");
+ expect(networkWrites).toBe(0);
+});
