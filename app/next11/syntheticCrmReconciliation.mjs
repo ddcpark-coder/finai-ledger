@@ -20,7 +20,6 @@ function sameness(a,b){
   a.unitId===b.unitId&&a.valueCents===b.valueCents&&
   a.stage===b.stage&&a.version===b.version;
 }
-const equal=rows=>(a,b)=>rows.every(k=>a[k]===b[k]);
 
 /**
  * Reconcile an entire small, fixed company demo pipeline. Missing/extra
