@@ -1,6 +1,7 @@
 "use client";
 import {useMemo,useState} from "react";
 import SyntheticCommerceReviewDesk from "./SyntheticCommerceReviewDesk";
+import SyntheticBusinessGraphDesk from "./SyntheticBusinessGraphDesk";
 import SharedDemoBusinessPulse from "./SharedDemoBusinessPulse";
 import {useSharedDemoCompany} from "./useSharedDemoCompany";
 import {changeDemoCompany,resetDemoCompanyDomain} from "./sharedDemoCompany.mjs";
@@ -246,6 +247,7 @@ export default function OperationsNetworkPanel({companyId,mode="warehouses"}){
    <SharedDemoBusinessPulse companyId={companyId} mode="orders"/>
    <SyntheticCommerceReviewDesk companyId={companyId}
      previewOrders={state.stagedOrders} onPreviewDecision={reviewDemo}/>
+   <SyntheticBusinessGraphDesk companyId={companyId}/>
   </>}
   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:10}}>
    <button type="button" className="secondary" onClick={()=>setShowEvents(x=>!x)}
