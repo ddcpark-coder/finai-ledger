@@ -1,4 +1,8 @@
 const {test,expect}=require("@playwright/test");
+// The regular public static build deliberately disables local Laravel APIs.
+// Only the dedicated isolated loopback build enables these mocked API flows.
+test.skip(process.env.FINAI_NEXT23_MOCKED_LOOPBACK!=="1",
+ "Requires dedicated synthetic localhost CRM/commerce API fixtures");
 
 const fixtures={
  1:[
