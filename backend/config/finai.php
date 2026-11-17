@@ -13,6 +13,9 @@ return [
     'synthetic_ledger_scenario_enabled' => (bool) env('FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED', false),
     // No public endpoint: application-layer synthetic commerce staging, local/testing only.
     'synthetic_commerce_staging_enabled' => (bool) env('FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED', false),
+    // NEXT22 unified multi-tenant, synthetic-only business read model and stock
+    // plans. OFF by default, requires commerce+CRM test flags and local/testing.
+    'synthetic_business_graph_enabled' => (bool) env('FINAI_SYNTHETIC_BUSINESS_GRAPH_ENABLED', false),
     // Optional LOCAL/TESTING persistent synthetic CRM demo; off by default.
     'synthetic_crm_persistence_enabled' => (bool) env('FINAI_SYNTHETIC_CRM_PERSISTENCE_ENABLED', false),
 ];
