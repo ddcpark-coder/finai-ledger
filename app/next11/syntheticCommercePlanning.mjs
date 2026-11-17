@@ -14,7 +14,7 @@ const allKeys=[
 /** Locale-safe input to avoid floating-point money rounding on every edit. */
 export function demoEuroPriceCents(text){
  if(typeof text!=="string"||
-  !/^\\d{1,6}(?:[.,]\\d{1,2})?$/.test(text))
+  !/^\d{1,6}(?:[.,]\d{1,2})?$/.test(text))
   throw new RangeError("Neveljavna cena (EUR; največ dve decimalki).");
  const [euros,cents=""]=text.replace(",",".").split(".");
  const amount=Number(euros)*100+Number(cents.padEnd(2,"0"));
