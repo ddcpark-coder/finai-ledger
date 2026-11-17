@@ -54,14 +54,14 @@ function installSyntheticApi(page,{conflict=false}={}){
   return route.fulfill({status:409,contentType:"application/json",
    body:JSON.stringify({message:"Unexpected bootstrap"})});
  };
- page.route("**/sanctum/csrf-cookie",route=>route.fulfill({
+ await page.route("**/sanctum/csrf-cookie",route=>route.fulfill({
   status:204,headers:{"Cache-Control":"no-store"}
  }));
- page.route("**/api/companies/*/demo/crm/opportunities**",wire);
+ await page.route("**/api/companies/*/demo/crm/opportunities**",wire);
  return {records,reads,writes};
 }
 test("manually connect, pull newer CRM versions and push exactly one conditional stage",async({page,context,isMobile})=>{
- const api=installSyntheticApi(page);
+ const api=await installSyntheticApi(page);
  await context.addCookies([{
   name:"XSRF-TOKEN",value:"demo%3Dtoken",url:"http://127.0.0.1:3000/"
  }]);
@@ -101,7 +101,7 @@ test("manually connect, pull newer CRM versions and push exactly one conditional
 });
 
 test("server version conflict disables writes until explicit refresh, no POST retry",async({page,context})=>{
- const api=installSyntheticApi(page,{conflict:true});
+ const api=await installSyntheticApi(page,{conflict:true});
  await context.addCookies([{
   name:"XSRF-TOKEN",value:"demo%3Dtoken",url:"http://127.0.0.1:3000/"
  }]);
