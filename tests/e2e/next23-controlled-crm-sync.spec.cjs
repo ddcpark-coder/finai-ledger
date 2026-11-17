@@ -123,3 +123,44 @@ test("server version conflict disables writes until explicit refresh, no POST re
  expect(api.writes).toHaveLength(2);
  expect(api.writes[1].body.expected_version).toBe(2);
 });
+
+
+test("commerce reviewer conflict performs GET-only refresh and never retries terminal POST",async({page,context})=>{
+ await context.addCookies([{
+  name:"XSRF-TOKEN",value:"demo%3Dtoken",url:"http://127.0.0.1:3000/"
+ }]);
+ let status="review",posts=0,reads=0;
+ await page.route("**/sanctum/csrf-cookie",route=>route.fulfill({status:204}));
+ await page.route("**/api/companies/1/demo/commerce-review**",route=>{
+  const request=route.request();
+  if(request.method()==="POST"){
+   posts++;status="hold";
+   return route.fulfill({status:409,contentType:"application/json",
+    body:JSON.stringify({message:"Decision already final"})});
+  }
+  if(request.method()==="GET"){
+   reads++;
+   const row={id:7,external_order_id:"SYN-ORDER-TEST-001",
+    provider:"woocommerce",warehouse_id:2,total_cents:12500,
+    line_count:1,status,demo_only:true,posting:false};
+   return route.fulfill({status:200,contentType:"application/json",
+    body:JSON.stringify({data:{
+     items:[row],next_cursor:null,demo_only:true,real_sync_enabled:false
+    }})});
+  }
+  return route.fulfill({status:405});
+ });
+ page.on("dialog",dialog=>dialog.accept());
+ await page.goto("/?module=integrations");
+ const desk=page.getByRole("region",{
+  name:"Pregledna vrsta sintetičnih trgovinskih naročil"
+ });
+ await desk.getByRole("button",{name:"Osveži lokalno pregledno vrsto"}).click();
+ await expect(desk).toContainText("Čaka pregled");
+ await desk.getByRole("button",{name:"Pregledano (test)"}).click();
+ await expect(desk).toContainText("Konflikt pregleda");
+ await expect(desk).toContainText("Zadržano");
+ expect(reads).toBe(2);
+ expect(posts).toBe(1);
+ await expect(desk.getByRole("button",{name:"Pregledano (test)"})).toHaveCount(0);
+});
