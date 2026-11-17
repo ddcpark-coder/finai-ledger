@@ -1,5 +1,6 @@
 "use client";
 import {useMemo,useState} from "react";
+import SharedDemoBusinessPulse from "../next11/SharedDemoBusinessPulse";
 
 const stock=[
  {sku:"PM-200",name:"Pogonski modul PM-200",wh:"Glavno",loc:"A-01-02",on:18,res:12,avail:6,incoming:12,min:10,status:"Nizka zaloga"},
@@ -15,7 +16,7 @@ const moves=[
  ["02. 11. 16:05","FOL-M2","-5","Prenos","Glavno → Material"]
 ];
 
-export default function InventoryWorkspace({context}){
+export default function InventoryWorkspace({context,companyId=1}){
  const [query,setQuery]=useState("");
  const [warehouse,setWarehouse]=useState("Vsa skladišča");
  const [selected,setSelected]=useState(stock[0]);
@@ -38,6 +39,7 @@ export default function InventoryWorkspace({context}){
  @media(max-width:1100px){.igrid{grid-template-columns:1fr}.whgrid{grid-template-columns:1fr 1fr}}@media(max-width:760px){.ikpi{grid-template-columns:1fr 1fr}.irow{grid-template-columns:.8fr 1.3fr .65fr}.irow>*:nth-child(3),.irow>*:nth-child(5),.irow>*:nth-child(6){display:none}.meta{grid-template-columns:1fr}.whgrid{grid-template-columns:1fr}.move{grid-template-columns:1fr .6fr .7fr}.move>*:nth-child(4),.move>*:nth-child(5){display:none}}
  `}</style>
 
+ <SharedDemoBusinessPulse companyId={companyId} mode="stock"/>
  <div className="ikpi"><div className="ik"><small>Vrednost zaloge</small><b>128.400 €</b></div><div className="ik"><small>Rezervirano</small><b>67 kos / enot</b></div><div className="ik"><small>Na poti</small><b>92 enot</b></div><div className="ik"><small>Opozorila</small><b>2</b></div></div>
 
 
