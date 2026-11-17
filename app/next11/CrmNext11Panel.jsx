@@ -1,10 +1,13 @@
 "use client";
 
-import {useEffect,useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import {createSyntheticCrmClient,syntheticCrmAvailable} from "./syntheticCrmClient.mjs";
 import SharedDemoBusinessPulse from "./SharedDemoBusinessPulse";
 import {useSharedDemoCompany} from "./useSharedDemoCompany";
 import {changeDemoCompany,resetDemoCompanyDomain,readDemoCompany} from "./sharedDemoCompany.mjs";
+import {
+ planSyntheticCrmReconciliation,applySyntheticCrmAdvance
+} from "./syntheticCrmReconciliation.mjs";
 import {
   DEMO_PIPELINE_STAGES,advanceDemoOpportunity,buildDemoCrmActivity,
   demoBusinessUnits,demoCrmPipeline,demoCrmSummary
@@ -25,44 +28,96 @@ export default function CrmNext11Panel({companyId}){
  const [localAvailable,setLocalAvailable]=useState(false);
  const [connected,setConnected]=useState(false);
  const [busy,setBusy]=useState(false);
+ const [syncConflict,setSyncConflict]=useState(false);
+ const activeCompany=useRef(companyId);
+ const mounted=useRef(true);
+ const accepted=useRef(new Map());
+ activeCompany.current=companyId;
+ useEffect(()=>{
+  mounted.current=true;
+  return ()=>{mounted.current=false};
+ },[]);
+ const assertActive=target=>{
+  if(!mounted.current||activeCompany.current!==target)
+   throw new Error("Podjetje ali CRM pogled se je med zahtevo spremenil.");
+ };
  useEffect(()=>{setLocalAvailable(syntheticCrmAvailable());},[]);
  useEffect(()=>{
   setSelectedId(null);
-  setConnected(false);setNotice("");
+  setConnected(false);setSyncConflict(false);setNotice("");
  },[companyId]);
  const connectLocal=async()=>{
   if(busy||!localAvailable)return;
-  setBusy(true);setNotice("");
+  setBusy(true);setNotice("");setSyncConflict(false);
   try{
+   const targetCompany=companyId;
    const client=createSyntheticCrmClient();
-   const source=demoCrmPipeline(companyId);
-   // Manual only. Replays never reset an already advanced local demo deal.
-   for(const deal of source)await client.register(companyId,deal);
-   const saved=await client.read(companyId);
-   const byId=new Map(saved.map(deal=>[deal.id,deal]));
-   if(saved.length!==source.length||source.some(original=>{
-    const row=byId.get(original.id);
-    return !row||row.unitId!==original.unitId||
-     row.valueCents!==original.valueCents;
-   }))throw new Error("Lokalna CRM baza ni skladna s sintetičnimi primeri.");
-   const latest=readDemoCompany(companyId).deals;
-   if(latest.some(deal=>{
-     const row=byId.get(deal.id);
-     return !row||row.version<deal.version;
-   }))throw new Error("Starejša lokalna CRM kopija ne sme prepisati novejšega prikaza.");
-   changeDemoCompany(companyId,"crm",current=>({
-    deals:current.deals.map(original=>{
-     const row=byId.get(original.id);
-     return {...original,stage:row.stage,version:row.version,
-       probability:DEMO_PIPELINE_STAGES.indexOf(row.stage)>=0?
-       [10,30,60,80,100][DEMO_PIPELINE_STAGES.indexOf(row.stage)]:
-       original.probability};
-    }),activities:current.activities
-   }));
-   setConnected(true);
-   setNotice("Sintetični CRM je povezan z izolirano lokalno bazo. Samo ročno sprožena dejanja.");
-  }catch(error){setConnected(false);setNotice(error.message);}
-  finally{setBusy(false);}
+   const fixtures=demoCrmPipeline(targetCompany);
+   let remote=await client.read(targetCompany);
+   assertActive(targetCompany);
+   if(remote.length===0){
+    // Registering fixtures is a deliberate action. Never silently overwrite
+    // a changed local deal when the test database is still empty.
+    planSyntheticCrmReconciliation(targetCompany,
+     readDemoCompany(targetCompany).deals,fixtures);
+    for(const deal of fixtures){
+     assertActive(targetCompany);
+     await client.register(targetCompany,deal);
+    }
+    remote=await client.read(targetCompany);
+    assertActive(targetCompany);
+   }
+   changeDemoCompany(targetCompany,"crm",current=>{
+    const result=planSyntheticCrmReconciliation(
+     targetCompany,current.deals,remote,{
+      accepted:accepted.current.get(targetCompany)??null
+     });
+    return {deals:result.deals,activities:current.activities};
+   });
+   accepted.current.set(targetCompany,remote);
+   setConnected(true);setSyncConflict(false);
+   setNotice("Sintetična CRM baza je povezana. Strežniške faze so pregledane brez prepisovanja lokalnih konfliktov.");
+  }catch(error){
+   if(mounted.current&&activeCompany.current===companyId){
+    setConnected(false);
+    // Transient 401/403/network failures do not disable the local-only demo.
+    // Only an actual divergent/stale local model requires a conflict reset.
+    setSyncConflict(/Konflikt|nepotrjene|starejšo|neskladna/.test(error?.message??""));
+    setNotice(error?.message??"Povezave s testno bazo ni mogoče potrditi.");
+   }
+  }finally{if(mounted.current)setBusy(false)}
+ };
+ const refreshLocal=async()=>{
+  if(busy||!connected||!localAvailable)return;
+  setBusy(true);setNotice("");
+  const targetCompany=companyId;
+  try{
+   const remote=await createSyntheticCrmClient().read(targetCompany);
+   assertActive(targetCompany);
+   const current=readDemoCompany(targetCompany);
+   const result=planSyntheticCrmReconciliation(
+    targetCompany,current.deals,remote,{
+     accepted:accepted.current.get(targetCompany)??null
+    });
+   changeDemoCompany(targetCompany,"crm",snapshot=>{
+    // Re-evaluate if another browser action modified CRM during fetch.
+    const fresh=planSyntheticCrmReconciliation(
+     targetCompany,snapshot.deals,remote,{
+      accepted:accepted.current.get(targetCompany)??null
+     });
+    return {deals:fresh.deals,activities:snapshot.activities};
+   });
+   accepted.current.set(targetCompany,remote);
+   setSyncConflict(false);
+   setNotice(result.changed
+    ?"Prevzete so novejše preverjene testne CRM faze iz Laravela."
+    :"CRM različice so usklajene; lokalni zapisi niso bili prepisani.");
+  }catch(error){
+   if(mounted.current&&activeCompany.current===targetCompany){
+    setSyncConflict(true);
+    setNotice(error?.message??"Usklajevanje CRM ni uspelo.");
+   }
+  }finally{if(mounted.current)setBusy(false)}
  };
  const units=useMemo(()=>demoBusinessUnits(companyId),[companyId]);
  const selected=deals.find(d=>d.id===selectedId)??deals[0];
@@ -73,30 +128,41 @@ export default function CrmNext11Panel({companyId}){
     DEMO_PIPELINE_STAGES.indexOf(selected.stage)+1
  ]:null;
  const progress=async()=>{
-  if(busy||!selected||!next)return;
+  if(busy||syncConflict||!selected||!next)return;
   setBusy(true);
+  const targetCompany=companyId,submitted=selected,nextStage=next;
   try{
    if(connected){
-    const saved=await createSyntheticCrmClient().advance(companyId,selected,next);
-    if(saved.id!==selected.id||saved.unitId!==selected.unitId||
-       saved.valueCents!==selected.valueCents)
-      throw new Error("Neskladen odgovor CRM strežnika.");
-    changeDemoCompany(companyId,"crm",current=>({
-     deals:current.deals.map(d=>d.id===saved.id?
-      {...d,stage:saved.stage,version:saved.version,
-       probability:[10,30,60,80,100][DEMO_PIPELINE_STAGES.indexOf(saved.stage)]}:d),
+    // Server transaction uses expected_version (optimistic SQL CAS).
+    const saved=await createSyntheticCrmClient().advance(
+     targetCompany,submitted,nextStage);
+    assertActive(targetCompany);
+    // The local commit uses a SECOND CAS against the live immutable store
+    // after awaiting the response, preventing lost updates from stale React.
+    changeDemoCompany(targetCompany,"crm",current=>({
+     deals:applySyntheticCrmAdvance(
+      targetCompany,current.deals,submitted,saved,nextStage),
      activities:current.activities
     }));
+    const baseline=accepted.current.get(targetCompany)??[];
+    accepted.current.set(targetCompany,baseline.map(row=>
+     row.id===saved.id?saved:row));
    }else{
-    changeDemoCompany(companyId,"crm",current=>({
+    changeDemoCompany(targetCompany,"crm",current=>({
      deals:advanceDemoOpportunity(
-      current.deals,companyId,selected.id,next,selected.version
+      current.deals,targetCompany,submitted.id,nextStage,submitted.version
      ),activities:current.activities
     }));
    }
-   setNotice("Sintetična priložnost je premaknjena v fazo "+next+".");
-  }catch(error){setNotice(error.message);}
-  finally{setBusy(false);}
+   setNotice("Sintetična priložnost je premaknjena v fazo "+nextStage+".");
+  }catch(error){
+   if(mounted.current&&activeCompany.current===targetCompany){
+    if(connected)setSyncConflict(true);
+    setNotice(error?.status===409
+     ?"Konflikt različice na strežniku. Uporabi »Preveri spremembe CRM«; nobenega samodejnega ponavljanja ni."
+     :error?.message??"Sprememba sintetičnega CRM ni uspela.");
+   }
+  }finally{if(mounted.current)setBusy(false)}
  };
  const createActivity=()=>{
   try{
@@ -110,7 +176,9 @@ export default function CrmNext11Panel({companyId}){
  };
  const reset=()=>{
   if(busy)return;
-  setConnected(false);resetDemoCompanyDomain(companyId,"crm");
+  setConnected(false);setSyncConflict(false);
+  accepted.current.delete(companyId);
+  resetDemoCompanyDomain(companyId,"crm");
   setNotice("Ponastavljen je samo prikaz v brskalniku; podatki lokalne testne baze niso izbrisani.");
   setSelectedId(null);
  };
@@ -136,6 +204,11 @@ export default function CrmNext11Panel({companyId}){
      disabled={busy||connected} onClick={connectLocal}
      style={{alignSelf:"end",fontSize:10}}>
      {busy?"Povezovanje ...":connected?"Lokalni CRM povezan":"Poveži lokalno testno CRM bazo"}
+    </button>}
+    {connected&&<button type="button" className="secondary"
+     disabled={busy} onClick={refreshLocal}
+     style={{alignSelf:"end",fontSize:10}}>
+     Preveri spremembe CRM
     </button>}
     <button type="button" className="secondary" onClick={reset}
      style={{alignSelf:"end",fontSize:10}}>Ponastavi demo</button>
@@ -173,7 +246,7 @@ export default function CrmNext11Panel({companyId}){
        {selected.partner} · {selected.id} · {selected.unitId} · verzija {selected.version}
       </p>
     </div>
-    <button type="button" className="primary" onClick={progress} disabled={!next||busy}
+    <button type="button" className="primary" onClick={progress} disabled={!next||busy||syncConflict}
       style={{fontSize:10}}>{next?"Premakni v: "+next:"Priložnost zaključena"}</button>
     <button type="button" className="secondary" onClick={createActivity}
       style={{fontSize:10}}>Dodaj demo opomnik</button>
@@ -183,6 +256,10 @@ export default function CrmNext11Panel({companyId}){
     {activities.map(a=><p key={a.id} style={{margin:"5px 0",color:"var(--muted)"}}>
      {a.id} · {a.subject} · {a.dealId}</p>)}
   </div>}
+  {syncConflict&&<p role="alert" style={{fontSize:10,color:"var(--muted)"}}>
+   Konflikt različic: spreminjanje faz je blokirano do ročne
+   preveritve strežniških zapisov ali ponastavitve lokalne predstavitve.
+  </p>}
   {notice&&<p role="status" style={{color:"var(--muted)",fontSize:10,marginTop:10}}>
    {notice}</p>}
  </section>;
