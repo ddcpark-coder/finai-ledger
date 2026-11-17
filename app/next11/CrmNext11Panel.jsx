@@ -79,10 +79,13 @@ export default function CrmNext11Panel({companyId}){
    setNotice("Sintetična CRM baza je povezana. Strežniške faze so pregledane brez prepisovanja lokalnih konfliktov.");
   }catch(error){
    if(mounted.current&&activeCompany.current===companyId){
-    setConnected(false);setSyncConflict(true);
+    setConnected(false);
+    // Transient 401/403/network failures do not disable the local-only demo.
+    // Only an actual divergent/stale local model requires a conflict reset.
+    setSyncConflict(/Konflikt|nepotrjene|starejšo|neskladna/.test(error?.message??""));
     setNotice(error?.message??"Povezave s testno bazo ni mogoče potrditi.");
    }
-  }finally{if(mounted.current&&activeCompany.current===companyId)setBusy(false)}
+  }finally{if(mounted.current)setBusy(false)}
  };
  const refreshLocal=async()=>{
   if(busy||!connected||!localAvailable)return;
@@ -114,7 +117,7 @@ export default function CrmNext11Panel({companyId}){
     setSyncConflict(true);
     setNotice(error?.message??"Usklajevanje CRM ni uspelo.");
    }
-  }finally{if(mounted.current&&activeCompany.current===targetCompany)setBusy(false)}
+  }finally{if(mounted.current)setBusy(false)}
  };
  const units=useMemo(()=>demoBusinessUnits(companyId),[companyId]);
  const selected=deals.find(d=>d.id===selectedId)??deals[0];
@@ -159,7 +162,7 @@ export default function CrmNext11Panel({companyId}){
      ?"Konflikt različice na strežniku. Uporabi »Preveri spremembe CRM«; nobenega samodejnega ponavljanja ni."
      :error?.message??"Sprememba sintetičnega CRM ni uspela.");
    }
-  }finally{if(mounted.current&&activeCompany.current===targetCompany)setBusy(false)}
+  }finally{if(mounted.current)setBusy(false)}
  };
  const createActivity=()=>{
   try{
