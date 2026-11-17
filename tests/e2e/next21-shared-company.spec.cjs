@@ -23,20 +23,22 @@ test("CRM, integrations, inventory, orders and BI share one company demo model a
 
  await sidebar.getByRole("button",{name:/Zaloge/}).click();
  pulse=page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"});
- await expect(pulse).toContainText("Predvideno pomanjkanje");
- await expect(pulse).toContainText("1");
+ const shortage=pulse.getByText("Predvideno pomanjkanje").locator("..").locator("b");
+ await expect(shortage).toHaveText("1");
  const warehouses=page.getByRole("region",{name:"Večskladiščni demo in poslovne enote"});
  await warehouses.getByLabel("Izvorno skladišče").selectOption("SYN-WH-02");
  await warehouses.getByLabel("Ciljno skladišče").selectOption("SYN-WH-01");
  await warehouses.getByRole("button",{name:"Prenesi 1 demo enoto"}).click();
  await expect(warehouses.getByRole("status")).toContainText("Zabeležen sintetični medskladiščni prenos");
+ await expect(shortage).toHaveText("0");
 
  await sidebar.getByRole("button",{name:/Integracije/}).click();
  await expect(page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"}))
   .toContainText("SYN-WOO-ORDER-1-001");
- await expect(page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"})
-  .getByRole("status",{name:"Napoved razpoložljive zaloge"}))
-  .toContainText("Pomanjkanje: 0");
+ // The editable forecast also includes a NEW proposed order; its shortage
+ // is separate from the already staged order whose deficit is now zero.
+ await expect(page.getByRole("region",{name:"Simulacija integracij spletnih trgovin"}))
+  .toContainText("Pomanjkanje že pripravljenih naročil: 0");
 
  await sidebar.getByRole("button",{name:/Naročila/}).click();
  pulse=page.getByRole("region",{name:"FinAI skupni sintetični poslovni pogled"});
