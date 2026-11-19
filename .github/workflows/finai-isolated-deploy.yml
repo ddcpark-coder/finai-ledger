@@ -150,7 +150,8 @@ jobs:
     if: >-
       github.event_name != 'pull_request' &&
       github.ref == 'refs/heads/main' &&
-      vars.FINAI_STAGE_ENABLED == 'true'
+      vars.FINAI_STAGE_ENABLED == 'true' &&
+      vars.FINAI_APP_DOCROOT_CONFIRMED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: finai-staging
@@ -181,6 +182,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' &&
       vars.FINAI_PRODUCTION_ENABLED == 'true' &&
+      vars.FINAI_APP_DOCROOT_CONFIRMED == 'true' &&
       ((github.event_name == 'workflow_dispatch' && inputs.promote_to_production == true) ||
        (github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true'))
     runs-on: ubuntu-24.04
@@ -204,24 +206,25 @@ jobs:
         run: |
           set -euo pipefail
           # Use only the pre-existing forced-command gate of a dedicated FinAI OS account.
-          # The first publication requires human-approved migration from the existing landing page.
+          # The first publication requires verified app-only docroot and restore point;
+          # never switch the primary e-integrator.si landing page.
           previous="$(bash ops/finai-ci-isolated-ssh.sh status | sed -n 's/^production_active=//p')"
           [[ "$previous" == none || "$previous" =~ ^[0-9a-f]{64}$ ]] ||
             { echo 'STOP: invalid previous FinAI release' >&2; exit 65; }
           if [[ "$previous" == none ]]; then
             if [[ "$IS_AUTOMATIC" == true || "$FIRST_PUBLISH_RESTORE_READY" != YES ]]; then
-              echo 'STOP: initial publish requires approved landing backup and manual release' >&2
+              echo 'STOP: initial app publish requires verified dedicated app restore point and manual release' >&2
               exit 65
             fi
           fi
 
           bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
 
-          # Minimal live smoke test. Only this one known FinAI HTTPS endpoint is queried.
+          # Minimal live smoke test. Only the dedicated app HTTPS endpoint is queried.
           smoke_file="$RUNNER_TEMP/finai-live-build.json"
           if ! (curl --fail --silent --show-error --max-time 25 --max-redirs 2 \
                 --proto '=https' --proto-redir '=https' --location \
-                --output "$smoke_file" 'https://e-integrator.si/finai-build.json' &&
+                --output "$smoke_file" 'https://app.e-integrator.si/finai-build.json' &&
                 python3 - "$smoke_file" "$GITHUB_SHA" <<'PY'
           import json, sys
           from pathlib import Path
