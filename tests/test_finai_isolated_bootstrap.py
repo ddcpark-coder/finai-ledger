@@ -84,6 +84,9 @@ class BootstrapPathTests(unittest.TestCase):
             self.assertIn('STOP_PUBLIC_KEY_ALREADY_PRESENT', check('OTHER_PUBLIC_KEY').stderr)
             self.assertIn('STOP_EXISTING_GATE_DIFFERS', check('NEW_PUBLIC_KEY', '0' * 64).stderr)
             self.assertEqual(auth.read_bytes(), original)
+            gate.chmod(0o777)
+            self.assertIn('STOP_WRITABLE_EXISTING_GATE', check('NEW_PUBLIC_KEY').stderr)
+            gate.chmod(0o700)
             ssh_dir.chmod(0o777)
             self.assertIn('STOP_WRITABLE_PRIVATE_DIRECTORY', check('NEW_PUBLIC_KEY').stderr)
 

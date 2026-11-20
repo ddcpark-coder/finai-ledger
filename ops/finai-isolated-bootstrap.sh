@@ -45,7 +45,10 @@ finai_check_existing_access() {
     fi
   fi
   if [[ -e "$gate" ]]; then
-    [[ -f "$gate" && "$(sha256sum "$gate" | cut -d ' ' -f 1)" == "$expected_gate_hash" ]] || { echo STOP_EXISTING_GATE_DIFFERS >&2; return 65; }
+    [[ -f "$gate" && "$(stat -c %u -- "$gate")" == "$expected_uid" ]] || { echo STOP_UNSAFE_EXISTING_GATE >&2; return 65; }
+    private_mode="$(stat -c %a -- "$gate")"
+    [[ "$private_mode" =~ ^[0-7]{3,4}$ ]] && (( (8#$private_mode & 0022) == 0 )) || { echo STOP_WRITABLE_EXISTING_GATE >&2; return 65; }
+    [[ "$(sha256sum "$gate" | cut -d ' ' -f 1)" == "$expected_gate_hash" ]] || { echo STOP_EXISTING_GATE_DIFFERS >&2; return 65; }
   fi
 }
 
