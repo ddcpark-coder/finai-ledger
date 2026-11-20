@@ -355,11 +355,25 @@ def materialize_public_release(root, digest):
         temp.rename(destination)
         return destination
     finally:
-        if temp.exists():
+        if temp.is_symlink():
+            temp.unlink()
+        elif temp.exists():
+            if not temp.is_dir():
+                raise Denied("public staging path changed")
             for directory, subdirs, _ in os.walk(temp, topdown=True, followlinks=False):
-                Path(directory).chmod(0o700)
-                for name in subdirs:
-                    (Path(directory) / name).chmod(0o700)
+                folder = Path(directory)
+                if not stat.S_ISDIR(folder.lstat().st_mode):
+                    raise Denied("public staging directory changed")
+                folder.chmod(0o700)
+                for name in list(subdirs):
+                    child = folder / name
+                    if stat.S_ISLNK(child.lstat().st_mode):
+                        child.unlink()
+                        subdirs.remove(name)
+                    elif stat.S_ISDIR(child.lstat().st_mode):
+                        child.chmod(0o700)
+                    else:
+                        raise Denied("public staging subdirectory changed")
             shutil.rmtree(temp)
 
 
@@ -389,10 +403,11 @@ def promote(digest, root):
     if not private_marker_matches(configured, str(root / "current")):
         raise Denied("public app document root has not been confirmed")
     current = root / "current"
-    if current.exists() and not current.is_symlink():
+    if current.is_symlink():
+        if active_release(root) == "unexpected":
+            raise Denied("current symlink points outside FinAI public releases")
+    elif current.exists():
         raise Denied("current production target is not an expected symlink")
-    if current.is_symlink() and active_release(root) == "unexpected":
-        raise Denied("current symlink points outside FinAI public releases")
     temp = root / (".next-current-" + digest)
     if temp.exists() or temp.is_symlink():
         raise Denied("stale or modified release switch path")
@@ -460,12 +475,20 @@ def active_release(root):
     current = root / "current"
     if current.is_symlink():
         try:
-            target = current.resolve(strict=True)
-        except (OSError, RuntimeError):
+            raw = os.readlink(current)
+            target = Path(raw)
+            releases = root / "public-releases"
+            if not target.is_absolute() or target.parent != releases or not DIGEST.fullmatch(target.name):
+                return "unexpected"
+            base_meta = releases.lstat()
+            if (not stat.S_ISDIR(base_meta.st_mode) or base_meta.st_uid != os.getuid() or
+                    stat.S_IMODE(base_meta.st_mode) != 0o711):
+                return "unexpected"
+            target_meta = target.lstat()
+        except OSError:
             return "unexpected"
-        releases = root / "public-releases"
-        if (target.parent == releases and DIGEST.fullmatch(target.name) and
-                target.is_dir() and os.readlink(current) == str(target)):
+        if (stat.S_ISDIR(target_meta.st_mode) and target_meta.st_uid == os.getuid() and
+                stat.S_IMODE(target_meta.st_mode) == 0o511 and raw == str(target)):
             return target.name
         return "unexpected"
     return "unexpected" if current.exists() else "none"

@@ -62,6 +62,15 @@ class FinaiReadOnlyPreflightTest(unittest.TestCase):
         (self.app / "current").mkdir()
         self.assertTrue(self.check())
 
+    def test_public_mirror_may_not_have_linked_parent(self):
+        elsewhere = self.home / "other"
+        elsewhere.mkdir()
+        digest = "a" * 64
+        (elsewhere / digest).mkdir()
+        (self.app / "public-releases").symlink_to(elsewhere, target_is_directory=True)
+        (self.app / "current").symlink_to(self.app / "public-releases" / digest)
+        self.assertTrue(self.check())
+
 
 if __name__ == "__main__":
     unittest.main()

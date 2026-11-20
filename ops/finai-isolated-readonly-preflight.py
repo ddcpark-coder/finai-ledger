@@ -67,12 +67,26 @@ def inspect(user_name: str, uid: int, home: Path, app_root: Path,
         current = app_root / "current"
         if current.is_symlink():
             try:
-                target = current.resolve(strict=True)
-            except (OSError, RuntimeError):
-                problems.append("FinAI current release symlink is broken or cyclic")
+                target = Path(os.readlink(current))
+            except OSError:
+                problems.append("FinAI current release symlink is unreadable")
             else:
-                if target.parent != app_root / "public-releases" or not SHA256.fullmatch(target.name):
+                base = app_root / "public-releases"
+                if not target.is_absolute() or target.parent != base or not SHA256.fullmatch(target.name):
                     problems.append("FinAI current release points outside hashed public mirrors")
+                else:
+                    # Validate components before resolving anything: a forged
+                    # link must never traverse into another project.
+                    for entry in (base, target):
+                        try:
+                            meta = entry.lstat()
+                        except OSError:
+                            problems.append("FinAI public release component missing")
+                            break
+                        if (not stat.S_ISDIR(meta.st_mode) or meta.st_uid != uid or
+                                meta.st_mode & (stat.S_IWGRP | stat.S_IWOTH)):
+                            problems.append("FinAI public release component is unsafe")
+                            break
         elif current.exists():
             problems.append("FinAI current release is not an expected symlink")
     return problems
