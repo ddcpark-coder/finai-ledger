@@ -1,0 +1,49 @@
+name: FinAI dedicated SSH readiness
+
+on:
+  pull_request:
+    paths: ['.github/workflows/finai-dedicated-ssh-ready.yml']
+  push:
+    branches: [main]
+    paths: ['.github/workflows/finai-dedicated-ssh-ready.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate existing limited client
+        run: bash -n ops/finai-ci-isolated-ssh.sh
+
+  readonly-status:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    environment: finai-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify pinned host and restricted commands
+        shell: bash
+        env:
+          FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
+          FINAI_DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.FINAI_DEPLOY_SSH_KNOWN_HOSTS }}
+          FINAI_DEPLOY_SSH_HOST: ${{ vars.FINAI_DEPLOY_SSH_HOST }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+          FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          [[ "$FINAI_DEPLOY_SSH_HOST" == lcp-86.controlpanel.si && "$FINAI_DEPLOY_SSH_USER" == einteg86 && "$FINAI_DEPLOY_SSH_PORT" == 22 ]]
+          fingerprint="$(printf '%s\n' "$FINAI_DEPLOY_SSH_KNOWN_HOSTS" | ssh-keygen -lf - -E sha256 | awk '{print $2}')"
+          [[ "$fingerprint" == 'SHA256:pvZiddi7Sx9cz/6MddgAkzsvC5IV+poTHdWMOIvYVCs' ]]
+          bash ops/finai-ci-isolated-ssh.sh status
+          echo 'FINAI_READONLY_SSH_READY=PASS'
