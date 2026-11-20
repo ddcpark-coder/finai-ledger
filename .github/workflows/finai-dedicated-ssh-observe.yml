@@ -28,6 +28,10 @@ jobs:
             echo 'FINAI_SSH_HOST_KEY=UNEXPECTED_RESPONSE'
             exit 0
           fi
-          ssh-keygen -lf "$key_file" -E sha256
-          echo 'FINAI_SSH_HOST_KEY=CANDIDATE_NOT_YET_TRUSTED'
-          echo 'Verify independently before configuring SSH host-key pinning.'
+          fingerprint="$(ssh-keygen -lf "$key_file" -E sha256 | awk '{print $2}')"
+          expected='SHA256:pvZiddi7Sx9cz/6MddgAkzsvC5IV+poTHdWMOIvYVCs'
+          [[ "$fingerprint" == "$expected" ]] || { echo 'FINAI_SSH_HOST_KEY=MISMATCH'; exit 65; }
+          # This is a server PUBLIC key; no user key or credential is read.
+          cat "$key_file"
+          echo "FINAI_SSH_HOST_KEY_FINGERPRINT=$fingerprint"
+          echo 'FINAI_SSH_HOST_KEY=VERIFIED_AGAINST_CPANEL_LOOPBACK'
