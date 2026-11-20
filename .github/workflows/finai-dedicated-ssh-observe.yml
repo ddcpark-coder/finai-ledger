@@ -1,0 +1,33 @@
+name: FinAI dedicated SSH host-key observation
+
+on:
+  pull_request:
+    paths: [".github/workflows/finai-dedicated-ssh-observe.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-key-observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Observe one public SSH host key without authenticating
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=lcp-86.controlpanel.si
+          key_file="$RUNNER_TEMP/finai-observed-host-key"
+          # Diagnostic only: never place an unverified scan into known_hosts.
+          if ! ssh-keyscan -4 -T 7 -t ed25519 -p 22 "$host" 2>/dev/null > "$key_file"; then
+            echo 'FINAI_SSH_HOST_KEY=UNAVAILABLE'
+            exit 0
+          fi
+          if [[ "$(wc -l < "$key_file")" != 1 ]] || ! grep -Eq '^lcp-86[.]controlpanel[.]si ssh-ed25519 [A-Za-z0-9+/]+={0,2}$' "$key_file"; then
+            echo 'FINAI_SSH_HOST_KEY=UNEXPECTED_RESPONSE'
+            exit 0
+          fi
+          ssh-keygen -lf "$key_file" -E sha256
+          echo 'FINAI_SSH_HOST_KEY=CANDIDATE_NOT_YET_TRUSTED'
+          echo 'Verify independently before configuring SSH host-key pinning.'
