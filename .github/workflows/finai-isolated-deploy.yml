@@ -11,6 +11,7 @@ on:
       - "ops/finai-ci-isolated-ssh.sh"
       - "ops/finai-ci-isolated-publish.sh"
       - "tests/test_finai_isolated_ssh_gate.py"
+      - "tests/test_finai_isolated_upgrade_gate.py"
       - "tests/test_finai_isolated_publish.py"
       - "tests/test_finai_isolated_readonly_preflight.py"
       - "tests/test_finai_static_release_verify.py"
@@ -28,6 +29,7 @@ on:
       - "ops/finai-ci-isolated-ssh.sh"
       - "ops/finai-ci-isolated-publish.sh"
       - "tests/test_finai_isolated_publish.py"
+      - "tests/test_finai_isolated_upgrade_gate.py"
       - "ops/finai-static-release-verify.py"
       - "tests/test_finai_static_release_verify.py"
       - "ops/finai-ftps-offline-release-plan.py"
@@ -65,6 +67,7 @@ jobs:
           bash -n ops/finai-ci-isolated-ssh.sh
           bash -n ops/finai-ci-isolated-publish.sh
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_ssh_gate.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_isolated_upgrade_gate.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_publish.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_readonly_preflight.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
