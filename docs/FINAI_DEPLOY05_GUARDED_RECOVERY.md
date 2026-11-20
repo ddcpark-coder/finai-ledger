@@ -56,6 +56,13 @@ domene in drugih projektov se ta postopek ne dotika.
   izolacije novega računa. Pred pisanjem ostaja potrebno dokazilo o
   neodvisnih OS/ACL pravicah za `einteg86` in delujoč varen način
   namestitve omejenega ključa; splošnega ključa se ne avtorizira.
+- Uporabnik je 20. 11. 2026 izrecno potrdil, da je novi račun v celoti
+  izoliran, in naročil, da se Domenci ne pošilja dodatnega sporočila.
+  Ta izjava se evidentira kot uporabnikova potrditev; ne predstavlja
+  ločeno pridobljenega izpisa OS/ACL ali potrditve ponudnika.
+- cPanel Git Version Control je na novem računu na voljo; v času pregleda
+  ni imel registriranega repozitorija. Kloniranje ni bilo izvedeno in ne
+  vzpostavi samo po sebi omejenega SSH dostopa ali preverjene izdaje.
 
 ## Zasebni gradbeni paket Laravel
 
