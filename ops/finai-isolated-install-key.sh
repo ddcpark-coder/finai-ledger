@@ -16,6 +16,8 @@ user="$(id -un)"
 home="$(getent passwd "$user" | awk -F: '{print $6}')"
 [[ "$home" == /home/einteg86 && "$home" == "$HOME" && -d "$home" && ! -L "$home" ]] ||
   { echo 'STOP: home account mismatch' >&2; exit 65; }
+[[ -e /var/.cagefs/.cagefs.token ]] ||
+  { echo 'STOP: this terminal is not verified inside CageFS' >&2; exit 65; }
 
 source_root="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source_gate="$source_root/ops/finai-isolated-ssh-gate.py"

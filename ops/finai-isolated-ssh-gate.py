@@ -37,6 +37,7 @@ LIVE_MARKER = "FINAI_LIVE_PROMOTION_APPROVED=YES"
 TARGET_USER = "einteg86"
 TARGET_UID = 1256
 TARGET_HOME = Path("/home/einteg86")
+CAGEFS_TOKEN = Path("/var/.cagefs/.cagefs.token")
 
 
 class Denied(Exception):
@@ -399,6 +400,16 @@ def require_target_identity(user, uid, home):
         raise Denied("FinAI deployment target identity does not match")
 
 
+def require_cagefs(token):
+    """Require the CloudLinux per-user filesystem for this Hiper M gate.
+
+    The token identifies the current session, not every hosting permission.
+    Other isolation and restore requirements still apply independently.
+    """
+    if not token.exists():
+        raise Denied("current SSH session is not inside CageFS")
+
+
 def main():
     user = pwd.getpwuid(os.getuid())
     home = Path(user.pw_dir)
@@ -409,6 +420,7 @@ def main():
         shared_uid = None
     require_target_identity(user, os.getuid(), home)
     require_dedicated_identity(user, os.getuid(), home, shared_uid)
+    require_cagefs(CAGEFS_TOKEN)
     if Path(os.environ.get("HOME", "")).resolve() != home.resolve():
         raise Denied("unexpected HOME")
     root = home / "finai-deploy"
@@ -420,6 +432,7 @@ def main():
     if operation == "status":
         active = active_release(root)
         print("FINAI_ISOLATED_SSH_STATUS=v1")
+        print("FINAI_ISOLATION=CAGEFS")
         print("production_active=" + active)
         print("production_approved=" + ("yes" if (root / "ALLOW_PRODUCTION").is_file() else "no"))
         return 0

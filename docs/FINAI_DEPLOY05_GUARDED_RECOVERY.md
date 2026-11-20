@@ -6,6 +6,13 @@ namestijo** aplikacije in **ne dokazujejo** strežniške izolacije.
 - Strežniški prehod in namestitveni skript zahtevata točno uporabnika
   `einteg86`, UID `1256` in dom `/home/einteg86`. To ni nadomestilo za
   potrditev dejanske OS/ACL izolacije pri ponudniku.
+- Namestitev omejenega ključa ter vsaka njegova SSH seja morata zaznati
+  `/var/.cagefs/.cagefs.token`. CloudLinux ta kazalec dokumentira kot
+  potrditev, da trenutna seja teče znotraj CageFS. Če kazalca ni, se
+  ustavi samo namestitev oziroma dostop; uporabniških ali skupnih nastavitev
+  CageFS se ne spreminja. Kazalec sam ne dokazuje vseh ACL ali ločitve
+  drugih vrst povezav in ne nadomesti ostalih predpogojev.
+  Vir: https://docs.cloudlinux.com/cloudlinuxos/deprecated/
 - Varovani preklop uporablja `finai:promote:v2:<pričakovani>:<novi>`.
   Znotraj zaklepa preveri, da se aktivna izdaja medtem ni spremenila. Stari
   neomejeni način `promote:v1` je zavrnjen. Pri nameščanju je zato treba
