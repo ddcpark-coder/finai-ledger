@@ -19,7 +19,7 @@ try {
         try { $output = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script 2>&1 | ForEach-Object { "$_" }) }
         finally { $ErrorActionPreference = $oldPreference }
         $result = $LASTEXITCODE
-        $audit = if (Test-Path -LiteralPath $env:FINAI_FAKE_GH_AUDIT) { @(Get-Content -LiteralPath $env:FINAI_FAKE_GH_AUDIT) } else { @() }
+        $audit = @(if (Test-Path -LiteralPath $env:FINAI_FAKE_GH_AUDIT) { Get-Content -LiteralPath $env:FINAI_FAKE_GH_AUDIT })
         if (($output -join "`n") -match 'BEGIN OPENSSH PRIVATE KEY') { throw "Private key printed in $mode." }
         if ($mode -eq 'ok') {
             if ($result -ne 0 -or @($audit | Where-Object { $_ -like 'secret *' }).Count -ne 4 -or @($audit | Where-Object { $_ -like 'variable *' }).Count -ne 6) {
