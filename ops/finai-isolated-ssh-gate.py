@@ -151,6 +151,10 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
+def deny_walk(error):
+    raise Denied("release directory cannot be inspected") from error
+
+
 def verify_release_tree(root, digest, release):
     """Verify every static file against the preserved SHA256-pinned tar.
 
@@ -221,7 +225,7 @@ def verify_release_tree(root, digest, release):
     if not has_index or not has_assets:
         raise Denied("missing original frontend entrypoint or static assets")
     actual = set()
-    for directory, subdirs, files in os.walk(release, followlinks=False):
+    for directory, subdirs, files in os.walk(release, followlinks=False, onerror=deny_walk):
         folder = Path(directory)
         for name in subdirs:
             if not stat.S_ISDIR((folder / name).lstat().st_mode):
@@ -313,7 +317,7 @@ def prepare_public_root(root):
 
 def verify_public_modes(release):
     """Only the static mirror is traversable/readable to the web server."""
-    for directory, subdirs, files in os.walk(release, followlinks=False):
+    for directory, subdirs, files in os.walk(release, followlinks=False, onerror=deny_walk):
         folder = Path(directory)
         meta = folder.lstat()
         if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o511:

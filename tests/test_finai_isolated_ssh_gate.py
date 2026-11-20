@@ -216,6 +216,17 @@ class GateTests(unittest.TestCase):
             self.assertEqual(root.stat().st_mode & 0o777, 0o700)
             self.assertFalse((root / "current").exists())
 
+    def test_unreadable_public_tree_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as parent:
+            release = Path(parent) / "synthetic-release"
+            release.mkdir(mode=0o700)
+            release.chmod(0o000)
+            try:
+                with self.assertRaises(gate.Denied):
+                    gate.verify_public_modes(release)
+            finally:
+                release.chmod(0o700)
+
     def test_realistic_tar_root_directory_is_allowed_but_root_file_is_not(self):
         data = archive(
             ("./", b"", "directory"),
