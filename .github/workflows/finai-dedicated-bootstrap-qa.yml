@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'ops/finai-isolated-windows-setup.ps1'
+      - 'ops/finai-isolated-bootstrap.sh'
+      - 'tests/test_finai_isolated_bootstrap.py'
       - 'tests/finai_fake_gh.cs'
       - 'tests/test_finai_dedicated_windows_setup.ps1'
       - '.github/workflows/finai-dedicated-bootstrap-qa.yml'
@@ -11,6 +13,8 @@ on:
     branches: [main]
     paths:
       - 'ops/finai-isolated-windows-setup.ps1'
+      - 'ops/finai-isolated-bootstrap.sh'
+      - 'tests/test_finai_isolated_bootstrap.py'
       - 'tests/finai_fake_gh.cs'
       - 'tests/test_finai_dedicated_windows_setup.ps1'
       - '.github/workflows/finai-dedicated-bootstrap-qa.yml'
@@ -19,6 +23,18 @@ permissions:
   contents: read
 
 jobs:
+  linux-bootstrap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check owner, mode and symlink handling
+        run: |
+          bash -n ops/finai-isolated-bootstrap.sh
+          python3 -B -m unittest discover -s tests -p 'test_finai_isolated_bootstrap.py' -v
+
   windows-bootstrap:
     runs-on: windows-2025
     timeout-minutes: 5
