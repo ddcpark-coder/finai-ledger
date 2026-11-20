@@ -20,6 +20,35 @@ finai_check_path() {
   fi
 }
 
+finai_check_existing_access() {
+  local home="$1" expected_uid="$2" material="$3" expected_gate_hash="$4"
+  local ssh_dir="$home/.ssh" auth="$home/.ssh/authorized_keys" gate="$home/finai-deploy/finai-isolated-ssh-gate.py"
+  local item private_mode lookup_result
+  for item in "$ssh_dir" "$auth" "$home/finai-deploy" "$gate"; do
+    [[ ! -L "$item" ]] || { echo STOP_SYMLINKED_DEPLOY_PATH >&2; return 65; }
+  done
+  for item in "$ssh_dir" "$home/finai-deploy"; do
+    if [[ -e "$item" ]]; then
+      [[ -d "$item" && "$(stat -c %u -- "$item")" == "$expected_uid" ]] || { echo STOP_UNSAFE_PRIVATE_DIRECTORY >&2; return 65; }
+      private_mode="$(stat -c %a -- "$item")"
+      [[ "$private_mode" =~ ^[0-7]{3,4}$ ]] && (( (8#$private_mode & 0022) == 0 )) || { echo STOP_WRITABLE_PRIVATE_DIRECTORY >&2; return 65; }
+    fi
+  done
+  if [[ -e "$auth" ]]; then
+    [[ -f "$auth" && -r "$auth" && "$(stat -c %u -- "$auth")" == "$expected_uid" ]] || { echo STOP_UNSAFE_AUTHORIZED_KEYS >&2; return 65; }
+    if grep -Fq -- "$material" "$auth"; then
+      echo STOP_PUBLIC_KEY_ALREADY_PRESENT >&2
+      return 65
+    else
+      lookup_result=$?
+      [[ "$lookup_result" -eq 1 ]] || { echo STOP_KEY_LOOKUP_FAILED >&2; return 65; }
+    fi
+  fi
+  if [[ -e "$gate" ]]; then
+    [[ -f "$gate" && "$(sha256sum "$gate" | cut -d ' ' -f 1)" == "$expected_gate_hash" ]] || { echo STOP_EXISTING_GATE_DIFFERS >&2; return 65; }
+  fi
+}
+
 finai_bootstrap() {
   [[ "$#" -eq 1 && "$1" == ssh-ed25519\ * ]] || { echo STOP_PUBLIC_KEY_REQUIRED >&2; return 65; }
   [[ "$(id -un)" == einteg86 && "$(id -u)" == 1256 && "$HOME" == /home/einteg86 ]] || { echo STOP_WRONG_ACCOUNT >&2; return 65; }
@@ -38,34 +67,9 @@ finai_bootstrap() {
     command -v "$tool" >/dev/null || { echo STOP_MISSING_TOOL >&2; return 65; }
   done
   printf '%s\n' "$1" | ssh-keygen -lf - -E sha256 >/dev/null || { echo STOP_INVALID_PUBLIC_KEY >&2; return 65; }
-  local ssh_dir auth gate public_type material unused lookup_result private_mode
-  ssh_dir="$HOME/.ssh"
-  auth="$ssh_dir/authorized_keys"
-  gate="$HOME/finai-deploy/finai-isolated-ssh-gate.py"
-  for item in "$ssh_dir" "$auth" "$HOME/finai-deploy" "$gate"; do
-    [[ ! -L "$item" ]] || { echo STOP_SYMLINKED_DEPLOY_PATH >&2; return 65; }
-  done
-  for item in "$ssh_dir" "$HOME/finai-deploy"; do
-    if [[ -e "$item" ]]; then
-      [[ -d "$item" && "$(stat -c %u -- "$item")" == 1256 ]] || { echo STOP_UNSAFE_PRIVATE_DIRECTORY >&2; return 65; }
-      private_mode="$(stat -c %a -- "$item")"
-      [[ "$private_mode" =~ ^[0-7]{3,4}$ ]] && (( (8#$private_mode & 0022) == 0 )) || { echo STOP_WRITABLE_PRIVATE_DIRECTORY >&2; return 65; }
-    fi
-  done
-  if [[ -e "$auth" ]]; then
-    [[ -f "$auth" && -r "$auth" && "$(stat -c %u -- "$auth")" == 1256 ]] || { echo STOP_UNSAFE_AUTHORIZED_KEYS >&2; return 65; }
-    read -r public_type material unused <<<"$1"
-    if grep -Fq -- "$material" "$auth"; then
-      echo STOP_PUBLIC_KEY_ALREADY_PRESENT >&2
-      return 65
-    else
-      lookup_result=$?
-      [[ "$lookup_result" -eq 1 ]] || { echo STOP_KEY_LOOKUP_FAILED >&2; return 65; }
-    fi
-  fi
-  if [[ -e "$gate" ]]; then
-    [[ -f "$gate" && "$(sha256sum "$gate" | cut -d ' ' -f 1)" == '177f1df92655b284e972eb36b11d48c5b54c71714c0546f9950038f14cc066ce' ]] || { echo STOP_EXISTING_GATE_DIFFERS >&2; return 65; }
-  fi
+  local public_type material unused
+  read -r public_type material unused <<<"$1"
+  finai_check_existing_access "$HOME" 1256 "$material" '177f1df92655b284e972eb36b11d48c5b54c71714c0546f9950038f14cc066ce'
   echo FINAI_TARGET_PATHS=PASS
   if command -v setfacl >/dev/null && command -v getfacl >/dev/null; then
     echo FINAI_ACL_TOOLS=AVAILABLE
