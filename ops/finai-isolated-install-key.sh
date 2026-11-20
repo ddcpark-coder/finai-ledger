@@ -85,6 +85,10 @@ cp -p -- "$authorized" "$backup"
 chmod 600 "$backup"
 temp_auth="$(mktemp "$ssh_dir/.finai-isolated-authorized.XXXXXXXX")"
 cat "$authorized" > "$temp_auth"
+# Preserve an existing final key even when its file lacks a trailing newline.
+if [[ -s "$temp_auth" && "$(tail -c 1 -- "$temp_auth" | wc -l)" -eq 0 ]]; then
+  printf '\n' >> "$temp_auth"
+fi
 printf 'restrict,command="%s" ssh-ed25519 %s finai-dedicated-deploy\n' \
   "$gate" "$material" >> "$temp_auth"
 chmod 600 "$temp_auth"
