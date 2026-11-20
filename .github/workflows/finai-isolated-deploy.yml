@@ -157,8 +157,7 @@ jobs:
       github.event_name != 'pull_request' &&
       github.ref == 'refs/heads/main' &&
       vars.FINAI_STAGE_ENABLED == 'true' &&
-      vars.FINAI_DEPLOY05_SERVER_READY == 'YES' &&
-      vars.FINAI_APP_DOCROOT_CONFIRMED == 'true'
+      vars.FINAI_DEPLOY05_SERVER_READY == 'YES'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: finai-staging
