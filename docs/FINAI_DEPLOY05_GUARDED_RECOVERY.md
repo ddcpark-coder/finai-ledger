@@ -41,6 +41,17 @@ namestijo** aplikacije in **ne dokazujejo** strežniške izolacije.
   domene in je še vedno obvezen za `promote` in samodejno objavljanje.
   Sama odstranitev pogoja iz zasebnega `stage` ne poveže domene, ne
   sproži preklopa in ne potrdi, da spletni strežnik datoteke lahko bere.
+- Zaradi odsotnih orodij ACL je pripravljen javno berljivi **statični**
+  zrcalni imenik `finai-deploy/public-releases/<SHA256>`. Zasebni
+  `archives/` in `releases/` ostaneta lastniku omejena na `0700`; nastali
+  statični zrcalni podatki so samo za javno objavo in ne vsebujejo PHP,
+  `.env` ali skritih datotek. Prehod pred atomarnim preklopom primerja
+  zrcalne datoteke z izvirnim SHA256 arhivom ter preveri njihove pravice.
+  Koren `finai-deploy` po pregledu znane vsebine dobi samo pravico prehoda
+  `0711`; ob odstranitvi prvega aktivnega kazalca se vrne na `0700`.
+  Obstoječi prehod na strežniku te izboljšave še nima: potrebna je varna,
+  ločeno preverjena nadgradnja. Nova koda sama ne spremeni cPanel docroota,
+  ne objavi izdaje in ne dokazuje, da jo spletni strežnik res streže.
 
 Pred dejansko namestitvijo so odprti: potrditev izolacije s strani ponudnika;
 praktična izvedljivost obnove konkretne obnovitvene točke; varen način

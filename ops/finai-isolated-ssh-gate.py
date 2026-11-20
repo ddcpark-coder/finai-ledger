@@ -151,17 +151,23 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
-def verify_staged_release(root, digest):
-    """Verify all static files against the preserved SHA256-pinned original tar.
+def deny_walk(error):
+    raise Denied("release directory cannot be inspected") from error
+
+
+def verify_release_tree(root, digest, release):
+    """Verify every static file against the preserved SHA256-pinned tar.
 
     Merely retaining a local manifest would NOT bind release contents to the
     original CI artifact; this check uses the immutable tar digest as the root
-    of trust. No writes or traversals outside the private FinAI release tree.
+    of trust. The release must be inside one of the two FinAI release trees.
     """
     if not DIGEST.fullmatch(digest):
         raise Denied("invalid release digest")
-    archive = root / "archives" / (digest + ".tar.gz")
-    release = root / "releases" / digest
+    archive = secure_path(root / "archives") / (digest + ".tar.gz")
+    if release.parent not in (root / "releases", root / "public-releases"):
+        raise Denied("release is outside FinAI release trees")
+    secure_path(release.parent)
     if (archive.is_symlink() or not archive.is_file() or
             release.is_symlink() or not release.is_dir() or
             sha256_file(archive) != digest):
@@ -219,7 +225,7 @@ def verify_staged_release(root, digest):
     if not has_index or not has_assets:
         raise Denied("missing original frontend entrypoint or static assets")
     actual = set()
-    for directory, subdirs, files in os.walk(release, followlinks=False):
+    for directory, subdirs, files in os.walk(release, followlinks=False, onerror=deny_walk):
         folder = Path(directory)
         for name in subdirs:
             if not stat.S_ISDIR((folder / name).lstat().st_mode):
@@ -232,6 +238,10 @@ def verify_staged_release(root, digest):
     if actual != expected:
         raise Denied("staged release has added, removed or modified assets")
     return True
+
+
+def verify_staged_release(root, digest):
+    return verify_release_tree(root, digest, root / "releases" / digest)
 
 
 def stage(archive_bytes, digest, root):
@@ -275,37 +285,147 @@ def stage(archive_bytes, digest, root):
         shutil.rmtree(staging, ignore_errors=True)
 
 
+def prepare_public_root(root):
+    """Allow traversal to public files without exposing private release trees."""
+    private_modes = {
+        "finai-isolated-ssh-gate.py": (stat.S_ISREG, 0o700),
+        "archives": (stat.S_ISDIR, 0o700),
+        "releases": (stat.S_ISDIR, 0o700),
+        ".gate-backups": (stat.S_ISDIR, 0o700),
+        ".finai-gate.lock": (stat.S_ISREG, 0o600),
+        "ALLOW_PRODUCTION": (stat.S_ISREG, 0o600),
+        "PUBLIC_DOCROOT_CONFIRMED": (stat.S_ISREG, 0o600),
+        "public-releases": (stat.S_ISDIR, 0o711),
+    }
+    meta = root.lstat()
+    if (not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or
+            stat.S_IMODE(meta.st_mode) not in (0o700, 0o711)):
+        raise Denied("unsafe private deployment root")
+    for item in root.iterdir():
+        if item.name == "current":
+            if not item.is_symlink():
+                raise Denied("current is not a symlink")
+            continue
+        if item.name not in private_modes:
+            raise Denied("unexpected deployment root content")
+        kind, mode = private_modes[item.name]
+        entry = item.lstat()
+        if not kind(entry.st_mode) or entry.st_uid != os.getuid() or stat.S_IMODE(entry.st_mode) != mode:
+            raise Denied("unsafe private deployment content")
+    return stat.S_IMODE(meta.st_mode)
+
+
+def verify_public_modes(release):
+    """Only the static mirror is traversable/readable to the web server."""
+    for directory, subdirs, files in os.walk(release, followlinks=False, onerror=deny_walk):
+        folder = Path(directory)
+        meta = folder.lstat()
+        if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o511:
+            raise Denied("unsafe public release directory")
+        for name in subdirs:
+            item = (folder / name).lstat()
+            if not stat.S_ISDIR(item.st_mode) or item.st_uid != os.getuid() or stat.S_IMODE(item.st_mode) != 0o511:
+                raise Denied("unsafe public release subdirectory")
+        for name in files:
+            item = (folder / name).lstat()
+            if not stat.S_ISREG(item.st_mode) or item.st_uid != os.getuid() or stat.S_IMODE(item.st_mode) != 0o444:
+                raise Denied("unsafe public release file")
+
+
+def materialize_public_release(root, digest):
+    """Make a static-only mirror of an already verified private release."""
+    public = secure_path(root / "public-releases")
+    public.mkdir(mode=0o711, exist_ok=True)
+    meta = public.lstat()
+    if meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o711:
+        raise Denied("unsafe public releases directory")
+    destination = public / digest
+    if destination.exists() or destination.is_symlink():
+        verify_release_tree(root, digest, destination)
+        verify_public_modes(destination)
+        return destination
+    temp = Path(tempfile.mkdtemp(prefix=".finai-public-", dir=public))
+    try:
+        extract_verified_archive(root / "archives" / (digest + ".tar.gz"), temp)
+        for directory, subdirs, files in os.walk(temp, topdown=False, followlinks=False):
+            folder = Path(directory)
+            for name in files:
+                (folder / name).chmod(0o444)
+            for name in subdirs:
+                (folder / name).chmod(0o511)
+        temp.chmod(0o511)
+        verify_release_tree(root, digest, temp)
+        verify_public_modes(temp)
+        temp.rename(destination)
+        return destination
+    finally:
+        if temp.is_symlink():
+            temp.unlink()
+        elif temp.exists():
+            if not temp.is_dir():
+                raise Denied("public staging path changed")
+            for directory, subdirs, _ in os.walk(temp, topdown=True, followlinks=False):
+                folder = Path(directory)
+                if not stat.S_ISDIR(folder.lstat().st_mode):
+                    raise Denied("public staging directory changed")
+                folder.chmod(0o700)
+                for name in list(subdirs):
+                    child = folder / name
+                    if stat.S_ISLNK(child.lstat().st_mode):
+                        child.unlink()
+                        subdirs.remove(name)
+                    elif stat.S_ISDIR(child.lstat().st_mode):
+                        child.chmod(0o700)
+                    else:
+                        raise Denied("public staging subdirectory changed")
+            shutil.rmtree(temp)
+
+
+def private_marker_matches(path, expected):
+    if path.is_symlink() or not path.is_file():
+        return False
+    meta = path.lstat()
+    if meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o600:
+        return False
+    return path.read_text(encoding="utf8").strip() == expected
+
+
 def promote(digest, root):
     """No promotion unless previously approved and public document root confirmed."""
     if not DIGEST.fullmatch(digest):
         raise Denied("invalid deploy digest")
     releases = secure_path(root / "releases")
-    target = secure_path(releases / digest)
-    if not target.is_dir() or not (target / "index.html").is_file():
+    private_target = secure_path(releases / digest)
+    if not private_target.is_dir() or not (private_target / "index.html").is_file():
         raise Denied("requested release is not staged")
     # A release directory that existed once is not automatically immutable.
     # Verify every file against the digest-pinned original tar before switch.
     verify_staged_release(root, digest)
-    if not (root / "ALLOW_PRODUCTION").is_file() or (
-        root / "ALLOW_PRODUCTION"
-    ).read_text(encoding="utf8").strip() != LIVE_MARKER:
+    if not private_marker_matches(root / "ALLOW_PRODUCTION", LIVE_MARKER):
         raise Denied("production is not explicitly enabled")
     configured = root / "PUBLIC_DOCROOT_CONFIRMED"
-    if not configured.is_file() or configured.read_text(encoding="utf8").strip() != str(root / "current"):
+    if not private_marker_matches(configured, str(root / "current")):
         raise Denied("public app document root has not been confirmed")
     current = root / "current"
-    if current.exists() and not current.is_symlink():
-        raise Denied("current production target is not an expected symlink")
     if current.is_symlink():
-        effective = current.resolve()
-        if effective.parent != releases or not DIGEST.fullmatch(effective.name):
-            raise Denied("current symlink points outside FinAI releases")
+        if active_release(root) == "unexpected":
+            raise Denied("current symlink points outside FinAI public releases")
+    elif current.exists():
+        raise Denied("current production target is not an expected symlink")
     temp = root / (".next-current-" + digest)
     if temp.exists() or temp.is_symlink():
         raise Denied("stale or modified release switch path")
-    temp.symlink_to(target, target_is_directory=True)
+    previous_mode = prepare_public_root(root)
+    target = materialize_public_release(root, digest)
     try:
+        if previous_mode == 0o700:
+            root.chmod(0o711)
+        temp.symlink_to(target, target_is_directory=True)
         os.replace(temp, current)
+    except BaseException:
+        if previous_mode == 0o700:
+            root.chmod(0o700)
+        raise
     finally:
         if temp.is_symlink():
             temp.unlink()
@@ -326,12 +446,15 @@ def unpublish(digest, root):
         if current.exists():
             raise Denied("current production target is not a symlink")
         return "UNPUBLISHED_ALREADY_ABSENT"
-    expected = root / "releases" / digest
+    expected = root / "public-releases" / digest
     # promote() itself creates this exact absolute link. Do not follow or
     # remove an unexpected link that might have been changed independently.
     if os.readlink(current) != str(expected):
         raise Denied("current release changed since deployment")
     current.unlink()
+    # No release remains active: restore traversal of the private root to
+    # its pre-publication owner-only mode. Private archives stay untouched.
+    root.chmod(0o700)
     return "UNPUBLISHED"
 
 
@@ -356,12 +479,20 @@ def active_release(root):
     current = root / "current"
     if current.is_symlink():
         try:
-            target = current.resolve(strict=True)
-        except (OSError, RuntimeError):
+            raw = os.readlink(current)
+            target = Path(raw)
+            releases = root / "public-releases"
+            if not target.is_absolute() or target.parent != releases or not DIGEST.fullmatch(target.name):
+                return "unexpected"
+            base_meta = releases.lstat()
+            if (not stat.S_ISDIR(base_meta.st_mode) or base_meta.st_uid != os.getuid() or
+                    stat.S_IMODE(base_meta.st_mode) != 0o711):
+                return "unexpected"
+            target_meta = target.lstat()
+        except OSError:
             return "unexpected"
-        releases = root / "releases"
-        if (target.parent == releases and DIGEST.fullmatch(target.name) and
-                target.is_dir() and os.readlink(current) == str(target)):
+        if (stat.S_ISDIR(target_meta.st_mode) and target_meta.st_uid == os.getuid() and
+                stat.S_IMODE(target_meta.st_mode) == 0o511 and raw == str(target)):
             return target.name
         return "unexpected"
     return "unexpected" if current.exists() else "none"

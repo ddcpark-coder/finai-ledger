@@ -28,7 +28,7 @@ class FinaiReadOnlyPreflightTest(unittest.TestCase):
 
     def test_dedicated_owned_paths_are_eligible_for_readonly_facts_not_deploy(self):
         self.assertEqual(self.check(), [])
-        releases = self.app / "releases"
+        releases = self.app / "public-releases"
         releases.mkdir()
         digest = "a" * 64
         (releases / digest).mkdir()
@@ -60,6 +60,15 @@ class FinaiReadOnlyPreflightTest(unittest.TestCase):
         self.assertTrue(self.check())
         (self.app / "current").unlink()
         (self.app / "current").mkdir()
+        self.assertTrue(self.check())
+
+    def test_public_mirror_may_not_have_linked_parent(self):
+        elsewhere = self.home / "other"
+        elsewhere.mkdir()
+        digest = "a" * 64
+        (elsewhere / digest).mkdir()
+        (self.app / "public-releases").symlink_to(elsewhere, target_is_directory=True)
+        (self.app / "current").symlink_to(self.app / "public-releases" / digest)
         self.assertTrue(self.check())
 
 

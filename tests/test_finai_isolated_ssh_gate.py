@@ -31,6 +31,11 @@ def archive(*items):
     return buffer.getvalue()
 
 
+def write_private(path, value):
+    path.write_text(value)
+    path.chmod(0o600)
+
+
 def valid_archive():
     return archive(
         ("./index.html", b"<html>" + b"x" * 600 + b"</html>", "regular"),
@@ -104,10 +109,10 @@ class GateTests(unittest.TestCase):
         digest = hashlib.sha256(data).hexdigest()
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
-            root.mkdir()
+            root.mkdir(mode=0o700)
             gate.stage(data, digest, root)
-            (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
-            (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(str(root / "current") + "\n")
+            write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+            write_private(root / "PUBLIC_DOCROOT_CONFIRMED", str(root / "current") + "\n")
             self.assertEqual(gate.active_release(root), "none")
             with self.assertRaises(gate.Denied):
                 gate.conditional_promote("f" * 64, digest, root)
@@ -120,6 +125,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(gate.active_release(root), digest)
             self.assertEqual(gate.unpublish(digest, root), "UNPUBLISHED")
             self.assertEqual(gate.active_release(root), "none")
+            self.assertEqual(root.stat().st_mode & 0o777, 0o700)
             self.assertTrue((root / "releases" / digest / "index.html").exists())
             self.assertEqual(gate.unpublish(digest, root), "UNPUBLISHED_ALREADY_ABSENT")
             (root / "current").mkdir()
@@ -132,22 +138,94 @@ class GateTests(unittest.TestCase):
         digest = hashlib.sha256(data).hexdigest()
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
-            root.mkdir()
+            root.mkdir(mode=0o700)
             self.assertEqual(gate.stage(data, digest, root), "STAGED")
             self.assertEqual(gate.stage(data, digest, root), "STAGED_ALREADY_PRESENT")
             self.assertTrue((root / "releases" / digest / "index.html").exists())
             self.assertFalse((root / "current").exists())
             with self.assertRaises(gate.Denied):
                 gate.promote(digest, root)
-            (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
+            write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
             with self.assertRaises(gate.Denied):
                 gate.promote(digest, root)
-            (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(str(root / "current") + "\n")
+            write_private(root / "PUBLIC_DOCROOT_CONFIRMED", str(root / "current") + "\n")
             self.assertEqual(gate.promote(digest, root), "PROMOTED")
-            self.assertEqual((root / "current").resolve(), root / "releases" / digest)
+            self.assertEqual((root / "current").resolve(), root / "public-releases" / digest)
             self.assertEqual(gate.promote(digest, root), "PROMOTED")
             with self.assertRaises(gate.Denied):
                 gate.stage(data, "f" * 64, root)
+
+    def test_public_static_mirror_keeps_private_release_and_archive_closed(self):
+        data = valid_archive()
+        digest = hashlib.sha256(data).hexdigest()
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir(mode=0o700)
+            gate.stage(data, digest, root)
+            self.assertEqual(root.stat().st_mode & 0o777, 0o700)
+            self.assertFalse((root / "public-releases").exists())
+            write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+            write_private(root / "PUBLIC_DOCROOT_CONFIRMED", str(root / "current") + "\n")
+            gate.conditional_promote("none", digest, root)
+            public = root / "public-releases" / digest
+            self.assertEqual((root / "current").resolve(), public)
+            self.assertEqual(root.stat().st_mode & 0o777, 0o711)
+            self.assertEqual((root / "archives").stat().st_mode & 0o777, 0o700)
+            self.assertEqual((root / "releases").stat().st_mode & 0o777, 0o700)
+            self.assertEqual(public.stat().st_mode & 0o777, 0o511)
+            self.assertEqual((public / "index.html").stat().st_mode & 0o777, 0o444)
+            self.assertEqual((public / "index.html").read_bytes(),
+                             (root / "releases" / digest / "index.html").read_bytes())
+            self.assertEqual(gate.unpublish(digest, root), "UNPUBLISHED")
+            self.assertEqual(gate.active_release(root), "none")
+
+    def test_insecure_or_tampered_public_copy_cannot_replace_active_release(self):
+        old = valid_archive()
+        new = archive(("index.html", b"<html>" + b"y" * 600, "regular"),
+                      ("_next/static/new.js", b"synthetic", "regular"))
+        old_digest, new_digest = (hashlib.sha256(value).hexdigest() for value in (old, new))
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir(mode=0o700)
+            gate.stage(old, old_digest, root)
+            gate.stage(new, new_digest, root)
+            write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+            write_private(root / "PUBLIC_DOCROOT_CONFIRMED", str(root / "current") + "\n")
+            gate.conditional_promote("none", old_digest, root)
+            public = gate.materialize_public_release(root, new_digest)
+            target = public / "index.html"
+            target.chmod(0o600)
+            target.write_bytes(b'tampered')
+            target.chmod(0o444)
+            with self.assertRaises(gate.Denied):
+                gate.conditional_promote(old_digest, new_digest, root)
+            self.assertEqual(gate.active_release(root), old_digest)
+
+    def test_unknown_private_content_prevents_public_traversal(self):
+        data = valid_archive()
+        digest = hashlib.sha256(data).hexdigest()
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir(mode=0o700)
+            gate.stage(data, digest, root)
+            write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+            write_private(root / "PUBLIC_DOCROOT_CONFIRMED", str(root / "current") + "\n")
+            (root / "unexpected").write_text('synthetic')
+            with self.assertRaises(gate.Denied):
+                gate.conditional_promote("none", digest, root)
+            self.assertEqual(root.stat().st_mode & 0o777, 0o700)
+            self.assertFalse((root / "current").exists())
+
+    def test_unreadable_public_tree_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as parent:
+            release = Path(parent) / "synthetic-release"
+            release.mkdir(mode=0o700)
+            release.chmod(0o000)
+            try:
+                with self.assertRaises(gate.Denied):
+                    gate.verify_public_modes(release)
+            finally:
+                release.chmod(0o700)
 
     def test_realistic_tar_root_directory_is_allowed_but_root_file_is_not(self):
         data = archive(
@@ -158,7 +236,7 @@ class GateTests(unittest.TestCase):
         digest = hashlib.sha256(data).hexdigest()
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
-            root.mkdir()
+            root.mkdir(mode=0o700)
             self.assertEqual(gate.stage(data, digest, root), "STAGED")
             self.assertTrue((root / "archives" / (digest + ".tar.gz")).is_file())
             self.assertTrue(gate.verify_staged_release(root, digest))
@@ -170,7 +248,7 @@ class GateTests(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
-            root.mkdir()
+            root.mkdir(mode=0o700)
             with self.assertRaises(gate.Denied):
                 gate.stage(forged_root, hashlib.sha256(forged_root).hexdigest(), root)
 
@@ -180,11 +258,11 @@ class GateTests(unittest.TestCase):
         for tamper in ("rewrite", "extra", "remove", "symlink"):
             with tempfile.TemporaryDirectory() as parent:
                 root = Path(parent) / "finai-deploy"
-                root.mkdir()
+                root.mkdir(mode=0o700)
                 self.assertEqual(gate.stage(data, digest, root), "STAGED")
-                (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
-                (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(
-                    str(root / "current") + "\n")
+                write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+                write_private(root / "PUBLIC_DOCROOT_CONFIRMED",
+                              str(root / "current") + "\n")
                 release = root / "releases" / digest
                 if tamper == "rewrite":
                     (release / "_next/static/chunk.js").write_text("tampered")
@@ -211,7 +289,7 @@ class GateTests(unittest.TestCase):
         for attack in ("remove-archive", "replace-archive", "symlink-archive"):
             with tempfile.TemporaryDirectory() as parent:
                 root = Path(parent) / "finai-deploy"
-                root.mkdir()
+                root.mkdir(mode=0o700)
                 self.assertEqual(gate.stage(data, digest, root), "STAGED")
                 original = root / "archives" / (digest + ".tar.gz")
                 self.assertTrue(original.is_file())
@@ -222,9 +300,9 @@ class GateTests(unittest.TestCase):
                     foreign = Path(parent) / "elsewhere"
                     foreign.write_bytes(data)
                     original.symlink_to(foreign)
-                (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
-                (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(
-                    str(root / "current") + "\n")
+                write_private(root / "ALLOW_PRODUCTION", gate.LIVE_MARKER + "\n")
+                write_private(root / "PUBLIC_DOCROOT_CONFIRMED",
+                              str(root / "current") + "\n")
                 with self.assertRaises((gate.Denied, OSError)):
                     gate.promote(digest, root)
                 with self.assertRaises((gate.Denied, OSError)):
@@ -247,7 +325,7 @@ class GateTests(unittest.TestCase):
             )
             with tempfile.TemporaryDirectory() as parent:
                 root = Path(parent) / "finai-deploy"
-                root.mkdir()
+                root.mkdir(mode=0o700)
                 with self.assertRaises((gate.Denied, OSError)):
                     gate.stage(data, hashlib.sha256(data).hexdigest(), root)
                 self.assertFalse((Path(parent) / "outside.txt").exists())
@@ -256,7 +334,7 @@ class GateTests(unittest.TestCase):
     def test_bad_archive_and_symlinked_release(self):
         with tempfile.TemporaryDirectory() as parent:
             root = Path(parent) / "finai-deploy"
-            root.mkdir()
+            root.mkdir(mode=0o700)
             invalid = archive(("a.txt", b"only nonapp file", "regular"))
             with self.assertRaises(gate.Denied):
                 gate.stage(invalid, hashlib.sha256(invalid).hexdigest(), root)
