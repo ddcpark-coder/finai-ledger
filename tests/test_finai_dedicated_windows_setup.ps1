@@ -31,6 +31,7 @@ try {
         if (@(Get-ChildItem -LiteralPath $sandbox -Filter 'finai-deploy-key-*' -Force).Count -ne 0) { throw "Temporary private key not removed in $mode." }
     }
     Write-Output 'FINAI_GITHUB_BOOTSTRAP_SIMULATION=PASS'
+    $global:LASTEXITCODE = 0
 } finally {
     $env:PATH = $oldPath
     $env:TEMP = $oldTemp
