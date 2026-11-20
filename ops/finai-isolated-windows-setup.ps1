@@ -89,7 +89,7 @@ printf '%s  %s\n' '__INSTALLER_HASH__' "$tmp/ops/finai-isolated-install-key.sh" 
 printf '%s\n' "$1" | bash "$tmp/ops/finai-isolated-install-key.sh" --apply
 FINAI_BOOTSTRAP
 '@
-    return $script.Replace('__PUBLIC__', $public).Replace('__COMMIT__', $SourceCommit).Replace('__GATE_HASH__', $GateSha256).Replace('__INSTALLER_HASH__', $InstallerSha256)
+    return $script.Replace("`r`n", "`n").Replace("`r", "`n").Replace('__PUBLIC__', $public).Replace('__COMMIT__', $SourceCommit).Replace('__GATE_HASH__', $GateSha256).Replace('__INSTALLER_HASH__', $InstallerSha256)
 }
 function Get-GhJson([string[]]$arguments, [string]$step) {
     $json = & gh.exe @arguments
@@ -204,7 +204,7 @@ try {
         $KnownHost | & gh.exe secret set FINAI_DEPLOY_SSH_KNOWN_HOSTS -e $environment -R $Repo
         Assert-Exit "store pinned host key in $environment"
     }
-    Set-Clipboard -Value $key.Public
+    try { Set-Clipboard -Value $key.Public } catch { Write-Warning 'Public-key clipboard unavailable; use the printed public key.' }
 } finally {
     if (Test-Path -LiteralPath $keyDir) {
         Remove-Item -LiteralPath $keyDir -Recurse -Force -ErrorAction Stop
