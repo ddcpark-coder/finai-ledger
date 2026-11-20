@@ -1,0 +1,93 @@
+name: FinAI private Laravel release artifact
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "ops/finai-laravel-release.py"
+      - "tests/test_finai_laravel_release.py"
+      - ".github/workflows/finai-laravel-artifact.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "ops/finai-laravel-release.py"
+      - "tests/test_finai_laravel_release.py"
+      - ".github/workflows/finai-laravel-artifact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-artifact:
+    name: Build and smoke-test private Laravel artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      FINAI_AUTH_RELEASE_ENABLED: "false"
+      FINAI_DEMO_WORKFLOWS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, pdo_mysql, openssl, fileinfo
+          tools: composer:v2
+      - name: Validate the private package boundary
+        run: python3 -B -m unittest discover -s tests -p 'test_finai_laravel_release.py' -v
+      - name: Assemble from locked Laravel source and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          build="$RUNNER_TEMP/finai-laravel-build"
+          mkdir -p "$build"
+          cp -a backend/app backend/bootstrap backend/config backend/database backend/public backend/routes "$build/"
+          cp backend/artisan backend/composer.json backend/composer.lock "$build/"
+          mkdir -p "$build/storage/app/private" "$build/storage/framework/cache/data" \
+            "$build/storage/framework/sessions" "$build/storage/framework/views" "$build/storage/logs" \
+            "$build/bootstrap/cache"
+          (cd "$build" && composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress --optimize-autoloader)
+          # Composer executables and package fixture env/database files are
+          # unnecessary at runtime. Only disposable runner files are removed.
+          rm -rf "$build/vendor/bin"
+          find "$build/vendor" -type f \( -name .env -o -name '.env.*' -o -name '*.sqlite' -o -name '*.sqlite3' \) -delete
+          python3 -B ops/finai-laravel-release.py pack --root "$build" \
+            --archive "$RUNNER_TEMP/finai-laravel-private.tar.gz" \
+            --manifest "$RUNNER_TEMP/finai-laravel-manifest.json" --commit "$GITHUB_SHA"
+      - name: Verify and smoke-test the packaged API locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/finai-laravel-private.tar.gz"
+          python3 -B ops/finai-laravel-release.py verify --archive "$archive" \
+            --manifest "$RUNNER_TEMP/finai-laravel-manifest.json"
+          mkdir "$RUNNER_TEMP/finai-laravel-smoke"
+          tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$RUNNER_TEMP/finai-laravel-smoke"
+          (cd "$RUNNER_TEMP/finai-laravel-smoke" && php -S 127.0.0.1:18084 -t public) >"$RUNNER_TEMP/finai-api-smoke.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 \
+            --max-time 5 --output /dev/null http://127.0.0.1:18084/up
+          (cd "$RUNNER_TEMP" && sha256sum finai-laravel-private.tar.gz > finai-laravel-private.sha256)
+          echo 'FINAI_LARAVEL_LOCAL_HEALTH=PASS'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: finai-private-laravel-release
+          path: |
+            ${{ runner.temp }}/finai-laravel-private.tar.gz
+            ${{ runner.temp }}/finai-laravel-private.sha256
+            ${{ runner.temp }}/finai-laravel-manifest.json
+          retention-days: 7
+          if-no-files-found: error

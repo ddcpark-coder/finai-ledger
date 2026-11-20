@@ -20,15 +20,60 @@ namestijo** aplikacije in **ne dokazujejo** strežniške izolacije.
   ali njegove prvotne vsebine. Za to je še vedno potrebna preverjena
   obnovitvena točka in ločen načrt prvega preklopa.
 - GitHub stage/publish zahtevata dodatno `FINAI_DEPLOY05_SERVER_READY=YES`,
-  poleg obstoječih varovalk. Zastavice ne nastavljaj, dokler niso izpolnjeni
-  in preverjeni vsi strežniški pogoji. `FINAI_APP_DOCROOT_CONFIRMED` ostaja
-  izključen, dokler dejanska aplikacijska domena preverjeno ne streže
-  pričakovane izdaje.
+  poleg drugih varovalk. Zastavice ne nastavljaj, dokler niso izpolnjeni
+  in preverjeni vsi pogoji za strežniško pisanje, vključno z izolacijo,
+  obnovitveno točko in omejenim prehodom.
+- Zasebni `stage` preverjen arhiv samo shrani v `finai-deploy/releases`
+  in ne spreminja aktivnega `current`. Zato lahko po izpolnitvi teh
+  pogojev pripravi prvo izdajo še pred povezavo docroota.
+  `FINAI_APP_DOCROOT_CONFIRMED` ostaja izključen do preverjene povezave
+  domene in je še vedno obvezen za `promote` in samodejno objavljanje.
+  Sama odstranitev pogoja iz zasebnega `stage` ne poveže domene, ne
+  sproži preklopa in ne potrdi, da spletni strežnik datoteke lahko bere.
 
-Pred dejansko namestitvijo so odprti: prijava v namenski cPanel; potrditev
-izolacije s strani ponudnika; obstoj in izvedljivost obnove konkretne
-obnovitvene točke; varen način povezave trenutnega app docroota
+Pred dejansko namestitvijo so odprti: potrditev izolacije s strani ponudnika;
+praktična izvedljivost obnove konkretne obnovitvene točke; varen način
+povezave trenutnega app docroota
 `/home/einteg86/app.e-integrator.si` z `finai-deploy/current`; preverba,
 da ima spletni strežnik dostop do statičnih datotek ob obstoječih pravicah;
 namestitev omejenega SSH ključa; namenski Laravel docroot in baza. Glavne
 domene in drugih projektov se ta postopek ne dotika.
+
+## Ugotovitve pri namenskem računu 20. 11. 2026
+
+- V cPanelu je prikazan uporabnik `einteg86` in dom `/home/einteg86`.
+- R1Soft za ta račun prikazuje obnovitveno točko št. 21 z dne
+  19. 11. 2026 ob 22:00 CET. V njej sta mapi `app.e-integrator.si` in
+  `api.e-integrator.si`; za izbrano app mapo je na voljo gumb obnove.
+  Obnova ni bila izvedena in uspešnost dejanske obnove ni dokazana.
+- cPanel omogoča ločeno spremembo dokumentnega korena poddomene
+  `app.e-integrator.si`; nastavitev ni bila spremenjena. Na računu ni
+  prikazanih baz, uporabnikov baz ali nameščenih SSH ključev.
+- Terminal v brskalniku je javil `The WebSocket handshake failed` tudi po
+  enem poskusu ponovne povezave. Upravitelj datotek je pri odpiranju app
+  mape javil `Data error.`; njegove vsebine ni bilo mogoče preveriti.
+- Prejšnji odgovor ponudnika obravnava stari skupni cPanel in ne dokazuje
+  izolacije novega računa. Pred pisanjem ostaja potrebno dokazilo o
+  neodvisnih OS/ACL pravicah za `einteg86` in delujoč varen način
+  namestitve omejenega ključa; splošnega ključa se ne avtorizira.
+
+## Zasebni gradbeni paket Laravel
+
+`.github/workflows/finai-laravel-artifact.yml` na GitHub runnerju sestavi
+Laravel z zaklenjenimi produkcijskimi Composer odvisnostmi in brez zagona
+Composer skript. Paket vsebuje izvorne datoteke in zato ni spletni koren.
+Vsebuje `public/index.php` in `public/.htaccess`; **samo podmapa `public`**
+je lahko spletni dokumentni koren, vsa ostala vsebina in skrivnosti morajo
+ostati zunaj njega.
+
+Vidnost GitHub artefakta je odvisna od pravic in vidnosti repozitorija;
+izraz zasebni označuje predvideno strežniško hrambo, ne zagotavlja zasebne
+vidnosti na GitHubu. Artefakt zato ne sme vsebovati skrivnosti.
+
+Paket se zavrne, če vsebuje `.env`, lokalno SQLite bazo, simbolne povezave,
+predpomnilnik konfiguracije ali nepričakovane javne PHP vstopne točke.
+Manifest vsebuje SHA256 arhiva in posameznih datotek. CI paket razširi samo
+v svoj začasni izolirani direktorij in preveri Laravel `/up` s sintetično
+konfiguracijo. Ni konfiguracije prave baze, migracij ali povezave na Hiper M.
+Izdelan artefakt ni dokaz delujočega API-ja na gostovanju; sedanji statični
+SSH prehod namerno ne sprejema Laravel/PHP arhivov.
