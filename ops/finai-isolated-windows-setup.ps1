@@ -5,6 +5,11 @@ param([switch]$SelfTest)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Use only the requested GitHub host and never emit verbose API diagnostics.
+$env:GH_HOST = 'github.com'
+$env:GH_PROMPT_DISABLED = '1'
+Remove-Item Env:GH_DEBUG -ErrorAction SilentlyContinue
+
 $Repo = 'ddcpark-coder/finai-ledger'
 $Server = 'lcp-86.controlpanel.si'
 $KnownHost = 'lcp-86.controlpanel.si ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9i84UNTjrIAUGHKFkgqW5verwIfvLS4lCOcLfO2llq'
