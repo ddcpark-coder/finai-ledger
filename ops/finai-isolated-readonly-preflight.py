@@ -71,8 +71,8 @@ def inspect(user_name: str, uid: int, home: Path, app_root: Path,
             except (OSError, RuntimeError):
                 problems.append("FinAI current release symlink is broken or cyclic")
             else:
-                if target.parent != app_root / "releases" or not SHA256.fullmatch(target.name):
-                    problems.append("FinAI current release points outside hashed releases")
+                if target.parent != app_root / "public-releases" or not SHA256.fullmatch(target.name):
+                    problems.append("FinAI current release points outside hashed public mirrors")
         elif current.exists():
             problems.append("FinAI current release is not an expected symlink")
     return problems

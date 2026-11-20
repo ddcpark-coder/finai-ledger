@@ -28,7 +28,7 @@ class FinaiReadOnlyPreflightTest(unittest.TestCase):
 
     def test_dedicated_owned_paths_are_eligible_for_readonly_facts_not_deploy(self):
         self.assertEqual(self.check(), [])
-        releases = self.app / "releases"
+        releases = self.app / "public-releases"
         releases.mkdir()
         digest = "a" * 64
         (releases / digest).mkdir()
