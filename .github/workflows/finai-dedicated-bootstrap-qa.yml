@@ -4,11 +4,15 @@ on:
   pull_request:
     paths:
       - 'ops/finai-isolated-windows-setup.ps1'
+      - 'tests/finai_fake_gh.cs'
+      - 'tests/test_finai_dedicated_windows_setup.ps1'
       - '.github/workflows/finai-dedicated-bootstrap-qa.yml'
   push:
     branches: [main]
     paths:
       - 'ops/finai-isolated-windows-setup.ps1'
+      - 'tests/finai_fake_gh.cs'
+      - 'tests/test_finai_dedicated_windows_setup.ps1'
       - '.github/workflows/finai-dedicated-bootstrap-qa.yml'
 
 permissions:
@@ -30,3 +34,6 @@ jobs:
           if ($errors.Count -ne 0) { throw 'PowerShell syntax failed.' }
           & ./ops/finai-isolated-windows-setup.ps1 -SelfTest
           if ($LASTEXITCODE -ne 0) { throw 'Bootstrap self-test failed.' }
+      - name: Exercise GitHub setup with disposable local CLI
+        shell: powershell
+        run: ./tests/test_finai_dedicated_windows_setup.ps1
