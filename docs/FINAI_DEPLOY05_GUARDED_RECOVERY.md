@@ -13,6 +13,10 @@ namestijo** aplikacije in **ne dokazujejo** strežniške izolacije.
   CageFS se ne spreminja. Kazalec sam ne dokazuje vseh ACL ali ločitve
   drugih vrst povezav in ne nadomesti ostalih predpogojev.
   Vir: https://docs.cloudlinux.com/cloudlinuxos/deprecated/
+- Začetni bootstrap preverja dejanski UID lastnika in način dovoljenj
+  ciljnih FinAI imenikov. UID uporabnika in GID skupine nista samodejno
+  enaka; zato ne zahteva, da bi bil GID `1256`. Ob odstopanju izpiše samo
+  metapodatke ciljnega imenika in se ustavi pred strežniškim pisanjem.
 - Varovani preklop uporablja `finai:promote:v2:<pričakovani>:<novi>`.
   Znotraj zaklepa preveri, da se aktivna izdaja medtem ni spremenila. Stari
   neomejeni način `promote:v1` je zavrnjen. Pri nameščanju je zato treba

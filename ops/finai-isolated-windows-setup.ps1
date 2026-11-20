@@ -14,9 +14,6 @@ $Repo = 'ddcpark-coder/finai-ledger'
 $Server = 'lcp-86.controlpanel.si'
 $KnownHost = 'lcp-86.controlpanel.si ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9i84UNTjrIAUGHKFkgqW5verwIfvLS4lCOcLfO2llq'
 $ExpectedHostFingerprint = 'SHA256:pvZiddi7Sx9cz/6MddgAkzsvC5IV+poTHdWMOIvYVCs'
-$SourceCommit = '029ebbe20f6f6e793f09b3e99c6c9404f9c4d1da'
-$GateSha256 = '177f1df92655b284e972eb36b11d48c5b54c71714c0546f9950038f14cc066ce'
-$InstallerSha256 = '1253b66e7a71d576e3a1fcefda2ed023e383b1cb5b1d79c6e03bbe411e1b2c9c'
 $Environments = @('finai-staging', 'finai-production')
 
 function Assert-Exit([string]$step) {
@@ -72,39 +69,6 @@ function New-FinaiKeyPair([string]$keyDir) {
     }
     return @{ PrivatePath = $key; Public = $publicCanonical }
 }
-function New-FinaiBootstrap([string]$public) {
-    if ($public -notmatch '^ssh-ed25519 [A-Za-z0-9+/=]+$') { throw 'STOP: Invalid public key.' }
-    $script = @'
-bash -s -- '__PUBLIC__' <<'FINAI_BOOTSTRAP'
-set -euo pipefail
-umask 077
-[[ "$(id -un)" == einteg86 && "$(id -u)" == 1256 && "$HOME" == /home/einteg86 ]] || { echo STOP_WRONG_ACCOUNT; exit 65; }
-[[ "$(hostname)" == lcp-86.controlpanel.si ]] || { echo STOP_WRONG_SERVER; exit 65; }
-[[ -e /var/.cagefs/.cagefs.token ]] || { echo STOP_CAGEFS_NOT_CONFIRMED; exit 65; }
-set +e
-getent passwd laskot48 >/dev/null 2>&1
-shared_lookup=$?
-set -e
-[[ "$shared_lookup" -eq 2 ]] || { echo STOP_SHARED_ACCOUNT_VISIBLE_OR_LOOKUP_FAILED; exit 65; }
-for item in "$HOME" "$HOME/app.e-integrator.si" "$HOME/api.e-integrator.si"; do
-  [[ -d "$item" && ! -L "$item" && "$(readlink -f -- "$item")" == "$item" && "$(stat -c %u -- "$item")" == 1256 ]] || { echo STOP_UNEXPECTED_FINAI_PATH; exit 65; }
-done
-[[ "$(stat -c '%g:%a' "$HOME")" == 1256:711 && "$(stat -c '%g:%a' "$HOME/app.e-integrator.si")" == 1256:750 && "$(stat -c '%g:%a' "$HOME/api.e-integrator.si")" == 1256:750 ]] || { echo STOP_FINAI_PERMISSIONS_CHANGED; exit 65; }
-for tool in curl sha256sum python3 ssh-keygen; do command -v "$tool" >/dev/null || { echo STOP_MISSING_TOOL; exit 65; }; done
-if command -v setfacl >/dev/null && command -v getfacl >/dev/null; then echo FINAI_ACL_TOOLS=AVAILABLE; else echo FINAI_ACL_TOOLS=UNAVAILABLE; fi
-tmp="$(mktemp -d "$HOME/.finai-bootstrap.XXXXXXXX")"
-trap 'rm -rf -- "$tmp"' EXIT
-mkdir "$tmp/ops"
-base='https://raw.githubusercontent.com/ddcpark-coder/finai-ledger/__COMMIT__/ops'
-curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --max-time 45 "$base/finai-isolated-ssh-gate.py" -o "$tmp/ops/finai-isolated-ssh-gate.py"
-curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 --max-time 45 "$base/finai-isolated-install-key.sh" -o "$tmp/ops/finai-isolated-install-key.sh"
-printf '%s  %s\n' '__GATE_HASH__' "$tmp/ops/finai-isolated-ssh-gate.py" | sha256sum --check --status || { echo STOP_GATE_INTEGRITY; exit 65; }
-printf '%s  %s\n' '__INSTALLER_HASH__' "$tmp/ops/finai-isolated-install-key.sh" | sha256sum --check --status || { echo STOP_INSTALLER_INTEGRITY; exit 65; }
-printf '%s\n' "$1" | bash "$tmp/ops/finai-isolated-install-key.sh" --apply
-FINAI_BOOTSTRAP
-'@
-    return $script.Replace("`r`n", "`n").Replace("`r", "`n").Replace('__PUBLIC__', $public).Replace('__COMMIT__', $SourceCommit).Replace('__GATE_HASH__', $GateSha256).Replace('__INSTALLER_HASH__', $InstallerSha256)
-}
 function Get-GhJson([string[]]$arguments, [string]$step) {
     $json = & gh.exe @arguments
     Assert-Exit $step
@@ -138,13 +102,16 @@ if ($SelfTest) {
         $testKey = New-FinaiKeyPair $testDir
         $again = New-FinaiKeyPair $testDir
         if ($testKey.Public -ne $again.Public) { throw 'STOP: key pair was not reused.' }
-        $bootstrap = New-FinaiBootstrap $testKey.Public
+        $bootstrap = (Get-Content -LiteralPath 'ops/finai-isolated-bootstrap.sh' -Raw).Replace("`r`n", "`n")
         $testPath = Join-Path $testDir 'bootstrap.sh'
         [IO.File]::WriteAllText($testPath, $bootstrap, (New-Object Text.UTF8Encoding($false)))
         & bash.exe -n $testPath
         Assert-Exit 'bootstrap shell syntax'
-        & bash.exe $testPath
-        if ($LASTEXITCODE -ne 65) { throw 'STOP: wrong account was not rejected.' }
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { $status = @(& bash.exe $testPath $testKey.Public 2>&1 | ForEach-Object { "$_" }) }
+        finally { $ErrorActionPreference = $previousPreference }
+        if ($LASTEXITCODE -ne 65 -or $status -notcontains 'STOP_WRONG_ACCOUNT') { throw 'STOP: wrong account was not rejected.' }
         Write-Output 'FINAI_WINDOWS_BOOTSTRAP_SYNTHETIC=PASS'
     } finally {
         Remove-Item -LiteralPath $testDir -Recurse -Force -ErrorAction SilentlyContinue
