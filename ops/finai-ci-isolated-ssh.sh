@@ -57,6 +57,8 @@ remote="$FINAI_DEPLOY_SSH_USER@$FINAI_DEPLOY_SSH_HOST"
 status="$(ssh "${opts[@]}" "$remote" "finai:status:v1")"
 grep -Fxq 'FINAI_ISOLATED_SSH_STATUS=v1' <<<"$status" ||
   { echo 'STOP: not the isolated FinAI forced command gate' >&2; exit 67; }
+grep -Fxq 'FINAI_ISOLATION=CAGEFS' <<<"$status" ||
+  { echo 'STOP: dedicated SSH session isolation not confirmed' >&2; exit 67; }
 echo 'FINAI_ISOLATED_STATUS=PASS'
 
 # Confirm the forced command before any host mutation, including staging.

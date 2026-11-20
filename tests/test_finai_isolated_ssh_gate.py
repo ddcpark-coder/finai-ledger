@@ -39,6 +39,14 @@ def valid_archive():
 
 
 class GateTests(unittest.TestCase):
+    def test_current_session_must_have_cagefs_token(self):
+        with tempfile.TemporaryDirectory(prefix="finai-cagefs-qa-") as directory:
+            token = Path(directory) / ".cagefs.token"
+            with self.assertRaises(gate.Denied):
+                gate.require_cagefs(token)
+            token.touch()
+            gate.require_cagefs(token)
+
     def test_dedicated_os_uid_must_not_alias_shared_account(self):
         with tempfile.TemporaryDirectory(prefix="finai-identity-qa-") as temp:
             home = Path(temp)
