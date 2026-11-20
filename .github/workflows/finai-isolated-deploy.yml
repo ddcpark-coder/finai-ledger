@@ -9,7 +9,9 @@ on:
       - "ops/finai-isolated-*.py"
       - "ops/finai-isolated-*.sh"
       - "ops/finai-ci-isolated-ssh.sh"
+      - "ops/finai-ci-isolated-publish.sh"
       - "tests/test_finai_isolated_ssh_gate.py"
+      - "tests/test_finai_isolated_publish.py"
       - "tests/test_finai_isolated_readonly_preflight.py"
       - "tests/test_finai_static_release_verify.py"
       - "ops/finai-static-release-verify.py"
@@ -24,6 +26,8 @@ on:
       - "ops/finai-isolated-*.py"
       - "ops/finai-isolated-*.sh"
       - "ops/finai-ci-isolated-ssh.sh"
+      - "ops/finai-ci-isolated-publish.sh"
+      - "tests/test_finai_isolated_publish.py"
       - "ops/finai-static-release-verify.py"
       - "tests/test_finai_static_release_verify.py"
       - "ops/finai-ftps-offline-release-plan.py"
@@ -59,7 +63,9 @@ jobs:
           set -euo pipefail
           bash -n ops/finai-isolated-install-key.sh
           bash -n ops/finai-ci-isolated-ssh.sh
+          bash -n ops/finai-ci-isolated-publish.sh
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_ssh_gate.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_isolated_publish.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_readonly_preflight.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_ftps_offline_release_plan.py' -v
@@ -151,6 +157,7 @@ jobs:
       github.event_name != 'pull_request' &&
       github.ref == 'refs/heads/main' &&
       vars.FINAI_STAGE_ENABLED == 'true' &&
+      vars.FINAI_DEPLOY05_SERVER_READY == 'YES' &&
       vars.FINAI_APP_DOCROOT_CONFIRMED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -182,6 +189,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' &&
       vars.FINAI_PRODUCTION_ENABLED == 'true' &&
+      vars.FINAI_DEPLOY05_SERVER_READY == 'YES' &&
       vars.FINAI_APP_DOCROOT_CONFIRMED == 'true' &&
       ((github.event_name == 'workflow_dispatch' && inputs.promote_to_production == true) ||
        (github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true'))
@@ -204,49 +212,4 @@ jobs:
           IS_AUTOMATIC: ${{ github.event_name == 'push' && vars.FINAI_AUTO_PUBLISH_ENABLED == 'true' }}
           FIRST_PUBLISH_RESTORE_READY: ${{ vars.FINAI_FIRST_PUBLISH_RESTORE_READY }}
         run: |
-          set -euo pipefail
-          # Use only the pre-existing forced-command gate of a dedicated FinAI OS account.
-          # The first publication requires verified app-only docroot and restore point;
-          # never switch the primary e-integrator.si landing page.
-          previous="$(bash ops/finai-ci-isolated-ssh.sh status | sed -n 's/^production_active=//p')"
-          [[ "$previous" == none || "$previous" =~ ^[0-9a-f]{64}$ ]] ||
-            { echo 'STOP: invalid previous FinAI release' >&2; exit 65; }
-          if [[ "$previous" == none ]]; then
-            if [[ "$IS_AUTOMATIC" == true || "$FIRST_PUBLISH_RESTORE_READY" != YES ]]; then
-              echo 'STOP: initial app publish requires verified dedicated app restore point and manual release' >&2
-              exit 65
-            fi
-          fi
-
-          bash ops/finai-ci-isolated-ssh.sh promote "$RELEASE_SHA256"
-
-          # Minimal live smoke test. Only the dedicated app HTTPS endpoint is queried.
-          smoke_file="$RUNNER_TEMP/finai-live-build.json"
-          if ! (curl --fail --silent --show-error --max-time 25 --max-redirs 2 \
-                --proto '=https' --proto-redir '=https' --location \
-                --output "$smoke_file" 'https://app.e-integrator.si/finai-build.json' &&
-                python3 - "$smoke_file" "$GITHUB_SHA" <<'PY'
-          import json, sys
-          from pathlib import Path
-          try:
-              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-              assert payload == {"application":"finai-ledger", "commit":sys.argv[2]}
-          except (ValueError, OSError, AssertionError):
-              raise SystemExit(1)
-          PY
-          ); then
-            echo 'FINAI_LIVE_SMOKE=FAIL' >&2
-            if [[ "$previous" =~ ^[0-9a-f]{64}$ && "$previous" != "$RELEASE_SHA256" ]]; then
-              echo 'FINAI_ROLLBACK=ATTEMPT' >&2
-              bash ops/finai-ci-isolated-ssh.sh promote "$previous" || {
-                echo 'FINAI_ROLLBACK=FAILED_MANUAL_RECOVERY_REQUIRED' >&2
-                exit 70
-              }
-              echo 'FINAI_ROLLBACK=PASS'
-            else
-              echo 'FINAI_ROLLBACK=NO_PREVIOUS_RELEASE' >&2
-            fi
-            exit 69
-          fi
-          echo 'FINAI_LIVE_SMOKE=PASS'
-          echo 'FINAI_HIPERM_PUBLISH=PASS'
+          bash ops/finai-ci-isolated-publish.sh

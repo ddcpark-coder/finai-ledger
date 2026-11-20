@@ -69,12 +69,55 @@ class GateTests(unittest.TestCase):
         good = hashlib.sha256(b"synthetic").hexdigest()
         self.assertEqual(gate.parse("finai:status:v1"), ("status", None))
         self.assertEqual(gate.parse("finai:stage:v1:" + good), ("stage", good))
-        self.assertEqual(gate.parse("finai:promote:v1:" + good), ("promote", good))
+        self.assertEqual(gate.parse("finai:promote:v2:none:" + good),
+                         ("promote", ("none", good)))
+        self.assertEqual(gate.parse("finai:promote:v2:" + good + ":" + good),
+                         ("promote", (good, good)))
+        self.assertEqual(gate.parse("finai:unpublish:v1:" + good), ("unpublish", good))
         for bad in ("id", "bash -c id", "finai:status:v1;id",
                     "finai:stage:v1:" + good + " extra",
-                    "finai:promote:v1:../../etc/passwd", "", "finai:deploy:all"):
+                    "finai:promote:v1:" + good,
+                    "finai:promote:v2:../../etc/passwd:" + good, "", "finai:deploy:all"):
             with self.assertRaises(gate.Denied):
                 gate.parse(bad)
+
+    def test_only_exact_finai_target_identity_is_accepted(self):
+        gate.require_target_identity(SimpleNamespace(pw_name="einteg86"), 1256,
+                                     Path("/home/einteg86"))
+        for name, uid, home in (("laskot48", 1256, "/home/einteg86"),
+                                ("einteg86", 9, "/home/einteg86"),
+                                ("einteg86", 1256, "/home/other")):
+            with self.assertRaises(gate.Denied):
+                gate.require_target_identity(SimpleNamespace(pw_name=name), uid,
+                                             Path(home))
+
+    def test_first_publish_recovery_removes_only_the_expected_current_pointer(self):
+        data = valid_archive()
+        digest = hashlib.sha256(data).hexdigest()
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / "finai-deploy"
+            root.mkdir()
+            gate.stage(data, digest, root)
+            (root / "ALLOW_PRODUCTION").write_text(gate.LIVE_MARKER + "\n")
+            (root / "PUBLIC_DOCROOT_CONFIRMED").write_text(str(root / "current") + "\n")
+            self.assertEqual(gate.active_release(root), "none")
+            with self.assertRaises(gate.Denied):
+                gate.conditional_promote("f" * 64, digest, root)
+            gate.conditional_promote("none", digest, root)
+            self.assertEqual(gate.active_release(root), digest)
+            with self.assertRaises(gate.Denied):
+                gate.conditional_promote("none", digest, root)
+            with self.assertRaises(gate.Denied):
+                gate.unpublish("f" * 64, root)
+            self.assertEqual(gate.active_release(root), digest)
+            self.assertEqual(gate.unpublish(digest, root), "UNPUBLISHED")
+            self.assertEqual(gate.active_release(root), "none")
+            self.assertTrue((root / "releases" / digest / "index.html").exists())
+            self.assertEqual(gate.unpublish(digest, root), "UNPUBLISHED_ALREADY_ABSENT")
+            (root / "current").mkdir()
+            self.assertEqual(gate.active_release(root), "unexpected")
+            with self.assertRaises(gate.Denied):
+                gate.unpublish(digest, root)
 
     def test_sha_pinned_staging_and_explicit_promotion(self):
         data = valid_archive()
