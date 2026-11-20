@@ -11,10 +11,10 @@ mode="${1:---inspect}"
   { echo 'Usage: finai-isolated-install-key.sh --inspect|--apply' >&2; exit 2; }
 
 user="$(id -un)"
-[[ "$user" != root && "$user" != laskot48 ]] ||
-  { echo 'STOP: isolated non-root FinAI account required' >&2; exit 65; }
+[[ "$user" == einteg86 && "$(id -u)" == 1256 ]] ||
+  { echo 'STOP: expected dedicated FinAI account einteg86 (UID 1256)' >&2; exit 65; }
 home="$(getent passwd "$user" | awk -F: '{print $6}')"
-[[ -n "$home" && "$home" == "$HOME" && -d "$home" && ! -L "$home" ]] ||
+[[ "$home" == /home/einteg86 && "$home" == "$HOME" && -d "$home" && ! -L "$home" ]] ||
   { echo 'STOP: home account mismatch' >&2; exit 65; }
 
 source_root="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -89,5 +89,5 @@ chmod 600 "$temp_auth"
 mv -T -- "$temp_auth" "$authorized"
 temp_auth=''
 echo 'FINAI_ISOLATED_DEPLOY_KEY_INSTALLED=PASS'
-echo 'access=status_stage_promotion_only'
+echo 'access=status_stage_promotion_conditional_unpublish_only'
 echo 'production_approval=not_created'

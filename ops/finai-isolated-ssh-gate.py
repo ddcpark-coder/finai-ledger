@@ -7,15 +7,17 @@ or other projects. Existing shared laskot48 keys remain unchanged.
 Accepted SSH_ORIGINAL_COMMAND:
   finai:status:v1
   finai:stage:v1:<64-hex-sha256-of-tar-gz>
-  finai:promote:v1:<64-hex-sha256-of-staged-tar-gz>
+  finai:promote:v2:<expected-current-digest-or-none>:<new-staged-digest>
+  finai:unpublish:v1:<64-hex-sha256-of-current-release>
 No other commands, paths, arguments, shell, SFTP or port forwarding.
 """
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import os
 from pathlib import Path, PurePosixPath
 import pwd
 import re
-import stat
 import stat
 import shutil
 import sys
@@ -29,8 +31,12 @@ MAX_FILES = 10000
 MAX_SINGLE_FILE = 50 * 1024 * 1024
 STATUS = "finai:status:v1"
 STAGE = "finai:stage:v1:"
-PROMOTE = "finai:promote:v1:"
+PROMOTE = "finai:promote:v2:"
+UNPUBLISH = "finai:unpublish:v1:"
 LIVE_MARKER = "FINAI_LIVE_PROMOTION_APPROVED=YES"
+TARGET_USER = "einteg86"
+TARGET_UID = 1256
+TARGET_HOME = Path("/home/einteg86")
 
 
 class Denied(Exception):
@@ -40,7 +46,13 @@ class Denied(Exception):
 def parse(command):
     if command == STATUS:
         return "status", None
-    for prefix, action in ((STAGE, "stage"), (PROMOTE, "promote")):
+    if command.startswith(PROMOTE):
+        parts = command[len(PROMOTE):].split(":")
+        if (len(parts) == 2 and (parts[0] == "none" or DIGEST.fullmatch(parts[0]))
+                and DIGEST.fullmatch(parts[1])):
+            return "promote", (parts[0], parts[1])
+        raise Denied("malformed conditional promotion")
+    for prefix, action in ((STAGE, "stage"), (UNPUBLISH, "unpublish")):
         if command.startswith(prefix):
             digest = command[len(prefix):]
             if DIGEST.fullmatch(digest):
@@ -299,6 +311,71 @@ def promote(digest, root):
     return "PROMOTED"
 
 
+def unpublish(digest, root):
+    """Restore an initially empty current pointer, without touching the docroot.
+
+    Only remove the exact release this deployment just activated. This is not
+    a substitute for restoring a separately changed cPanel document root.
+    The caller serializes this operation with all stage/promote operations.
+    """
+    if not DIGEST.fullmatch(digest):
+        raise Denied("invalid deploy digest")
+    current = root / "current"
+    if not current.is_symlink():
+        if current.exists():
+            raise Denied("current production target is not a symlink")
+        return "UNPUBLISHED_ALREADY_ABSENT"
+    expected = root / "releases" / digest
+    # promote() itself creates this exact absolute link. Do not follow or
+    # remove an unexpected link that might have been changed independently.
+    if os.readlink(current) != str(expected):
+        raise Denied("current release changed since deployment")
+    current.unlink()
+    return "UNPUBLISHED"
+
+
+@contextmanager
+def mutation_lock(root):
+    """Serialize cooperating gate writers, including conditional rollback."""
+    lock_path = root / ".finai-gate.lock"
+    descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        meta = os.fstat(descriptor)
+        if (not stat.S_ISREG(meta.st_mode) or meta.st_uid != os.getuid() or
+                meta.st_mode & (stat.S_IWGRP | stat.S_IWOTH)):
+            raise Denied("unsafe deployment lock")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def active_release(root):
+    """Return none only for an actually absent current pointer."""
+    current = root / "current"
+    if current.is_symlink():
+        try:
+            target = current.resolve(strict=True)
+        except (OSError, RuntimeError):
+            return "unexpected"
+        releases = root / "releases"
+        if (target.parent == releases and DIGEST.fullmatch(target.name) and
+                target.is_dir() and os.readlink(current) == str(target)):
+            return target.name
+        return "unexpected"
+    return "unexpected" if current.exists() else "none"
+
+
+def conditional_promote(expected, digest, root):
+    """Switch only if the caller's observed release is still current.
+
+    The caller must hold mutation_lock throughout this check and the switch.
+    """
+    if active_release(root) != expected:
+        raise Denied("current release changed since status check")
+    return promote(digest, root)
+
+
 def require_dedicated_identity(user, uid, home, shared_uid=None):
     """Reject OS aliases of a shared account before ANY staging operations.
 
@@ -317,6 +394,11 @@ def require_dedicated_identity(user, uid, home, shared_uid=None):
         raise Denied("independent FinAI home is group/other writable")
 
 
+def require_target_identity(user, uid, home):
+    if user.pw_name != TARGET_USER or uid != TARGET_UID or home != TARGET_HOME:
+        raise Denied("FinAI deployment target identity does not match")
+
+
 def main():
     user = pwd.getpwuid(os.getuid())
     home = Path(user.pw_dir)
@@ -325,6 +407,7 @@ def main():
         shared_uid = pwd.getpwnam("laskot48").pw_uid
     except KeyError:
         shared_uid = None
+    require_target_identity(user, os.getuid(), home)
     require_dedicated_identity(user, os.getuid(), home, shared_uid)
     if Path(os.environ.get("HOME", "")).resolve() != home.resolve():
         raise Denied("unexpected HOME")
@@ -333,25 +416,28 @@ def main():
         root.stat().st_mode & (stat.S_IWGRP | stat.S_IWOTH)
     ):
         raise Denied("private FinAI deployment root is not installed")
-    operation, digest = parse(os.environ.get("SSH_ORIGINAL_COMMAND", ""))
+    operation, argument = parse(os.environ.get("SSH_ORIGINAL_COMMAND", ""))
     if operation == "status":
-        current = root / "current"
-        if current.is_symlink():
-            target = current.resolve()
-            active = target.name if target.parent == root / "releases" and DIGEST.fullmatch(target.name) else "unexpected"
-        else:
-            active = "none"
+        active = active_release(root)
         print("FINAI_ISOLATED_SSH_STATUS=v1")
         print("production_active=" + active)
         print("production_approved=" + ("yes" if (root / "ALLOW_PRODUCTION").is_file() else "no"))
         return 0
+    if operation == "promote":
+        expected, digest = argument
+    else:
+        digest = argument
     if operation == "stage":
         data = sys.stdin.buffer.read(MAX_ARCHIVE + 1)
         if len(data) > MAX_ARCHIVE:
             raise Denied("upload exceeds capped size")
-        result = stage(data, digest, root)
-    else:
-        result = promote(digest, root)
+    with mutation_lock(root):
+        if operation == "stage":
+            result = stage(data, digest, root)
+        elif operation == "promote":
+            result = conditional_promote(expected, digest, root)
+        else:
+            result = unpublish(digest, root)
     print("FINAI_ISOLATED_DEPLOY=" + result)
     print("release_sha256=" + digest)
     return 0
