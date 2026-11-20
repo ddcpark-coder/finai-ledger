@@ -14,9 +14,9 @@ $Repo = 'ddcpark-coder/finai-ledger'
 $Server = 'lcp-86.controlpanel.si'
 $KnownHost = 'lcp-86.controlpanel.si ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9i84UNTjrIAUGHKFkgqW5verwIfvLS4lCOcLfO2llq'
 $ExpectedHostFingerprint = 'SHA256:pvZiddi7Sx9cz/6MddgAkzsvC5IV+poTHdWMOIvYVCs'
-$SourceCommit = '7b8c91122f09154251e5099d14691cc7588cffc8'
-$GateSha256 = 'f7f81f23eadefb4661e520fac4b90610c508705bde3c05109676c2a8bf88e23e'
-$InstallerSha256 = '3d2aa85468a687655eb175631672270274e167737f3cbf6cac1e5295b8ea2443'
+$SourceCommit = '029ebbe20f6f6e793f09b3e99c6c9404f9c4d1da'
+$GateSha256 = '177f1df92655b284e972eb36b11d48c5b54c71714c0546f9950038f14cc066ce'
+$InstallerSha256 = '1253b66e7a71d576e3a1fcefda2ed023e383b1cb5b1d79c6e03bbe411e1b2c9c'
 $Environments = @('finai-staging', 'finai-production')
 
 function Assert-Exit([string]$step) {
@@ -79,10 +79,19 @@ bash -s -- '__PUBLIC__' <<'FINAI_BOOTSTRAP'
 set -euo pipefail
 umask 077
 [[ "$(id -un)" == einteg86 && "$(id -u)" == 1256 && "$HOME" == /home/einteg86 ]] || { echo STOP_WRONG_ACCOUNT; exit 65; }
+[[ "$(hostname)" == lcp-86.controlpanel.si ]] || { echo STOP_WRONG_SERVER; exit 65; }
+[[ -e /var/.cagefs/.cagefs.token ]] || { echo STOP_CAGEFS_NOT_CONFIRMED; exit 65; }
+set +e
+getent passwd laskot48 >/dev/null 2>&1
+shared_lookup=$?
+set -e
+[[ "$shared_lookup" -eq 2 ]] || { echo STOP_SHARED_ACCOUNT_VISIBLE_OR_LOOKUP_FAILED; exit 65; }
 for item in "$HOME" "$HOME/app.e-integrator.si" "$HOME/api.e-integrator.si"; do
   [[ -d "$item" && ! -L "$item" && "$(readlink -f -- "$item")" == "$item" && "$(stat -c %u -- "$item")" == 1256 ]] || { echo STOP_UNEXPECTED_FINAI_PATH; exit 65; }
 done
+[[ "$(stat -c '%g:%a' "$HOME")" == 1256:711 && "$(stat -c '%g:%a' "$HOME/app.e-integrator.si")" == 1256:750 && "$(stat -c '%g:%a' "$HOME/api.e-integrator.si")" == 1256:750 ]] || { echo STOP_FINAI_PERMISSIONS_CHANGED; exit 65; }
 for tool in curl sha256sum python3 ssh-keygen; do command -v "$tool" >/dev/null || { echo STOP_MISSING_TOOL; exit 65; }; done
+if command -v setfacl >/dev/null && command -v getfacl >/dev/null; then echo FINAI_ACL_TOOLS=AVAILABLE; else echo FINAI_ACL_TOOLS=UNAVAILABLE; fi
 tmp="$(mktemp -d "$HOME/.finai-bootstrap.XXXXXXXX")"
 trap 'rm -rf -- "$tmp"' EXIT
 mkdir "$tmp/ops"
