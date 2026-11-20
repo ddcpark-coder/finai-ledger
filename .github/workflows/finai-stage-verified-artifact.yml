@@ -1,0 +1,129 @@
+name: FinAI stage existing verified web artifact
+
+on:
+  pull_request:
+    paths: ['.github/workflows/finai-stage-verified-artifact.yml']
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Successful main web-release workflow run ID'
+        required: true
+        type: string
+        default: '44810720332'
+      source_commit:
+        description: 'Exact commit in the web release marker'
+        required: true
+        type: string
+        default: '35264aaa8dd9ee97c5f07fc0429aca573e340b77'
+      release_sha256:
+        description: 'SHA256 of the compressed web release'
+        required: true
+        type: string
+        default: '6e1c95c822b6996ae18a04d20e8ee1346bf4291cdfd534f0315c7c2a04818b1f'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: finai-isolated-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Check the prior successful main build and its exact artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      source_run_id: ${{ steps.source.outputs.source_run_id }}
+      release_sha256: ${{ steps.source.outputs.release_sha256 }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id || '44810720332' }}
+      SOURCE_COMMIT: ${{ inputs.source_commit || '35264aaa8dd9ee97c5f07fc0429aca573e340b77' }}
+      RELEASE_SHA256: ${{ inputs.release_sha256 || '6e1c95c822b6996ae18a04d20e8ee1346bf4291cdfd534f0315c7c2a04818b1f' }}
+    steps:
+      - name: Confirm source workflow and successful jobs
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REPOSITORY" == ddcpark-coder/finai-ledger ]]
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]{1,20}$ && "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ && "$RELEASE_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > "$RUNNER_TEMP/finai-source-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" > "$RUNNER_TEMP/finai-source-jobs.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          tmp = Path(os.environ['RUNNER_TEMP'])
+          run = json.loads((tmp / 'finai-source-run.json').read_text())
+          listing = json.loads((tmp / 'finai-source-jobs.json').read_text())
+          assert run['id'] == int(os.environ['SOURCE_RUN_ID'])
+          assert run['path'] == '.github/workflows/finai-isolated-deploy.yml'
+          assert run['event'] == 'push' and run['head_branch'] == 'main'
+          assert run['status'] == 'completed' and run['conclusion'] == 'success'
+          assert run['head_sha'] == os.environ['SOURCE_COMMIT']
+          assert run['repository']['full_name'] == run['head_repository']['full_name'] == 'ddcpark-coder/finai-ledger'
+          assert listing['total_count'] == len(listing['jobs'])
+          for name in ('Validate SSH gate with synthetic data (no host access)', 'Build static web release for Hiper M'):
+              matches = [job for job in listing['jobs'] if job['name'] == name]
+              assert len(matches) == 1 and matches[0]['status'] == 'completed' and matches[0]['conclusion'] == 'success'
+          print('FINAI_SOURCE_BUILD=PASS')
+          PY
+          echo "source_run_id=$SOURCE_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "release_sha256=$RELEASE_SHA256" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: finai-isolated-static-release
+          path: ${{ runner.temp }}/finai-verified-source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Verify SHA256 and exact build marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, tarfile
+          from pathlib import Path
+          archive = Path(os.environ['RUNNER_TEMP']) / 'finai-verified-source' / 'finai-web-release.tar.gz'
+          assert archive.is_file() and not archive.is_symlink() and archive.stat().st_size <= 100 * 1024 * 1024
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == os.environ['RELEASE_SHA256']
+          with tarfile.open(archive, 'r:gz') as bundle:
+              found = [m for m in bundle if m.name in ('finai-build.json', './finai-build.json')]
+              assert len(found) == 1 and found[0].isfile() and found[0].size <= 4096
+              marker = json.load(bundle.extractfile(found[0]))
+          assert marker == {'application': 'finai-ledger', 'commit': os.environ['SOURCE_COMMIT']}
+          print('FINAI_EXISTING_ARTIFACT_SHA256=PASS')
+          PY
+
+  stage:
+    name: Stage only the verified artifact in private FinAI releases
+    needs: verify
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      vars.FINAI_STAGE_ENABLED == 'true' && vars.FINAI_DEPLOY05_SERVER_READY == 'YES'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment: finai-staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: finai-isolated-static-release
+          path: ${{ runner.temp }}/finai-verified-source
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.verify.outputs.source_run_id }}
+      - name: Stage through the restricted SSH gate
+        env:
+          FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
+          FINAI_DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.FINAI_DEPLOY_SSH_KNOWN_HOSTS }}
+          FINAI_DEPLOY_SSH_HOST: ${{ vars.FINAI_DEPLOY_SSH_HOST }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+          FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
+          RELEASE_SHA256: ${{ needs.verify.outputs.release_sha256 }}
+        run: |
+          set -euo pipefail
+          bash ops/finai-ci-isolated-ssh.sh stage "$RELEASE_SHA256" "$RUNNER_TEMP/finai-verified-source/finai-web-release.tar.gz"
+          echo 'FINAI_PRIVATE_STAGING=PASS'
