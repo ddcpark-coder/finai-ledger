@@ -5,10 +5,10 @@ import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
 const quotes=[
- {id:"PON-2026-0042",partner:"ABC d.o.o.",version:2,status:"Poslano",net:2450,tax:539,gross:2989,valid:"15. 11. 2026",owner:"Dalibor",opportunity:"Prenova označb"},
- {id:"PON-2026-0041",partner:"Gamma GmbH",version:1,status:"Sprejeto",net:5200,tax:0,gross:5200,valid:"12. 11. 2026",owner:"Nina",opportunity:"Sejemski sistemi"},
- {id:"PON-2026-0040",partner:"Studio Kreativ s.p.",version:3,status:"Osnutek",net:980,tax:215.6,gross:1195.6,valid:"20. 11. 2026",owner:"Dalibor",opportunity:"Grafične storitve"},
- {id:"PON-2026-0039",partner:"Delta d.o.o.",version:1,status:"Zavrnjeno",net:1800,tax:396,gross:2196,valid:"05. 11. 2026",owner:"Jerica",opportunity:"Montaža"}
+ {companyId:1,id:"PON-2026-0042",partner:"ABC d.o.o.",version:2,status:"Poslano",net:2450,tax:539,gross:2989,valid:"15. 11. 2026",owner:"Dalibor",opportunity:"Prenova označb"},
+ {companyId:1,id:"PON-2026-0041",partner:"Gamma GmbH",version:1,status:"Sprejeto",net:5200,tax:0,gross:5200,valid:"12. 11. 2026",owner:"Nina",opportunity:"Sejemski sistemi"},
+ {companyId:1,id:"PON-2026-0040",partner:"Studio Kreativ s.p.",version:3,status:"Osnutek",net:980,tax:215.6,gross:1195.6,valid:"20. 11. 2026",owner:"Dalibor",opportunity:"Grafične storitve"},
+ {companyId:1,id:"PON-2026-0039",partner:"Delta d.o.o.",version:1,status:"Zavrnjeno",net:1800,tax:396,gross:2196,valid:"05. 11. 2026",owner:"Jerica",opportunity:"Montaža"}
 ];
 
 export default function QuotesWorkspace({context,companyId}){
@@ -19,14 +19,15 @@ export default function QuotesWorkspace({context,companyId}){
  const [selected,setSelected]=useState(quotes[0]);
  const [accepted,setAccepted]=useState(false);
  const [sent,setSent]=useState(false);
- const list=useMemo(()=>quotes.filter(q=>{
+ const demoForCompany=quotes.filter(q=>q.companyId===companyId);
+ const list=useMemo(()=>demoForCompany.filter(q=>{
    const s=query.toLowerCase();
    const contextMatch=section==="Pregled"?(subView==="Osnutki"?q.status==="Osnutek":subView==="Poslano"?q.status==="Poslano":true)
      :section==="Sprejete"?(subView==="Zaključeno"?false:q.status==="Sprejeto")
      :section==="Zavrnjene"?(subView==="Ponovni stik"?false:q.status==="Zavrnjeno")
      :section==="Predloge"?false:true;
    return (!s||[q.id,q.partner,q.opportunity].join(" ").toLowerCase().includes(s))&&(filter==="Vsi"||q.status===filter)&&contextMatch;
- }),[query,filter,section,subView]);
+ }),[query,filter,section,subView,companyId]);
 
  const status=accepted?"Sprejeto":sent&&selected.status==="Osnutek"?"Poslano":selected.status;
 
@@ -46,9 +47,9 @@ export default function QuotesWorkspace({context,companyId}){
  <div role="status" style={{fontSize:10,color:"var(--muted)",marginBottom:9}}>Ponudbe · <b style={{color:"var(--text)"}}>{section} / {subView}</b> · demonstracijski podatki</div>
  <div className="flow"><div className="on">Osnutek</div><div className="on">Poslano</div><div className={status==="Sprejeto"?"on":""}>Odločitev</div><div className={status==="Sprejeto"?"on":""}>Sprejeto</div><div>Naročilo</div></div>
  {section==="Analitika"&&<div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:10}}>
-  <span className="qstate info">Vse ponudbe: {quotes.length}</span>
-  <span className="qstate ok">Sprejete: {quotes.filter(q=>q.status==="Sprejeto").length}</span>
-  <span className="qstate draft">Osnutki: {quotes.filter(q=>q.status==="Osnutek").length}</span>
+  <span className="qstate info">Vse ponudbe: {demoForCompany.length}</span>
+  <span className="qstate ok">Sprejete: {demoForCompany.filter(q=>q.status==="Sprejeto").length}</span>
+  <span className="qstate draft">Osnutki: {demoForCompany.filter(q=>q.status==="Osnutek").length}</span>
  </div>}
  <BusinessChainPanel companyId={companyId} moduleKey="quotes"/>
  <Crm360DraftsPanel companyId={companyId} kind="quotes"/>
