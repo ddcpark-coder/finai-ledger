@@ -68,6 +68,7 @@ internal sealed class SyntheticOrdersDialog : Form
     private readonly Button save = ActionButton("Shrani demo osnutek");
     private readonly Button prepareAccounts = ActionButton("Pripravi demo konta");
     private readonly Button reviewJournal = ActionButton("Preveri demo temeljnico");
+    private readonly Button manualTransfer = ActionButton("Izvozi demo dogodek");
     private readonly NumericUpDown journalCents = new()
     {
         Minimum = 1, Maximum = 1_000_000, Value = 12_345,
@@ -146,6 +147,7 @@ internal sealed class SyntheticOrdersDialog : Form
         journalBar.Controls.Add(Labeled("Znesek demo temeljnice v centih", journalCents));
         journalBar.Controls.Add(prepareAccounts);
         journalBar.Controls.Add(reviewJournal);
+        journalBar.Controls.Add(manualTransfer);
 
         var listing = new GroupBox
         {
@@ -176,6 +178,12 @@ internal sealed class SyntheticOrdersDialog : Form
             "Sintetičnih kontov ni mogoče pripraviti.");
         reviewJournal.Click += (_, _) => Guard(ReviewJournal,
             "Sintetične temeljnice ni mogoče varno preveriti.");
+        manualTransfer.Click += (_, _) => Guard(() =>
+        {
+            _ = ActiveCompany(); // Current native login is required.
+            using var dialog = new SyntheticWindowsTransferDialog();
+            dialog.ShowDialog(this);
+        }, "Sintetičnega prenosa ni mogoče odpreti.");
         companies.SelectedIndexChanged += (_, _) =>
         {
             if (session is not null) Guard(RefreshOrders, "Pregleda osnutkov ni mogoče osvežiti.");
@@ -256,6 +264,7 @@ internal sealed class SyntheticOrdersDialog : Form
         save.Enabled = active && companies.SelectedItem is EncryptedLedgerStore.SyntheticCompany;
         prepareAccounts.Enabled = save.Enabled;
         reviewJournal.Enabled = save.Enabled;
+        manualTransfer.Enabled = save.Enabled;
         journalCents.Enabled = save.Enabled;
         login.Enabled = !active;
         phrase.Enabled = !active;
