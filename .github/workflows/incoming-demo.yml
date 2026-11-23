@@ -8,6 +8,7 @@ on:
       - "tests/demoIncoming.test.mjs"
       - "tests/localFilePreview.test.mjs"
       - "tests/demoAccountingRules.test.mjs"
+      - "tests/next34GuidedIncomingJournal.test.mjs"
       - ".github/workflows/incoming-demo.yml"
   push:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - "app/issued/demoInvoice.mjs"
       - "tests/demoIncoming.test.mjs"
       - "tests/localFilePreview.test.mjs"
+      - "tests/next34GuidedIncomingJournal.test.mjs"
       - ".github/workflows/incoming-demo.yml"
   workflow_dispatch:
 
@@ -34,4 +36,4 @@ jobs:
         with:
           node-version: "22"
       - name: Incoming invoice validation and state transitions (synthetic only)
-        run: node --test tests/demoIncoming.test.mjs tests/localFilePreview.test.mjs tests/demoAccountingRules.test.mjs
+        run: node --test tests/demoIncoming.test.mjs tests/localFilePreview.test.mjs tests/demoAccountingRules.test.mjs tests/next34GuidedIncomingJournal.test.mjs
