@@ -1,5 +1,6 @@
 "use client";
 import BusinessChainPanel from "../business/BusinessChainPanel";
+import Crm360DraftsPanel from "../crm/Crm360DraftsPanel";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
 import {useEffect,useMemo,useState} from "react";
 
@@ -50,6 +51,7 @@ export default function QuotesWorkspace({context,companyId}){
   <span className="qstate draft">Osnutki: {quotes.filter(q=>q.status==="Osnutek").length}</span>
  </div>}
  <BusinessChainPanel companyId={companyId} moduleKey="quotes"/>
+ <Crm360DraftsPanel companyId={companyId} kind="quotes"/>
  <AdaptivePaneGrid className="quotesGrid">
   <article className="quoteCard">
    <div className="quoteHead"><h3>Ponudbe · {section} / {subView}</h3><div className="quoteTools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči ponudbo, partnerja, priložnost ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Osnutek</option><option>Poslano</option><option>Sprejeto</option><option>Zavrnjeno</option></select><button className="primary">＋ Nova ponudba</button></div></div>
