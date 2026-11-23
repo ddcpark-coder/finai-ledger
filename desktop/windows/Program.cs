@@ -84,6 +84,12 @@ internal static class Program
             catch (Exception) { return 36; } // No key, payload or path disclosure.
         }
 
+        if (args.Length == 1 && args[0] == "--signed-ack-self-test")
+        {
+            try { return SyntheticWindowsAckReview.SelfTest() ? 0 : 37; }
+            catch (Exception) { return 38; } // No encrypted contents or keys in logs.
+        }
+
         if (args.Length == 1 && args[0] == "--mobile-import-self-test")
         {
             try { return SyntheticMobileOutboxImport.SelfTest() ? 0 : 13; }
