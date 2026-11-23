@@ -4,6 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from contextlib import nullcontext
+from unittest.mock import patch
+from urllib.error import HTTPError
 
 SOURCE = Path(__file__).parents[1] / 'ops' / 'finai-first-app-publish.py'
 spec = importlib.util.spec_from_file_location('finai_first_publish', SOURCE)
@@ -122,6 +124,32 @@ class FirstPublishTest(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(), b'changed elsewhere\n')
         self.assertFalse(os.path.lexists(self.app / '_finai_current'))
         self.assertEqual(self.gate.active, 'none')
+
+
+class PropagationTest(unittest.TestCase):
+    def test_unpublish_waits_for_real_http_unavailability(self):
+        marker = ('{"application":"finai-ledger","commit":"' + module.SOURCE_COMMIT + '"}').encode()
+        missing = HTTPError('https://app.e-integrator.si/finai-build.json', 404, 'missing', {}, None)
+        with patch.object(module, 'get_https', side_effect=[marker, missing]) as fetch, \
+                patch.object(module.time, 'sleep') as sleep:
+            module.check_unpublished()
+        self.assertEqual(fetch.call_count, 2)
+        sleep.assert_called_once_with(0.5)
+
+    def test_unpublish_fails_if_old_release_remains_visible(self):
+        marker = ('{"application":"finai-ledger","commit":"' + module.SOURCE_COMMIT + '"}').encode()
+        with patch.object(module, 'get_https', return_value=marker), \
+                patch.object(module.time, 'monotonic', side_effect=[0, 11]):
+            with self.assertRaisesRegex(module.Stop, 'still visible'):
+                module.check_unpublished()
+
+    def test_live_probe_waits_for_a_transient_missing_file(self):
+        missing = HTTPError('https://app.e-integrator.si/finai-build.json', 404, 'missing', {}, None)
+        with patch.object(module, 'check_live_once', side_effect=[missing, None]) as check, \
+                patch.object(module.time, 'sleep') as sleep:
+            module.check_live(Path('/synthetic'))
+        self.assertEqual(check.call_count, 2)
+        sleep.assert_called_once_with(0.5)
 
 
 if __name__ == '__main__':
