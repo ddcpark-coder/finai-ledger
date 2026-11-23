@@ -1,0 +1,23 @@
+name: FinAI first publication transaction
+
+on:
+  pull_request:
+    paths:
+      - 'ops/finai-first-app-publish.py'
+      - 'tests/test_finai_first_app_publish.py'
+      - '.github/workflows/finai-first-publish-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  first-publish-safety:
+    name: Check first-publish rollback using synthetic data
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify the first-publish transaction
+        run: python3 -B -m unittest discover -s tests -p 'test_finai_first_app_publish.py' -v
