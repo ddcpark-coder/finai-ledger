@@ -4,7 +4,7 @@
 
 ## Zakaj ne danes
 
-Namenski račun `einteg86` je ustvarjen in je cilj FinAI, vendar to še ne dokazuje uspešnega popolnega cutoverja aplikacije, Laravela, baze in obnovitve. Pri zadnjem javnem bralnem pregledu je `app.e-integrator.si/finai-build.json` še prikazoval **starejši** Git commit kot GitHub `main`; root `api.e-integrator.si/` je vrnil 404 (sam status root poti ne dokazuje zdravja API-ja). GitHub CI trenutno gradi nove izdaje, toda stage in promote ostajata preskočena, dokler niso aktivirani varnostni predpogoji.
+Namenski račun `einteg86` je ustvarjen in je cilj FinAI, vendar to še ne dokazuje uspešnega popolnega cutoverja aplikacije, Laravela, baze in obnovitve. Pri javnem read-only pregledu 23. 11. 2026 je `https://app.e-integrator.si/finai-build.json` vrnil commit **`35264aaa8dd9ee97c5f07fc0429aca573e340b77`**, medtem ko je GitHub `main` že dosegel **`04a514acb8db622940394797c13829cb1ad697b2`**. Preverjena neposredna pot `https://api.e-integrator.si/up` je vrnila **HTTP 404**; to še ni dokaz delujočega Laravela (sam status `/` ne bi bil odločilen). GitHub CI trenutno gradi nove izdaje, toda stage in promote ostajata preskočena, dokler niso aktivirani varnostni predpogoji.
 
 ## Kdaj lahko skrbnik zunaj projekta posebej odobri čiščenje
 
