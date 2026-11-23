@@ -10,6 +10,9 @@ on:
       - "ops/finai-isolated-*.sh"
       - "ops/finai-ci-isolated-ssh.sh"
       - "ops/finai-ci-isolated-publish.sh"
+      - "ops/finai-release-readiness.py"
+      - "ops/finai-dedicated-docroot-readonly.py"
+      - "tests/test_finai_release_readiness.py"
       - "tests/test_finai_isolated_ssh_gate.py"
       - "tests/test_finai_isolated_upgrade_gate.py"
       - "tests/test_finai_isolated_publish.py"
@@ -28,6 +31,9 @@ on:
       - "ops/finai-isolated-*.sh"
       - "ops/finai-ci-isolated-ssh.sh"
       - "ops/finai-ci-isolated-publish.sh"
+      - "ops/finai-release-readiness.py"
+      - "ops/finai-dedicated-docroot-readonly.py"
+      - "tests/test_finai_release_readiness.py"
       - "tests/test_finai_isolated_publish.py"
       - "tests/test_finai_isolated_upgrade_gate.py"
       - "ops/finai-static-release-verify.py"
@@ -72,6 +78,7 @@ jobs:
           python3 -B -m unittest discover -s tests -p 'test_finai_isolated_readonly_preflight.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_ftps_offline_release_plan.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_release_readiness.py' -v
           echo "FINAI_RESTRICTED_SSH_GATE_TESTS=PASS"
           echo "FINAI_STATIC_INTEGRITY_TESTS=PASS"
 
@@ -153,6 +160,30 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+
+  deployment-readiness:
+    name: Read-only app/API and deployment gate report (not authorisation)
+    needs: static-release
+    if: >-
+      github.event_name != 'pull_request' &&
+      needs.static-release.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Report public version and exactly which CI switches are inactive
+        env:
+          FINAI_STAGE_ENABLED: ${{ vars.FINAI_STAGE_ENABLED }}
+          FINAI_DEPLOY05_SERVER_READY: ${{ vars.FINAI_DEPLOY05_SERVER_READY }}
+          FINAI_PRODUCTION_ENABLED: ${{ vars.FINAI_PRODUCTION_ENABLED }}
+          FINAI_APP_DOCROOT_CONFIRMED: ${{ vars.FINAI_APP_DOCROOT_CONFIRMED }}
+          FINAI_AUTO_PUBLISH_ENABLED: ${{ vars.FINAI_AUTO_PUBLISH_ENABLED }}
+          FINAI_FIRST_PUBLISH_RESTORE_READY: ${{ vars.FINAI_FIRST_PUBLISH_RESTORE_READY }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+        run: |
+          python3 -B ops/finai-release-readiness.py --commit "$GITHUB_SHA"
   stage:
     name: Stage SHA256-pinned web release only on isolated FinAI account
     needs: [gate-tests, static-release]
