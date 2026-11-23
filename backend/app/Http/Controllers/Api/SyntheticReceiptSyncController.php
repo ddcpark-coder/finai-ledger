@@ -34,7 +34,10 @@ final class SyntheticReceiptSyncController extends Controller
             'expected_version' => ['required', 'integer', 'min:0', 'max:2147483646'],
             'envelope' => ['required',
                 'array:format,companyId,documentId,version,iterations,salt,iv,ciphertext'],
-            'envelope.format' => ['required', Rule::in(['finai-mobile-synthetic-vault-v1'])],
+            'envelope.format' => ['required', Rule::in([
+                'finai-mobile-synthetic-vault-v1',
+                'finai-windows-synthetic-outbox-v1',
+            ])],
             'envelope.companyId' => ['required', 'integer'],
             'envelope.documentId' => ['required', 'string', 'max:64'],
             'envelope.version' => ['required', 'integer', Rule::in([1])],
