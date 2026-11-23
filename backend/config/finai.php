@@ -13,6 +13,8 @@ return [
     'synthetic_ledger_scenario_enabled' => (bool) env('FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED', false),
     // NEXT26: real-schema synthetic draft preview; local/testing ONLY and off by default.
     'synthetic_journal_preview_enabled' => (bool) env('FINAI_SYNTHETIC_JOURNAL_PREVIEW_ENABLED', false),
+    // NEXT29: test/local only, human-reviewed synthetic invoice-to-draft workflow.
+    'synthetic_approved_invoice_workflow_enabled' => (bool) env('FINAI_SYNTHETIC_APPROVED_INVOICE_WORKFLOW_ENABLED', false),
     // No public endpoint: application-layer synthetic commerce staging, local/testing only.
     'synthetic_commerce_staging_enabled' => (bool) env('FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED', false),
     // NEXT22 unified multi-tenant, synthetic-only business read model and stock
