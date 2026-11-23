@@ -20,6 +20,7 @@ const TaskCenter=dynamic(()=>import("./tasks/TaskCenter"),{loading});
 const CatalogWorkspace=dynamic(()=>import("./catalog/CatalogWorkspace"),{loading});
 const CrmWorkspace=dynamic(()=>import("./crm/CrmWorkspace"),{loading});
 const BusinessIntelligencePanel=dynamic(()=>import("./next11/BusinessIntelligencePanel"),{loading});
+const SyntheticJournalServerPanel=dynamic(()=>import("./next11/SyntheticJournalServerPanel"),{loading});
 const QuotesWorkspace=dynamic(()=>import("./quotes/QuotesWorkspace"),{loading});
 const SalesOrdersWorkspace=dynamic(()=>import("./orders/SalesOrdersWorkspace"),{loading});
 const ProcurementWorkspace=dynamic(()=>import("./procurement/ProcurementWorkspace"),{loading});
@@ -539,7 +540,7 @@ export default function Page(){
          </div></div>}
        </article>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
-       {section==="Knjiženje"&&<AccountingCorePanel context={activeContext} companyId={company}/>}
+       {section==="Knjiženje"&&<><AccountingCorePanel context={activeContext} companyId={company}/><SyntheticJournalServerPanel key={company} companyId={company}/></>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext} companyId={company} supplierName={companies.find(x=>x.id===company)?.name} supplierTaxNumber={companies.find(x=>x.id===company)?.tax}/>}

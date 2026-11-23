@@ -1,0 +1,41 @@
+name: FinAI NEXT26 isolated synthetic journal read-only QA
+on:
+  pull_request:
+    paths:
+      - "backend/app/Application/Accounting/PreviewSyntheticDraftJournal.php"
+      - "backend/app/Http/Controllers/Api/SyntheticJournalPreviewController.php"
+      - "backend/config/finai.php"
+      - "backend/routes/api.php"
+      - "backend/tests/Feature/SyntheticJournalPreviewTest.php"
+      - "app/next11/syntheticJournalPreviewClient.mjs"
+      - "app/next11/SyntheticJournalServerPanel.jsx"
+      - "app/page.jsx"
+      - "tests/next26SyntheticJournalPreviewClient.test.mjs"
+      - ".github/workflows/finai-next26-journal-preview.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-journal-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Focused web validation, no network
+        run: node --test tests/next24SyntheticLedgerPreflight.test.mjs tests/next25SyntheticJournalUi.test.mjs tests/next26SyntheticJournalPreviewClient.test.mjs
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Install reviewed Laravel dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Read-only local journal checks against disposable SQLite memory DB
+        working-directory: backend
+        run: php artisan test --filter=SyntheticJournalPreviewTest

@@ -11,6 +11,8 @@ return [
     'synthetic_receipt_sync_enabled' => (bool) env('FINAI_SYNTHETIC_RECEIPT_SYNC_ENABLED', false),
     // Double gate: controller also refuses every non-local/non-testing environment.
     'synthetic_ledger_scenario_enabled' => (bool) env('FINAI_SYNTHETIC_LEDGER_SCENARIO_ENABLED', false),
+    // NEXT26: real-schema synthetic draft preview; local/testing ONLY and off by default.
+    'synthetic_journal_preview_enabled' => (bool) env('FINAI_SYNTHETIC_JOURNAL_PREVIEW_ENABLED', false),
     // No public endpoint: application-layer synthetic commerce staging, local/testing only.
     'synthetic_commerce_staging_enabled' => (bool) env('FINAI_SYNTHETIC_COMMERCE_STAGING_ENABLED', false),
     // NEXT22 unified multi-tenant, synthetic-only business read model and stock

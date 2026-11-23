@@ -80,6 +80,12 @@ Route::middleware(['auth:web','verified',RequirePrivilegedTwoFactor::class,'thro
         [SyntheticLedgerScenarioController::class, 'advance'])->whereNumber('companyId');
 
 
+    // NEXT26: local/testing read-only preview of a real-schema SYN demo draft only.
+    // Never expose a production posting endpoint or accept a journal payload to write.
+    Route::get('/companies/{companyId}/demo/journal-previews/{journalId}',
+        [\App\Http\Controllers\Api\SyntheticJournalPreviewController::class, 'show'])
+        ->whereNumber('companyId')->whereNumber('journalId');
+
     // NEXT12: explicitly enabled local/testing synthetic CRM only; no public ERP writes.
     Route::get('/companies/{companyId}/demo/crm/opportunities',
         [SyntheticCrmPipelineController::class, 'index'])->whereNumber('companyId');
