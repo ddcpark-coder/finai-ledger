@@ -312,4 +312,50 @@ final class SyntheticReceiptSyncTest extends TestCase
         $this->assertDatabaseCount('synthetic_receipt_sync_events', 0);
     }
 
+
+    public function test_windows_client_encrypted_synthetic_outbox_contract_reuses_authenticated_receipt_sync(): void
+    {
+        config()->set('finai.synthetic_receipt_sync_enabled', true);
+        $a = $this->company('A');
+        $b = $this->company('B');
+        $alice = $this->member($a, 'Alice');
+        $bob = $this->member($b, 'Bob');
+        $url = $this->uri($a);
+        $payload = $this->payload($a->id);
+        $payload['envelope']['format'] = 'finai-windows-synthetic-outbox-v1';
+        // Opaque AES-GCM ciphertext, not a claim the server can decrypt it.
+        $payload['envelope']['ciphertext'] = base64_encode(
+            random_bytes(90)); // schema-only fixture; Windows crypto tested separately
+
+        $this->postJson($url, $payload)->assertUnauthorized();
+        $this->actingAs($alice);
+        $this->postJson($url, $payload)->assertOk()
+            ->assertJsonPath('data.version', 1)
+            ->assertJsonPath('data.business_document_created', false)
+            ->assertJsonPath('data.real_sync_enabled', false);
+        $this->postJson($url, $payload)->assertOk()
+            ->assertJsonPath('data.already_received', true);
+
+        $changed = $payload;
+        $changed['envelope']['ciphertext'] = base64_encode(random_bytes(90));
+        $this->postJson($url, $changed)->assertStatus(409);
+        $changed['client_event_id'] = '1069a8cb-93c6-4a6f-8a8c-5fb138f7a802';
+        $this->postJson($url, $changed)->assertStatus(409);
+        $changed['expected_version'] = 1;
+        $this->postJson($url, $changed)->assertOk()
+            ->assertJsonPath('data.version', 2);
+
+        $this->getJson($url.'/latest')->assertOk()
+            ->assertJsonPath('data.envelope.format', 'finai-windows-synthetic-outbox-v1');
+        $this->actingAs($bob);
+        $this->getJson($url)->assertForbidden();
+        $this->postJson($url, $payload)->assertForbidden();
+
+        $this->actingAs($alice);
+        $invalid = $payload;
+        $invalid['envelope']['format'] = 'finai-windows-synthetic-outbox-v0';
+        $this->postJson($url, $invalid)->assertUnprocessable();
+        $this->assertDatabaseCount('synthetic_receipt_sync_events', 2);
+        $this->assertDatabaseCount('audit_logs', 2);
+    }
 }

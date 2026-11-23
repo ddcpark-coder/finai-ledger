@@ -88,7 +88,10 @@ final class SyntheticReceiptSync
         string $eventId, int $expectedVersion, array $envelope
     ): array {
         $this->authorize($userId, $companyId, $documentId, write: true);
-        abort_unless($envelope['format'] === 'finai-mobile-synthetic-vault-v1'
+        abort_unless(in_array($envelope['format'], [
+            'finai-mobile-synthetic-vault-v1',
+            'finai-windows-synthetic-outbox-v1',
+        ], true)
             && (int) $envelope['companyId'] === $companyId
             && $envelope['documentId'] === $documentId
             && (int) $envelope['version'] === 1
