@@ -38,7 +38,6 @@ test("a manually approved synthetic invoice creates balanced immutable 22% examp
  assert.ok(Object.isFrozen(actual.lines));
  assert.ok(actual.lines.every(Object.isFrozen));
  assert.deepEqual(invoice,before);
- assert.equal(review(invoice),actual===review(invoice)?actual:review(invoice)); // deterministic values checked below
  assert.deepEqual(actual,review(invoice));
 });
 
