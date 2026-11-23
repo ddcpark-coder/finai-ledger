@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import DemoIncomingCreator from "./DemoIncomingCreator";
 import {approveIncomingDemo,companyIncomingRecords,makeIncomingDemoEvent} from "./demoIncoming.mjs";
 import {getDemoAccountSuggestion,recordDemoRuleChoice} from "./demoAccountingRules.mjs";
+import {REVIEW_ACCOUNTS,reviewSyntheticIncomingJournal} from "./syntheticInvoiceJournalReview.mjs";
 
 const invoices=[
  {companyId:1,id:"PR-2026-0188",partner:"Merkur d.o.o.",number:"MER-2026-04562",gross:"1.240,00 €",date:"02. 11. 2026",due:"17. 11. 2026",status:"Pregled",ocr:94,ai:92,vat:"22 %",account:"4100",cost:"PROD"},
@@ -26,20 +27,43 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
  const [notice,setNotice]=useState("");
  const [aiDecision,setAiDecision]=useState(null);
  const [audit,setAudit]=useState([]);
+ const [reviewAccount,setReviewAccount]=useState("4100");
+ const [reviewConfirmed,setReviewConfirmed]=useState(false);
+ const [journalPreview,setJournalPreview]=useState(null);
  const companyRecords=useMemo(()=>companyIncomingRecords(records,companyId),[records,companyId]);
  const selected=companyRecords.find(row=>row.id===selectedId)??companyRecords[0];
  const demoSuggestion=getDemoAccountSuggestion(selected,companyId);
  const companyAudit=useMemo(()=>audit.filter(event=>event.companyId===companyId).slice(-8).reverse(),[audit,companyId]);
+ const preview=journalPreview?.invoiceId===selected?.id&&journalPreview?.companyId===companyId?
+   journalPreview:null;
+ const resetReview=()=>{
+   setReviewAccount("4100");setReviewConfirmed(false);setJournalPreview(null);
+ };
+ const reviewInvoice=()=>{
+   try{
+     const checked=reviewSyntheticIncomingJournal(selected,companyId,{
+       account:reviewAccount,confirmed:reviewConfirmed
+     });
+     setJournalPreview(checked);
+     setNotice("Sintetična temeljnica je samo izračunana in prikazana v brskalniku. Ni shranjena ali knjižena.");
+   }catch(error){
+     setJournalPreview(null);
+     setNotice(error.message);
+   }
+ };
+ const euro=cents=>(cents/100).toLocaleString("sl-SI",{style:"currency",currency:"EUR"});
  const createDemo=row=>{
    if(row.companyId!==companyId)throw new Error("Podjetje se je med vnosom spremenilo.");
    setRecords(old=>[row,...old]);setSelectedId(row.id);setNewId(row.id);
    setAudit(old=>[...old,makeIncomingDemoEvent("created",companyId,row)]);
    setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
+   resetReview();
    setNotice("Demo račun dodan za izbrano podjetje. Evidentirano v sejni aktivnosti.");
  };
  const approveSelected=()=>{
    try{
      const updated=approveIncomingDemo(selected,companyId);
+     setJournalPreview(null);setReviewConfirmed(false);
      setRecords(old=>old.map(row=>row.id===selected.id&&row.companyId===companyId?updated:row));
      setAudit(old=>[...old,makeIncomingDemoEvent("approved",companyId,updated)]);
      setNotice("Odobritev je le demonstracijska. Knjižba, datoteka in obvestilo niso ustvarjeni.");
@@ -50,11 +74,12 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
    setSelectedId(null);setNewId(null);
    setAudit(old=>[...old,makeIncomingDemoEvent("reset",companyId)]);
    setStatus("Vsi");setQuery("");setCreatorOpen(false);setAiDecision(null);
+   resetReview();
    setNotice("Demonstracijski računi trenutnega podjetja so ponastavljeni; ostala podjetja so nespremenjena.");
  };
  useEffect(()=>{
    setSelectedId(null);setNewId(null);setCreatorOpen(false);setAiDecision(null);
-   setQuery("");setStatus("Vsi");setNotice("");
+   setQuery("");setStatus("Vsi");setNotice("");resetReview();
  },[companyId]);
  const list=useMemo(()=>companyRecords.filter(x=>{
    const q=query.toLowerCase();
@@ -90,6 +115,16 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
    .invoiceSection{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.invoiceSection h4{margin:0 0 8px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
    .lineItem{display:grid;grid-template-columns:1.3fr .65fr .65fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:9px}.lineItem span:last-child,.lineItem b{text-align:right}
    .aiBox{border:1px solid color-mix(in srgb,var(--violet) 45%,var(--line));border-radius:11px;padding:10px;background:color-mix(in srgb,var(--violet) 6%,var(--panel))}.aiBox b,.aiBox small{display:block}.aiBox small{font-size:8px;color:var(--muted);margin-top:3px}.aiExplain{margin-top:8px;display:grid;gap:6px}.aiSignal{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:6px;font-size:8px}.aiSignal span{color:var(--muted)}.aiActions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.aiActions button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:7px 6px;font-size:8px}.aiActions button.on{border-color:var(--accent);color:var(--accent)}.anomaly{margin-top:8px;border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line));border-radius:9px;padding:8px;background:color-mix(in srgb,var(--warn) 6%,var(--panel));font-size:8px}.anomaly b{color:var(--warn)}
+   .demoJournalReview{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:grid;gap:9px}
+   .demoJournalReview label{display:grid;gap:5px;font-size:10px;color:var(--muted)}
+   .demoJournalReview select{width:100%;min-height:35px;padding:7px 8px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;color:var(--text)}
+   .demoJournalReview .confirm{display:flex;gap:7px;align-items:flex-start;color:var(--text)}
+   .demoJournalReview .confirm input{margin-top:3px}
+   .demoJournalPreview{padding:10px;border:1px solid var(--accent);border-radius:10px;background:var(--bg2)}
+   .demoJournalPreview h5{font-size:11px;margin:0 0 5px}
+   .demoJournalPreview table{border-collapse:collapse;width:100%;font-size:9px;font-variant-numeric:tabular-nums}
+   .demoJournalPreview th,.demoJournalPreview td{padding:6px 3px;border-bottom:1px solid var(--line);text-align:right}
+   .demoJournalPreview th:first-child,.demoJournalPreview td:first-child{text-align:left}
    .statusStrip{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 12px 12px}.statusStrip div{border:1px solid var(--line);border-radius:8px;padding:7px;text-align:center;font-size:8px;color:var(--muted)}.statusStrip .on{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
    @media(max-width:1100px){.incomingGrid{grid-template-columns:1fr}}@media(max-width:760px){.invoiceRow{grid-template-columns:1.3fr .8fr .7fr}.invoiceRow>*:nth-child(2),.invoiceRow>*:nth-child(4){display:none}.detailGrid{grid-template-columns:1fr}.statusStrip{grid-template-columns:1fr 1fr 1fr}.incomingTools input{width:100%}}
    `}</style>
@@ -103,7 +138,7 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
        <div className="statusStrip"><div className="on">Prejeto</div><div className="on">Obdelava</div><div className="on">Pregled</div><div>Odobreno</div><div>Knjiženo</div></div>
        <div className="invoiceRow head"><span>Partner / račun</span><span>Datum / rok</span><span>Znesek</span><span>OCR / AI</span><span>Status</span></div>
        {!list.length&&<p style={{padding:12,color:"var(--muted)",fontSize:10}}>V demonstracijskih podatkih ni zapisov za izbrani pogled.</p>}
-       {list.map(x=><button className="invoiceRow" key={x.id} aria-pressed={x.id===selectedId} onClick={()=>{setSelectedId(x.id);setNewId(null);setAiDecision(null);setNotice("");}}>
+       {list.map(x=><button className="invoiceRow" key={x.id} aria-pressed={x.id===selectedId} onClick={()=>{setSelectedId(x.id);setNewId(null);setAiDecision(null);resetReview();setNotice("");}}>
          <span><b>{x.partner}</b><small>{x.number} · {x.id}</small></span>
          <span><b>{x.date}</b><small>rok {x.due}</small></span>
          <b className="invoiceAmount">{x.gross}</b>
@@ -162,6 +197,51 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
          <button className="secondary" disabled title="Urejanje in shramba izvirnikov še nista povezana">Uredi podatke (v pripravi)</button>
          <button className="secondary" disabled title="Datoteke niso naložene">Odpri original (v pripravi)</button>
        </div></div>
+
+       {selected.demo===true&&selected.source==="manual"&&<div className="demoJournalReview" aria-label="Vodeni sintetični predogled temeljnice">
+         <h4 style={{margin:"0",fontSize:11}}>Naslednji korak: predogled demo temeljnice</h4>
+         <p style={{fontSize:10,color:"var(--muted)",lineHeight:1.6,margin:0}}>
+           1. Odobri račun. 2. Ročno izberi demo stroškovni konto.
+           3. Potrdi pregled in preveri breme/dobro. Prikaz DDV je samo ilustrativen.
+           Ne ustvarja knjižbe, ne zapisuje predloga v Laravel in ne poroča FURS-u.
+         </p>
+         <label>Stroškovni konto (samo demo)
+           <select value={reviewAccount} onChange={e=>{
+             setReviewAccount(e.target.value);setReviewConfirmed(false);setJournalPreview(null);
+           }}>
+             {REVIEW_ACCOUNTS.map(account=><option key={account.code} value={account.code}>
+               {account.code} · {account.title}
+             </option>)}
+           </select>
+         </label>
+         <label className="confirm"><input type="checkbox" checked={reviewConfirmed}
+           onChange={e=>{setReviewConfirmed(e.target.checked);setJournalPreview(null);}}/>
+           <span>Ročno sem pregledal izbor sintetičnega konta. To ni odobritev prave knjižbe.</span>
+         </label>
+         <button className="secondary" type="button" onClick={reviewInvoice}
+           disabled={selected.status!=="Odobreno"||!reviewConfirmed}>
+           {selected.status!=="Odobreno"?"Predogled na voljo po odobritvi":"Prikaži uravnotežen demo osnutek"}
+         </button>
+         {preview&&<div className="demoJournalPreview" role="status">
+           <h5>NEKNJIŽENO · samo predogled · {preview.reference}</h5>
+           <table>
+             <thead><tr><th>Konto</th><th>Breme</th><th>Dobro</th></tr></thead>
+             <tbody>
+               {preview.lines.map(line=><tr key={line.accountCode}>
+                 <td>{line.accountCode}</td>
+                 <td>{line.debitCents?euro(line.debitCents):"—"}</td>
+                 <td>{line.creditCents?euro(line.creditCents):"—"}</td>
+               </tr>)}
+             </tbody>
+             <tfoot><tr><th>Skupaj</th><th>{euro(preview.totalDebitCents)}</th>
+               <th>{euro(preview.totalCreditCents)}</th></tr></tfoot>
+           </table>
+           <p style={{fontSize:9,color:"var(--muted)",margin:"9px 0 0"}}>
+             Uravnotežen testni izračun · DDV ni davčno preverjen ·
+             ni shranjevanja, strežniške potrditve ali knjiženja.
+           </p>
+         </div>}
+       </div>}
      </aside>}{list.length===0&&<aside className="incomingCard" style={{padding:14,color:"var(--muted)",fontSize:10}}>Za izbrani pogled ni podatkov. Izberi drug podmodul ali filter.</aside>}
    </AdaptivePaneGrid>
    <article className="incomingCard" aria-label="Demonstracijska revizijska aktivnost" style={{marginTop:10,padding:14}}>
