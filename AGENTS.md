@@ -1,4 +1,4 @@
-# FinAI / Ledger — mandatory repository agent instructions
+# FinAI / Ledger — mandatory repository agent instructions (Project rules C, 2026-11-23)
 
 These rules apply to EVERY FinAI chat, ChatGPT Work run, Codex agent, GitHub Actions workflow, browser session, terminal task, deployment and subagent.
 
@@ -6,7 +6,7 @@ These rules apply to EVERY FinAI chat, ChatGPT Work run, Codex agent, GitHub Act
 
 **NEVER change Laškoteka, in any circumstance as part of FinAI work.** This includes `laskoteka.si`, `www.laskoteka.si`, Laškoteka's repositories, shared cPanel settings, SSH keys, `authorized_keys` records, databases, cron jobs, environment files, DNS zones, storage, media, backup schedules, user accounts, code or application configuration. Do not restart shared services. Do not modify `/home/laskot48/public_html` or any Laškoteka file. Never use a FinAI task as authorization to touch Laškoteka.
 
-The shared Hiper M operating-system account `laskot48` also hosts Laškoteka and STNG. **There must be NO FinAI production write automation, arbitrary shell key or widened SSH access on that account.** Existing `finai:status:v1`/`finai:audit:v1` restricted SSH read-only operations are grandfathered for inspection only; do not replace or widen those keys.
+The legacy shared Hiper M operating-system account `laskot48` is not a FinAI deployment destination. **There must be NO FinAI write automation, cleanup, arbitrary shell key or widened SSH access on that account.** Existing `finai:status:v1`/`finai:audit:v1` restricted SSH read-only operations are grandfathered for inspection only; do not replace or widen those keys.
 
 ## Fast-track autonomous FinAI development
 
@@ -27,33 +27,40 @@ Ordinary UI edits need only compilation, release integrity and the one live
 smoke check; reserve comprehensive E2E/Windows suites for affected critical
 code or deliberate manual dispatch.
 
-This fast-track explicitly DOES NOT authorize any new keys, shared cPanel
-changes, or FinAI write operations on the shared `laskot48` account.
-The original absolute Laškoteka/STNG and OS isolation boundaries below remain.
+This fast-track explicitly DOES NOT authorize shared cPanel changes, old-account cleanup, or any FinAI write on `laskot48`.
+The original absolute non-interference and OS isolation boundaries remain.
 
-## Temporary B: common physical hosting, no shared-account write authority
+## Current C: independently dedicated FinAI cPanel account
 
-**Approved temporary development policy, NOT an SSH authorization:** FinAI may
-be developed and visually tested while other sites operate on the same physical
-Hiper M server and under the same hosting subscription. This does not make
-the shared `laskot48` OS/cPanel identity safe for FinAI write automation.
+FinAI's dedicated hosting identity already exists: `einteg86`, UID 1256,
+`/home/einteg86`. The current web domain roots on that account were observed as
+`/home/einteg86/public_html`, `/home/einteg86/app.e-integrator.si` and
+`/home/einteg86/api.e-integrator.si`. Verify live docroot and ownership at
+publish time; historical paths are not a substitute for read-only preflight.
 
-- The shared `laskot48` account remains **FinAI read-only**. Do not install,
-  replace or widen any SSH keys or `authorized_keys` there.
-- Different domain names, SQL database users, document roots, `chmod 700`,
-  and forced-command scripts do **not** form an independent Unix permission
-  boundary for processes that all run with the same UID.
-- Before any FinAI host writes, require a provider-verified separate effective
-  OS account and independent permissions, even when hosted on the same
-  physical Hiper M server. Otherwise perform development, compilation,
-  isolated synthetic tests and GitHub PRs only.
-- Production-grade migration and handling of real data remain separately
-  gated. Never touch Laškoteka or STNG in any case.
+The old `laskot48` account is **legacy / read-only** for FinAI and must not be
+used for writing or cleanup by any FinAI agent. No shared-account SSH keys,
+`authorized_keys`, files, databases, backup policies, DNS, cron or
+services may be changed. Old-account retirement is a separately authorized
+administrative maintenance operation outside FinAI Work/CI, only after
+dedicated hosting, backups and dependency inventory are independently verified;
+see `docs/FINAI_LEGACY_CLEANUP_HANDOFF.md`.
 
-The approved Project instructions are mirrored in
-`docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md`. The user confirmed they updated
-ChatGPT Project settings; this repository file does not authorize shared-host
-writes or deploys.
+An independent cPanel login/UID alone is not proof that deployed code and
+effective OS/ACL permissions are correctly isolated. Before an actual host
+write, check verified effective user, real paths, ownership, symlinks, narrow
+allowed command, exact release SHA256, dedicated database scope, targeted
+checks, backup and rollback. Stop only unsafe hosting changes if any fail.
+Do not re-run the full hosting preflight for ordinary GitHub code work.
+
+**Reporting preference:** Routine FinAI change summaries should focus on
+functionality, CI, merge and deployed commit. Other project names need not be
+repeated in every answer; the non-interference rules remain binding and must
+be mentioned whenever there is an actual cross-account or hosting risk.
+
+The current user-facing project instructions are mirrored in
+`docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md`. Changes to the GitHub mirror
+do **not** automatically update ChatGPT Project → Instructions.
 
 ## Mandatory adaptive UX and accessible complexity
 
@@ -98,4 +105,4 @@ by people with different levels of digital and business experience.
 
 ## Applying these rules in ChatGPT
 
-This repository file is authoritative for automated coding agents that load the repository. Because a GitHub file cannot directly alter a ChatGPT Project's own settings, also place the absolute Laškoteka prohibition in **ChatGPT Project → Instructions**. Any future FinAI Work prompt must carry the same prohibition. No exception is authorized by a generic instruction to "continue" or "execute".
+This repository file binds coding agents that load it. GitHub cannot change ChatGPT Project settings: copy the current version C from `docs/FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md` into **ChatGPT Project → Instructions**. The ordinary Work opening line can be concise, but the dedicated-account boundary and absolute prohibition on altering any other project or legacy hosting remain binding. A generic "continue" or "execute" never authorizes old-account cleanup.
