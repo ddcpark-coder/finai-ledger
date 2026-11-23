@@ -98,6 +98,13 @@ final class SyntheticReceiptSync
             && (int) $envelope['iterations'] === 250000,
             422, 'Envelope does not match selected demo receipt.');
 
+        if ($envelope['format'] === 'finai-windows-synthetic-outbox-v1') {
+            // Direct service callers cannot bypass the signed-receipt gate.
+            abort_unless(app()->environment(['local', 'testing'])
+                && config('finai.synthetic_windows_ack_enabled', false), 404);
+            app(SyntheticWindowsAckSigner::class)->assertAvailable();
+        }
+
         $payload = json_encode($envelope, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         abort_unless(strlen($payload) <= 260000, 413);
         $digest = hash('sha256', $payload);

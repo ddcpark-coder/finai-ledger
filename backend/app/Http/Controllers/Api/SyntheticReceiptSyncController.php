@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Application\Documents\SyntheticReceiptSync;
+use App\Application\Documents\SyntheticWindowsAckSigner;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 final class SyntheticReceiptSyncController extends Controller
 {
@@ -27,7 +29,7 @@ final class SyntheticReceiptSyncController extends Controller
     }
 
     public function store(Request $request, int $companyId, string $documentId,
-        SyntheticReceiptSync $sync): JsonResponse
+        SyntheticReceiptSync $sync, SyntheticWindowsAckSigner $signer): JsonResponse
     {
         $data = $request->validate([
             'client_event_id' => ['required', 'uuid'],
@@ -49,9 +51,29 @@ final class SyntheticReceiptSyncController extends Controller
             'envelope.ciphertext' => ['required', 'string', 'min:64', 'max:220000',
                 'regex:/\A[A-Za-z0-9+\/]+={0,2}\z/D'],
         ]);
-        return response()->json(['data' => $sync->accept(
-            (int) $request->user()->id, $companyId, $documentId,
-            $data['client_event_id'], $data['expected_version'], $data['envelope']
-        )])->header('Cache-Control', 'private, no-store');
+        $isWindows = $data['envelope']['format'] === 'finai-windows-synthetic-outbox-v1';
+        if ($isWindows) {
+            // Must be configured BEFORE any synthetic DB write; production
+            // or missing/private-key failures deny the entire Windows request.
+            $signer->assertAvailable();
+        }
+
+        $result = DB::transaction(function () use ($request, $companyId,
+            $documentId, $data, $sync, $signer, $isWindows): array {
+            $ack = $sync->accept(
+                (int) $request->user()->id, $companyId, $documentId,
+                $data['client_event_id'], $data['expected_version'], $data['envelope']
+            );
+            if ($isWindows) {
+                $ack['signed_windows_ack'] = $signer->sign(
+                    (int) $request->user()->id, $companyId, $documentId,
+                    $data['client_event_id'], $data['expected_version'],
+                    $data['envelope']
+                );
+            }
+            return $ack;
+        });
+        return response()->json(['data' => $result])
+            ->header('Cache-Control', 'private, no-store');
     }
 }
