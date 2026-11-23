@@ -220,7 +220,7 @@ export default function IncomingInvoicesWorkspace({context,companyId}){
          </label>
          <button className="secondary" type="button" onClick={reviewInvoice}
            disabled={selected.status!=="Odobreno"||!reviewConfirmed}>
-           {selected.status!=="Odobreno"?"Najprej odobri demo račun":"Prikaži uravnotežen demo osnutek"}
+           {selected.status!=="Odobreno"?"Predogled na voljo po odobritvi":"Prikaži uravnotežen demo osnutek"}
          </button>
          {preview&&<div className="demoJournalPreview" role="status">
            <h5>NEKNJIŽENO · samo predogled · {preview.reference}</h5>
