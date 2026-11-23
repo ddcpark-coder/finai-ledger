@@ -1,0 +1,30 @@
+name: FinAI NEXT29 synthetic incoming invoice to journal workflow QA
+on:
+  pull_request:
+    paths:
+      - "backend/app/Application/IncomingInvoices/SyntheticApprovedInvoiceJournalWorkflow.php"
+      - "backend/tests/Feature/SyntheticApprovedInvoiceWorkflowTest.php"
+      - "backend/config/finai.php"
+      - ".github/workflows/finai-next29-invoice-journal-qa.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-invoice-journal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, openssl, fileinfo
+          tools: composer:v2
+      - name: Install reviewed dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Targeted human-reviewed synthetic invoice and journal QA
+        working-directory: backend
+        run: php artisan test --filter=SyntheticApprovedInvoiceWorkflowTest
