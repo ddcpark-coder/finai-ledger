@@ -460,6 +460,30 @@ internal sealed partial class EncryptedLedgerStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// QA-only idempotent setup for the native encrypted ledger preview.
+    /// Fixed synthetic chart of accounts. No network, WebView2 input or real data.
+    /// </summary>
+    public void EnsureSyntheticPreviewAccounts(Session session, string companyId)
+    {
+        companyId = ValidateUuid(companyId);
+        using var db = OpenDb();
+        RequireRole(db, session, companyId, write: true);
+        using var tx = db.BeginTransaction();
+        foreach (var code in new[] { "1200", "2600" })
+        {
+            using var cmd = db.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                INSERT OR IGNORE INTO accounts(company_id,code) VALUES($company,$code);
+                """;
+            cmd.Parameters.AddWithValue("$company", companyId);
+            cmd.Parameters.AddWithValue("$code", code);
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+
     private static void CheckLines(IReadOnlyList<Line> lines)
     {
         if (lines is null || lines.Count is < 2 or > MaxEntries)
@@ -875,6 +899,11 @@ internal sealed partial class EncryptedLedgerStore : IDisposable
                 store.AddUser(admin, a, "qa.viewer", viewerPassword, "viewer");
                 var staff = store.Authenticate("qa.staff", staffPassword);
                 var viewer = store.Authenticate("qa.viewer", viewerPassword);
+                if (staff is not null)
+                {
+                    store.EnsureSyntheticPreviewAccounts(staff, a);
+                    store.EnsureSyntheticPreviewAccounts(staff, a); // idempotent
+                }
                 if (staff is null || viewer is null) return false;
                 // Read-only encrypted preflight: balances, tenant, roles,
                 // registered accounts; NO journal or audit record created.

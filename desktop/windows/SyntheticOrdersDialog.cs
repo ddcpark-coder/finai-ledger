@@ -66,13 +66,21 @@ internal sealed class SyntheticOrdersDialog : Form
     private readonly Button restore = ActionButton("Obnovi kopijo");
     private readonly Button export = ActionButton("Izvozi šifrirano kopijo");
     private readonly Button save = ActionButton("Shrani demo osnutek");
+    private readonly Button prepareAccounts = ActionButton("Pripravi demo konta");
+    private readonly Button reviewJournal = ActionButton("Preveri demo temeljnico");
+    private readonly NumericUpDown journalCents = new()
+    {
+        Minimum = 1, Maximum = 1_000_000, Value = 12_345,
+        DecimalPlaces = 0, ThousandsSeparator = true, Width = 135,
+        AccessibleName = "Znesek sintetične temeljnice v centih"
+    };
 
     private EncryptedLedgerStore? ledger;
     private EncryptedLedgerStore.Session? session;
 
     public SyntheticOrdersDialog()
     {
-        Text = "FinAI — šifrirana sintetična naročila (lokalni QA)";
+        Text = "FinAI — šifrirani sintetični osnutki in predpregled (lokalni QA)";
         MinimumSize = new Size(920, 610);
         Size = new Size(1090, 730);
         StartPosition = FormStartPosition.CenterParent;
@@ -85,12 +93,13 @@ internal sealed class SyntheticOrdersDialog : Form
 
         var page = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5,
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6,
             Padding = new Padding(20), BackColor = BackColor
         };
         page.RowStyles.Add(new RowStyle(SizeType.Absolute, 66));
         page.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));
         page.RowStyles.Add(new RowStyle(SizeType.Absolute, 88));
+        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
         page.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         page.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
 
@@ -128,6 +137,16 @@ internal sealed class SyntheticOrdersDialog : Form
         draftBar.Controls.Add(save);
         draftBar.Controls.Add(export);
 
+        var journalBar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill, WrapContents = true, AutoScroll = true,
+            FlowDirection = FlowDirection.LeftToRight, BackColor = Surface,
+            Padding = new Padding(10, 8, 10, 8)
+        };
+        journalBar.Controls.Add(Labeled("Znesek demo temeljnice v centih", journalCents));
+        journalBar.Controls.Add(prepareAccounts);
+        journalBar.Controls.Add(reviewJournal);
+
         var listing = new GroupBox
         {
             Text = "Lokalni šifrirani osnutki (samo pregled, brez knjiženja)",
@@ -142,8 +161,9 @@ internal sealed class SyntheticOrdersDialog : Form
         page.Controls.Add(heading, 0, 0);
         page.Controls.Add(loginBar, 0, 1);
         page.Controls.Add(draftBar, 0, 2);
-        page.Controls.Add(listing, 0, 3);
-        page.Controls.Add(message, 0, 4);
+        page.Controls.Add(journalBar, 0, 3);
+        page.Controls.Add(listing, 0, 4);
+        page.Controls.Add(message, 0, 5);
         Controls.Add(page);
 
         initialize.Click += (_, _) => Guard(CreateVault, "Testnega trezorja ni mogoče ustvariti.");
@@ -152,6 +172,10 @@ internal sealed class SyntheticOrdersDialog : Form
         restore.Click += (_, _) => Guard(RestoreBackup, "Šifrirane kopije ni mogoče obnoviti.");
         save.Click += (_, _) => Guard(SaveDraft, "Osnutek ni bil shranjen.");
         export.Click += (_, _) => Guard(ExportBackup, "Izvoz šifrirane kopije ni uspel.");
+        prepareAccounts.Click += (_, _) => Guard(PreparePreviewAccounts,
+            "Sintetičnih kontov ni mogoče pripraviti.");
+        reviewJournal.Click += (_, _) => Guard(ReviewJournal,
+            "Sintetične temeljnice ni mogoče varno preveriti.");
         companies.SelectedIndexChanged += (_, _) =>
         {
             if (session is not null) Guard(RefreshOrders, "Pregleda osnutkov ni mogoče osvežiti.");
@@ -230,6 +254,9 @@ internal sealed class SyntheticOrdersDialog : Form
         units.Enabled = active;
         priceCents.Enabled = active;
         save.Enabled = active && companies.SelectedItem is EncryptedLedgerStore.SyntheticCompany;
+        prepareAccounts.Enabled = save.Enabled;
+        reviewJournal.Enabled = save.Enabled;
+        journalCents.Enabled = save.Enabled;
         login.Enabled = !active;
         phrase.Enabled = !active;
     }
@@ -322,7 +349,7 @@ internal sealed class SyntheticOrdersDialog : Form
         companies.Items.Clear();
         orders.Items.Clear();
         phrase.Clear();
-        message.Text = "Lokalna seja zaključena; šifrirani trezor je zaprt.";
+        message.Text = "Lokalna seja zaključena; demo predpregled je počiščen.";
         UpdateControls();
     }
 
@@ -361,6 +388,28 @@ internal sealed class SyntheticOrdersDialog : Form
             decimal.ToInt64(priceCents.Value));
         RefreshOrders();
         message.Text = "Sintetični osnutek shranjen v šifrirani zbirki. Ni knjižen ali poslan.";
+    }
+
+    private void PreparePreviewAccounts()
+    {
+        var (store, localSession, companyId) = ActiveCompany();
+        store.EnsureSyntheticPreviewAccounts(localSession, companyId);
+        message.Text = "Pripravljena sta fiksna izmišljena konta 1200 in 2600. Brez knjiženja.";
+    }
+
+    private void ReviewJournal()
+    {
+        var (store, localSession, companyId) = ActiveCompany();
+        var cents = decimal.ToInt64(journalCents.Value);
+        var result = store.Preview(localSession, companyId, [
+            new EncryptedLedgerStore.Line("1200", cents, 0),
+            new EncryptedLedgerStore.Line("2600", 0, cents)
+        ]);
+        if (result.PostingAllowed || result.DebitCents != result.CreditCents)
+            throw new InvalidDataException("Synthetic preview must never post");
+        var euros = (result.DebitCents / 100m).ToString("N2",
+            CultureInfo.GetCultureInfo("sl-SI"));
+        message.Text = $"Preverjeno {result.LineCount} demo postavki: breme = dobro = {euros} EUR. NI KNJIŽENO.";
     }
 
     private void ExportBackup()
