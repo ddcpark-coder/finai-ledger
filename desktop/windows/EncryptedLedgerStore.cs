@@ -482,6 +482,52 @@ internal sealed partial class EncryptedLedgerStore : IDisposable
             throw new ArgumentException("Unbalanced double-entry journal");
     }
 
+    /// <summary>
+    /// NEXT27: read-only check inside the encrypted offline ledger.
+    /// Uses the current short-lived local session and tenant's registered
+    /// synthetic accounts. No transaction, journal, audit or network write.
+    /// A successful preview is NEVER permission to skip checks during Post().
+    /// </summary>
+    internal sealed record JournalPreview(long DebitCents, long CreditCents,
+                                          int LineCount, bool PostingAllowed);
+
+    public JournalPreview Preview(Session session, string companyId,
+                                  IReadOnlyList<Line> lines)
+    {
+        companyId = ValidateUuid(companyId);
+        CheckLines(lines);
+        using var db = OpenDb();
+        RequireRole(db, session, companyId, write: true);
+
+        long debit = 0, credit = 0;
+        checked
+        {
+            foreach (var line in lines)
+            {
+                if (line.DebitCents > 1_000_000_000_000L ||
+                    line.CreditCents > 1_000_000_000_000L)
+                    throw new ArgumentException("Synthetic preview line exceeds allowed range");
+
+                using var query = db.CreateCommand();
+                query.CommandText = """
+                    SELECT 1 FROM accounts
+                    WHERE company_id=$company AND code=$code LIMIT 1;
+                    """;
+                query.Parameters.AddWithValue("$company", companyId);
+                query.Parameters.AddWithValue("$code", line.Account);
+                if (query.ExecuteScalar() is null)
+                    throw new ArgumentException("Unregistered account in synthetic company");
+
+                debit += line.DebitCents;
+                credit += line.CreditCents;
+            }
+        }
+        // CheckLines() also enforces positive one-sided amounts and equality.
+        if (debit <= 0 || debit != credit)
+            throw new ArgumentException("Unbalanced synthetic preview");
+        return new JournalPreview(debit, credit, lines.Count, PostingAllowed: false);
+    }
+
     public string Post(Session session, string companyId, string idempotencyKey,
                        string memo, IReadOnlyList<Line> lines)
     {
@@ -830,8 +876,36 @@ internal sealed partial class EncryptedLedgerStore : IDisposable
                 var staff = store.Authenticate("qa.staff", staffPassword);
                 var viewer = store.Authenticate("qa.viewer", viewerPassword);
                 if (staff is null || viewer is null) return false;
+                // Read-only encrypted preflight: balances, tenant, roles,
+                // registered accounts; NO journal or audit record created.
+                var sample = new[] {
+                    new Line("1200", 12345, 0),
+                    new Line("2600", 0, 12345)
+                };
+                var preview = store.Preview(staff, a, sample);
+                if (preview.DebitCents != 12345 || preview.CreditCents != 12345 ||
+                    preview.LineCount != 2 || preview.PostingAllowed)
+                    return false;
+                using (var check = store.OpenDb())
+                using (var sql = check.CreateCommand())
+                {
+                    sql.CommandText = "SELECT COUNT(*) FROM journals;";
+                    if (Convert.ToInt64(sql.ExecuteScalar()) != 0) return false;
+                    sql.CommandText = "SELECT COUNT(*) FROM audit_events;";
+                    if (Convert.ToInt64(sql.ExecuteScalar()) != 0) return false;
+                }
+                if (!Rejected(() => store.Preview(viewer, a, sample)) ||
+                    !Rejected(() => store.Preview(staff, b, sample)) ||
+                    !Rejected(() => store.Preview(staff, a, [
+                        new Line("1200", 12345, 0), new Line("4300", 0, 12345)])) ||
+                    !Rejected(() => store.Preview(staff, a, [
+                        new Line("1200", 12345, 0), new Line("2600", 0, 12344)])) ||
+                    !Rejected(() => store.Preview(staff, a, [
+                        new Line("1200", 1_000_000_000_001L, 0),
+                        new Line("2600", 0, 1_000_000_000_001L)])))
+                    return false;
                 var journal = store.Post(staff, a, Guid.NewGuid().ToString("D"),
-                    marker, [new Line("1200", 12345, 0), new Line("2600", 0, 12345)]);
+                    marker, sample);
                 if (store.Lines(viewer, a, journal).Count != 2 ||
                     !Rejected(() => store.Post(viewer, a, Guid.NewGuid().ToString("D"),
                         "Viewer must not post",
