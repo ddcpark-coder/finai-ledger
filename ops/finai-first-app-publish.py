@@ -18,6 +18,7 @@ import socket
 import stat
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 
@@ -107,7 +108,7 @@ def get_https(url, limit):
     return result
 
 
-def check_live(release):
+def check_live_once(release):
     base = 'https://app.e-integrator.si'
     marker = get_https(base + '/finai-build.json', 4096)
     require(marker == (release / 'finai-build.json').read_bytes(), 'live build marker differs')
@@ -127,13 +128,34 @@ def check_live(release):
             'live asset differs')
 
 
+def check_live(release):
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            check_live_once(release)
+            return
+        except urllib.error.HTTPError as error:
+            if error.code not in (403, 404) or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.5)
+
+
 def check_unpublished():
-    try:
-        get_https('https://app.e-integrator.si/finai-build.json', 4096)
-    except urllib.error.HTTPError as error:
-        require(error.code in (403, 404), 'unexpected response after unpublish')
-        return
-    raise Stop('release still visible after unpublish')
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            payload = get_https('https://app.e-integrator.si/finai-build.json', 4096)
+        except urllib.error.HTTPError as error:
+            require(error.code in (403, 404), 'unexpected response after unpublish')
+            return
+        try:
+            marker = json.loads(payload)
+        except ValueError as error:
+            raise Stop('unexpected response after unpublish') from error
+        require(marker == {'application': 'finai-ledger', 'commit': SOURCE_COMMIT},
+                'unexpected release after unpublish')
+        require(time.monotonic() < deadline, 'release still visible after unpublish')
+        time.sleep(0.5)
 
 
 def guarded_promote(gate, root):
