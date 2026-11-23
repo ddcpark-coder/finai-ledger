@@ -278,7 +278,8 @@ internal sealed class SyntheticOfflineSyncOutbox
                 cmd.Parameters.AddWithValue("$id", a);
                 cmd.ExecuteNonQuery();
             }
-            return Rejected(() => queue.List("1")) && queue.List("2").Count == 1;
+            return Rejected(() => queue.List("1")) && queue.List("2").Count == 1
+                && SyntheticWindowsTransfer.SelfTest();
         }
         finally
         {
