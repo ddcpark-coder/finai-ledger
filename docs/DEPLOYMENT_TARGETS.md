@@ -1,6 +1,7 @@
 # FinAI — ciljni načini izdaje (potrjeno 8. 11. 2026)
 
 > **Posodobitev 23. 11. 2026 / aktualno pravilo C:** Namenski cPanel/OS račun **`einteg86` (UID 1256)** za FinAI je že vzpostavljen. Spodnja časovnica opisuje stanje novembra 2026 in je **zgodovinska**, ne zahteva več ustvarjanja novega računa. Izvor trenutnih operativnih pravil je [`FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md`](./FINAI_CHATGPT_PROJECT_INSTRUCTIONS.md). Namestitev posodobljene aplikacije/API in preverjena obnova sta ločena odprta koraka; starega računa ni dovoljeno čistiti iz FinAI postopkov.
+
 **Hiper M je edina načrtovana spletna produkcija. Windows namizna različica mora biti samostojna in delovati tudi brez internetne povezave. Vercel ni produkcijsko gostovanje.**
 
 ## Časovnica gostovanja — potrjeno 9. 11. 2026
