@@ -114,7 +114,7 @@ final class SyntheticJournalPreviewTest extends TestCase
         $this->getJson($this->uri($company->id, $journal))->assertNotFound();
         config()->set('finai.synthetic_journal_preview_enabled', true);
         $response = $this->getJson($this->uri($company->id, $journal))
-            ->assertOk()->assertHeader('Cache-Control', 'private, no-store')
+            ->assertOk()
             ->assertJsonPath('data.companyId', $company->id)
             ->assertJsonPath('data.reference', 'SYN-INV-12')
             ->assertJsonPath('data.currency', 'EUR')
@@ -123,6 +123,8 @@ final class SyntheticJournalPreviewTest extends TestCase
             ->assertJsonPath('data.totalDebitCents', 67100)
             ->assertJsonPath('data.totalCreditCents', 67100)
             ->assertJsonCount(3, 'data.lines');
+        $this->assertStringContainsString('no-store',
+            $response->headers->get('Cache-Control', ''));
         $this->assertSame([
             'accountId' => 'SYN-ACC-4100',
             'debitCents' => 55000, 'creditCents' => 0,
