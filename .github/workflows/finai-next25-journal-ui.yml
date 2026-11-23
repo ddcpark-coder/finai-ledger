@@ -1,0 +1,24 @@
+name: FinAI NEXT25 synthetic journal UI review
+on:
+  pull_request:
+    paths:
+      - "app/page.jsx"
+      - "app/next11/syntheticJournalDemo.mjs"
+      - "app/next11/syntheticLedgerPreflight.mjs"
+      - "tests/next25SyntheticJournalUi.test.mjs"
+      - ".github/workflows/finai-next25-journal-ui.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-journal-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Targeted demo journal and existing preflight regression
+        run: node --test tests/next24SyntheticLedgerPreflight.test.mjs tests/next25SyntheticJournalUi.test.mjs

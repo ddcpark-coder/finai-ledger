@@ -6,6 +6,7 @@ import ContextNavigation from "./components/ContextNavigation";
 import AdaptiveWorkspace from "./components/AdaptiveWorkspace";
 import useContextNavigation from "./hooks/useContextNavigation";
 import useWorkspacePreferenceSync,{useLocalWorkspaceAppearance} from "./hooks/useWorkspacePreferenceSync";
+import {DEMO_INVOICE_JOURNAL_LINES,reviewDemoInvoiceJournal} from "./next11/syntheticJournalDemo.mjs";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -260,11 +261,6 @@ function IdentityAccessPanel({company,setCompany,twoFactor,setTwoFactor,light,se
  </div>;
 }
 
-const demoJournalLines=[
- {account:"4100",name:"Storitve",debit:"550,00 €",credit:"—"},
- {account:"2601",name:"Vstopni DDV",debit:"121,00 €",credit:"—"},
- {account:"2200",name:"Dobavitelji",debit:"—",credit:"671,00 €"}
-];
 const demoAccounts=[
  ["1200","Terjatve do kupcev","Saldakonti"],
  ["2200","Obveznosti do dobaviteljev","Saldakonti"],
@@ -273,53 +269,74 @@ const demoAccounts=[
  ["7600","Prihodki od storitev","Prihodki"]
 ];
 
-function AccountingCorePanel({context}){
+function AccountingCorePanel({context,companyId}){
  const tab=context?.level2??"Temeljnice";
- const [posted,setPosted]=useState(false);
  const [periodLocked,setPeriodLocked]=useState(false);
+ const [preflightResult,setPreflightResult]=useState(null);
+ const [preflightError,setPreflightError]=useState("");
+ useEffect(()=>{setPreflightResult(null);setPreflightError("");setPeriodLocked(false)},[companyId]);
+ const moneyCents=cents=>(cents/100).toLocaleString("sl-SI",{style:"currency",currency:"EUR"});
+ const checkDemo=()=>{
+   try{
+     setPreflightResult(reviewDemoInvoiceJournal(companyId));
+     setPreflightError("");
+   }catch(error){
+     setPreflightResult(null);
+     setPreflightError(error instanceof Error?error.message:"Sintetičnega osnutka ni mogoče preveriti.");
+   }
+ };
  return <section className="accountingShell">
+   <p style={{fontSize:11,color:"var(--muted)",lineHeight:1.6}}>
+     Demonstracijski računovodski pogled z izmišljenimi podatki.
+     Preverjanje osnutka ne ustvari knjižbe, revizijskega zapisa ali spremembe na strežniku.
+   </p>
 
    {tab==="Temeljnice"&&<div className="accountingGrid">
      <article className="accCard">
-       <div className="accHead"><div><h3>Temeljnica BK-2026-1234</h3><small style={{color:"var(--muted)"}}>01. 11. 2026 · Prejeti račun · MER-2026-04562</small></div><span className={"periodState "+(posted?"locked":"open")}>{posted?"Knjiženo":"Osnutek"}</span></div>
+       <div className="accHead"><div><h3>Sintetična temeljnica · SYN-INV-12</h3><small style={{color:"var(--muted)"}}>Izmišljeni primer prejetega računa · brez knjiženja</small></div><span className="periodState open">Demo osnutek</span></div>
        <div className="accBody">
          <div className="journalLine head"><span>Konto</span><span>Opis</span><span>Breme</span><span>Dobro</span></div>
-         {demoJournalLines.map(l=><div className="journalLine" key={l.account}><b>{l.account}</b><span>{l.name}</span><span className="money">{l.debit}</span><span className="money">{l.credit}</span></div>)}
-         <div className="balanceBox"><div><b>✓ Temeljnica je uravnotežena</b><small>Breme 671,00 € = Dobro 671,00 €</small></div><button className="primary" disabled={posted||periodLocked} onClick={()=>setPosted(true)}>{posted?"Knjiženo":"Knjiži temeljnico"}</button></div>
+         {DEMO_INVOICE_JOURNAL_LINES.map(l=><div className="journalLine" key={l.accountId}><b>{l.accountId.slice("SYN-ACC-".length)}</b><span>{l.label}</span><span className="money">{l.debitCents?moneyCents(l.debitCents):"—"}</span><span className="money">{l.creditCents?moneyCents(l.creditCents):"—"}</span></div>)}
+         <div className="balanceBox"><div><b>Sintetični predpregled</b><small>Preverjanje natančnih centov in ravnotežja; brez knjiženja.</small></div><button className="primary" type="button" disabled={periodLocked} onClick={checkDemo}>Preveri demo osnutek</button></div>
+         {preflightResult&&<p role="status" style={{fontSize:11,color:"var(--ok)"}}>
+           Osnutek preverjen: {preflightResult.lines.length} postavke, breme {moneyCents(preflightResult.totalDebitCents)} in dobro {moneyCents(preflightResult.totalCreditCents)}.
+           Knjiženje ni dovoljeno; podatki niso shranjeni.
+         </p>}
+         {preflightError&&<p role="alert" style={{fontSize:11,color:"var(--danger)"}}>{preflightError}</p>}
        </div>
      </article>
      <aside className="accCard">
        <div className="accHead"><h3>Kontrola knjiženja</h3><span className="roleBadge">double-entry</span></div>
        <div className="accBody">
          <div className="accMetric"><div><small>Breme</small><b>671,00 €</b></div><div><small>Dobro</small><b>671,00 €</b></div><div><small>Razlika</small><b style={{color:"var(--ok)"}}>0,00 €</b></div></div>
-         <div className="securityTile"><b>Obdobje 11/2026</b><small>{periodLocked?"Zaklenjeno — nova knjiženja niso dovoljena.":"Odprto za knjiženje."}</small></div>
-         <div className="securityTile"><b>AI predlog</b><small>92 % gotovost · 4100 / 2601 / 2200</small></div>
-         <button className="secondary" style={{width:"100%"}}>Prikaži revizijsko sled</button>
+         <div className="securityTile"><b>Simulirano obdobje 11/2026</b><small>{periodLocked?"Demo zaklep blokira samo lokalni predpregled.":"Demo obdobje je odklenjeno; prava obdobja niso povezana."}</small></div>
+         <div className="securityTile"><b>Simuliran AI predlog</b><small>92 % je izmišljena ocena · 4100 / 2601 / 2200</small></div>
+         <button className="secondary" type="button" disabled style={{width:"100%"}} title="Revizijska sled še ni povezana">Revizijska sled · v pripravi</button>
        </div>
      </aside>
    </div>}
 
-   {tab==="Glavna knjiga"&&<article className="accCard"><div className="accHead"><h3>Glavna knjiga · {context?.level3}</h3></div><div className="accBody">{demoAccounts.map(a=><div className="accountRow" key={a[0]}><b>{a[0]}</b><span>{a[1]}</span><span className="roleBadge">{a[2]}</span></div>)}</div></article>}
+   {tab==="Glavna knjiga"&&<article className="accCard"><div className="accHead"><h3>Demo glavna knjiga · {context?.level3}</h3></div><div className="accBody">{demoAccounts.map(a=><div className="accountRow" key={a[0]}><b>{a[0]}</b><span>{a[1]}</span><span className="roleBadge">{a[2]}</span></div>)}</div></article>}
    {tab==="Kontni načrt"&&<article className="accCard">
-     <div className="accHead"><h3>Kontni načrt</h3><button className="primary">＋ Dodaj konto</button></div>
+     <div className="accHead"><h3>Demo kontni načrt</h3><button className="primary" type="button" disabled>Dodaj konto · v pripravi</button></div>
      <div className="accBody">{demoAccounts.map(a=><div className="accountRow" key={a[0]}><b>{a[0]}</b><span>{a[1]}</span><span className="roleBadge">{a[2]}</span></div>)}</div>
    </article>}
 
    {tab==="Obdobja"&&<div className="accountingGrid">
      <article className="accCard">
-       <div className="accHead"><h3>Poslovno leto 2026</h3><span className="periodState open">Odprto</span></div>
+       <div className="accHead"><h3>Demo poslovno leto 2026</h3><span className="periodState open">Simulacija</span></div>
        <div className="accBody">
          {[["09/2026","Zaklenjeno"],["10/2026","Zaklenjeno"],["11/2026",periodLocked?"Zaklenjeno":"Odprto"],["12/2026","Prihodnje"]].map(([p,s])=><div className="periodRow" key={p}><b>{p}</b><span>01.–konec meseca</span><span className={"periodState "+(s==="Odprto"?"open":"locked")}>{s}</span></div>)}
        </div>
      </article>
      <aside className="accCard">
        <div className="accHead"><h3>Zaklep obdobja</h3></div>
-       <div className="accBody"><p style={{fontSize:10,color:"var(--muted)",lineHeight:1.55}}>Zaklep prepreči nova knjiženja in spremembe v obdobju. Osnutki morajo biti pred zaklepom razrešeni.</p><button className="primary" style={{width:"100%"}} onClick={()=>setPeriodLocked(v=>!v)}>{periodLocked?"Demo odkleni 11/2026":"Zakleni 11/2026"}</button></div>
+       <div className="accBody"><p style={{fontSize:10,color:"var(--muted)",lineHeight:1.55}}>Samo lokalna simulacija zaklepa preverjanja. Ničesar ne spremeni v pravi glavni knjigi ali na strežniku.</p><button className="primary" type="button" style={{width:"100%"}} onClick={()=>{setPeriodLocked(v=>!v);setPreflightResult(null);setPreflightError("")}}>{periodLocked?"Demo odkleni 11/2026":"Demo zakleni 11/2026"}</button></div>
      </aside>
    </div>}
 
    {tab==="Stroškovna mesta"&&<article className="accCard">
-     <div className="accHead"><h3>Stroškovna mesta</h3><button className="primary">＋ Novo stroškovno mesto</button></div>
+     <div className="accHead"><h3>Demo stroškovna mesta</h3><button className="primary" type="button" disabled>Novo stroškovno mesto · v pripravi</button></div>
      <div className="accBody">{[["UPRAVA","Uprava"],["PROD","Produkcija"],["PRODAJA","Prodaja"],["MARK","Marketing"]].map(x=><div className="accountRow" key={x[0]}><b>{x[0]}</b><span>{x[1]}</span><span className="periodState open">Aktivno</span></div>)}</div>
    </article>}
  </section>
@@ -522,7 +539,7 @@ export default function Page(){
          </div></div>}
        </article>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
-       {section==="Knjiženje"&&<AccountingCorePanel context={activeContext}/>}
+       {section==="Knjiženje"&&<AccountingCorePanel context={activeContext} companyId={company}/>}
        {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext} companyId={company} supplierName={companies.find(x=>x.id===company)?.name} supplierTaxNumber={companies.find(x=>x.id===company)?.tax}/>}
