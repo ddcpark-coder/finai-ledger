@@ -72,10 +72,10 @@ internal sealed class MainWindow : Form
         };
         var secureOrders = new Button
         {
-            Text = "Šifrirana naročila", Dock = DockStyle.Fill,
+            Text = "Šifrirani osnutki", Dock = DockStyle.Fill,
             FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(27, 84, 91),
             ForeColor = Color.White,
-            AccessibleName = "Odpri izvorno Windows okno za šifrirane sintetične osnutke"
+            AccessibleName = "Odpri Windows okno za šifrirane sintetične osnutke in predpregled temeljnic"
         };
         secureOrders.Click += (_, _) =>
         {
