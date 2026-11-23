@@ -149,7 +149,7 @@ export default function Crm360Panel({companyId,context}){
     </label>
     <p style={{fontSize:12,margin:"12px 0 5px"}}><b>{customer.name}</b></p>
     <p style={{fontSize:10,color:"var(--muted)",margin:"0 0 8px"}}>
-     {customer.id} · {selected.unitId}
+     {customer.id} · {selected.id} · {selected.unitId}
     </p>
     <div style={{display:"flex",justifyContent:"space-between",gap:8,
       borderTop:"1px solid var(--line)",paddingTop:8,fontSize:11}}>
