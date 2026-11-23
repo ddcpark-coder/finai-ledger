@@ -27,6 +27,12 @@ internal sealed class SyntheticWindowsTransferDialog : Form
     {
         Width = 325, AccessibleName = "UUID lokalnega testnega dogodka"
     };
+    private readonly TextBox trustedFingerprint = new()
+    {
+        Width = 555, MaxLength = 64,
+        AccessibleName = "Neodvisno preverjen SHA256 prstni odtis RSA ključa"
+    };
+    private readonly SyntheticWindowsAckReview ackReviewer = new();
     private readonly Label result = new()
     {
         AutoSize = false, Dock = DockStyle.Fill, ForeColor = Color.FromArgb(136, 231, 205),
@@ -36,8 +42,8 @@ internal sealed class SyntheticWindowsTransferDialog : Form
     public SyntheticWindowsTransferDialog()
     {
         Text = "FinAI — ročni prenos šifriranega demo dogodka";
-        Size = new Size(780, 370);
-        MinimumSize = new Size(700, 340);
+        Size = new Size(810, 570);
+        MinimumSize = new Size(750, 500);
         StartPosition = FormStartPosition.CenterParent;
         BackColor = Color.FromArgb(9, 26, 40);
         ForeColor = Color.White;
@@ -67,6 +73,13 @@ internal sealed class SyntheticWindowsTransferDialog : Form
         options.Controls.Add(expectedVersion);
         panel.Controls.Add(options);
         panel.Controls.Add(eventId);
+        panel.Controls.Add(new Label
+        {
+            Width = 700, Height = 38,
+            Text = "Zaupanja vreden javni ključ preveri po LOČENEM kanalu; " +
+                   "SHA256 prstnega odtisa NE prepisuj iz istega ACK odgovora."
+        });
+        panel.Controls.Add(trustedFingerprint);
         var actions = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
         var prepare = new Button
         {
@@ -78,6 +91,11 @@ internal sealed class SyntheticWindowsTransferDialog : Form
         };
         actions.Controls.Add(prepare);
         actions.Controls.Add(export);
+        var importAck = new Button
+        {
+            Text = "Preveri podpisano testno potrdilo", AutoSize = true, Height = 38
+        };
+        actions.Controls.Add(importAck);
         panel.Controls.Add(actions);
         panel.Controls.Add(result);
         Controls.Add(panel);
@@ -87,6 +105,41 @@ internal sealed class SyntheticWindowsTransferDialog : Form
             var item = transfer.Queue(SelectedCompany(), decimal.ToInt32(expectedVersion.Value));
             eventId.Text = item.EventId;
             result.Text = "Sintetični dogodek ustvarjen samo lokalno. Za izvoz uporabi močno frazo.";
+        });
+        importAck.Click += (_, _) => Guard(() =>
+        {
+            if (!Guid.TryParseExact(eventId.Text.Trim(), "D", out var safeId))
+                throw new ArgumentException("Invalid synthetic event UUID");
+            if (trustedFingerprint.Text.Trim().Length != 64)
+                throw new ArgumentException("Independent fingerprint required");
+            using var receiptPicker = new OpenFileDialog
+            {
+                Title = "Izberi celotni JSON odgovor lokalnega testnega Laravel API-ja",
+                Filter = "JSON (*.json)|*.json", Multiselect = false,
+                CheckFileExists = true
+            };
+            if (receiptPicker.ShowDialog(this) != DialogResult.OK) return;
+            if (new FileInfo(receiptPicker.FileName).Length > 16000)
+                throw new InvalidDataException("Oversized synthetic ACK");
+            using var keyPicker = new OpenFileDialog
+            {
+                Title = "Izberi posebej pridobljeni javni RSA ključ (.pem)",
+                Filter = "Javni RSA PEM (*.pem)|*.pem", Multiselect = false,
+                CheckFileExists = true
+            };
+            if (keyPicker.ShowDialog(this) != DialogResult.OK) return;
+            if (new FileInfo(keyPicker.FileName).Length > 8000)
+                throw new InvalidDataException("Oversized public key file");
+            using var phrase = new RecoveryPhraseDialog(confirm: false);
+            if (phrase.ShowDialog(this) != DialogResult.OK) return;
+            var checkedAck = ackReviewer.VerifyAndStore(
+                SelectedCompany(), safeId.ToString("D"), phrase.Passphrase,
+                File.ReadAllText(receiptPicker.FileName),
+                File.ReadAllText(keyPicker.FileName),
+                trustedFingerprint.Text.Trim().ToLowerInvariant());
+            result.Text = "Podpis testnega potrdila preverjen za dogodek " +
+                checkedAck.EventId + ", različica " + checkedAck.Version +
+                ". Samo lokalno preverjanje, BREZ KNJIŽENJA ali avtomatske sinhronizacije.";
         });
         export.Click += (_, _) => Guard(() =>
         {
