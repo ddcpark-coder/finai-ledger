@@ -102,6 +102,9 @@ jobs:
           $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--delivery-queue-self-test' -Wait -PassThru
           if ($qa.ExitCode -ne 0) { throw "Synthetic delivery queue integrity test failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_OFFLINE_SYNTHETIC_DELIVERY_QUEUE=PASS'
+          $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--offline-sync-queue-self-test' -Wait -PassThru
+          if ($qa.ExitCode -ne 0) { throw "Synthetic offline outbox invariant test failed, code $($qa.ExitCode)" }
+          Write-Output 'FINAI_OFFLINE_SYNTHETIC_SYNC_OUTBOX=PASS'
           $qa = Start-Process -FilePath $exe.FullName -ArgumentList '--mobile-import-self-test' -Wait -PassThru
           if ($qa.ExitCode -ne 0) { throw "Encrypted synthetic mobile import validation failed, code $($qa.ExitCode)" }
           Write-Output 'FINAI_WINDOWS_MOBILE_SYNTHETIC_IMPORT=PASS'
