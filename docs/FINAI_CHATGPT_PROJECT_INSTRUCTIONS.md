@@ -1,27 +1,55 @@
-# FinAI – projektna pravila, različica B (pospešen razvoj v FinAI repozitoriju)
+# FinAI – projektna pravila, različica C (namenski cPanel, 23. 11. 2026)
 
-**Status: predlagana operativna dopolnitev pravil B za hitrejši samostojen razvoj; ni samodejna sprememba ChatGPT Project.** GitHub kopija je referenčna; ne spreminja strežniških pravic. Absolutna zaščita Laškoteke in STNG ostaja.
+**Status:** priporočena aktualna operativna pravila za kopiranje v **ChatGPT Project → Instructions**. Posodobitev te datoteke v GitHubu **ne spremeni** nastavitev ChatGPT Project ali dovoljenj na strežniku. Različica B z začasnim skupnim računom ni več veljavna kot *aktualno ciljno okolje*.
 
-1. **ABSOLUTNA PREPOVED SPREMEMB LAŠKOTEKE.** V nobenem FinAI klepetu, ChatGPT Work, Codex, CI/CD, SSH ali cPanel postopku ni dovoljeno neposredno ali posredno spremeniti `laskoteka.si`, `www.laskoteka.si`, `/home/laskot48/public_html`, njene kode, datotek, podatkov, uporabnikov, storitev, DNS, SSL, SSH ključev, `authorized_keys`, cron, konfiguracije ali varnostnih kopij. Prepoved vključuje vplive prek skupnih servisov.
-2. **STNG in drugi projekti so nedotakljivi.** Pisanje z nalogo FinAI je dovoljeno izključno v preverjenem FinAI repozitoriju oziroma kasneje ločenem gostovalnem okolju.
-3. **Začasni razvojni režim B:** do javne produkcije ostane FinAI na istem paketu oziroma fizičnem gostovanju Hiper M, kjer so druge aplikacije. Več domen in ločeni document root direktoriji so dovoljeni; skupni cPanel/OS račun `laskot48` je za avtomatizacije FinAI **izključno read-only**. Režim B sam po sebi ne pomeni dovoljenja za pisanje na ta račun.
-4. **Tehnična izolacija pisanja:** pred kakršnimkoli strežniškim zapisom mora ponudnik potrditi dejansko neodvisno učinkovito sistemsko identiteto/lastništvo in pravice, ki FinAI ne omogočajo spreminjati drugih projektov. Isti Unix UID `laskot48`, ločene mape, `chmod 700`, ločena MariaDB baza in SSH forced-command brez OS izolacije niso zadosten dokaz.
-5. **SSH pravice:** obstoječi ključi in `authorized_keys` na `laskot48` ostanejo nespremenjeni. Novi namenski FinAI Ed25519 ključ je dovoljen izključno v preverjenem ločenem sistemskem okolju, z omejenim naborom ukazov, strogim preverjanjem host ključa ter brez poljubnega terminalskega dostopa.
-6. **Spletna namestitev:** Hiper M je cilj testne in javne izdaje FinAI; Vercel je lahko zgolj zaščiten pregledni predogled s sintetičnimi podatki. `app.e-integrator.si` se ne usmeri na Vercel.
-7. **Pospešen, samostojen razvoj:** ukazi »izvedi«, »nadaljuj« in drugi razvojni cilji pomenijo vnaprejšnjo odobritev običajnih **FinAI-only** pisalnih dejanj v repozitoriju `ddcpark-coder/finai-ledger`: ustvarjanje vej in datotek, implementacije, minimalni testi, pregled PR in samodejno združevanje po uspešnih preverjanjih. Ne zahtevaj ponovnih potrditev za vsak korak; ob blokadi na gostovanju nadaljuj ostalo dovoljeno delo in poročaj le o blokiranem delu.
-8. **CI/CD in testni predogledi:** brez dodatnih dovoljenj samostojno sprožaj ter urejaj GitHub Actions za FinAI, gradi spletno in Windows aplikacijo, zaženi ciljane teste z izključno sintetičnimi podatki ter pripravljaj zaščitene vizualne predoglede. Objave na skupni OS/cPanel račun `laskot48`, ustvarjanje ali širjenje pisalnih ključev in spremembe skupne infrastrukture ostajajo izključene, dokler ne velja dokazljiva izolacija iz točke 4.
-9. **Preverjanje vsake namestitve:** pred pisanjem preveri natančen OS račun, lastnika, `realpath`, komponentne simbolne povezave, `docroot`, datotečne pravice, ciljno zbirko, različico izdaje SHA256, zadnji PASS test in možnost obnovitve. Ob odstopanju izdajanje zavrni.
-10. **Varovana objava:** po dovoljeni izolaciji uporabljaj nespremenljive izdaje, preverjen HTTPS, avtomatiziran smoke QA, rezervno kopijo, atomarni preklop in preverljivo povrnitev. Ni splošnega SSH ključa ali samovoljnega spreminjanja cPanel/OS nastavitev.
-11. **Namenska FinAI baza:** ko je omogočena varna izolacija, uporabi samostojno MariaDB bazo, uporabnika z najmanjšimi privilegiji in ločene skrivnosti. Nobenega posega v baze Laškoteke ali STNG; migracije le v FinAI testnem okolju po preverjenem snapshotu.
-12. **Windows aplikacija:** samostojna in namestljiva brez internetne povezave ali Hiper M; lokalna šifrirana baza, ločitev podjetij, nespremenljiva revizijska sled ter prenosna preverljiva obnova.
-13. **Zaupnost podatkov:** uporabljaj samo sintetične podatke, dokler niso dokazani šifriranje, prijava, varna obnova, izolacija podjetij, slovenska računovodska pravilnost, FURS/RS/EU skladnost in varnostni QA. Gesla, zasebni ključi in podatkovne zbirke ne smejo biti v klepetu, kodi ali dnevnikih.
-14. **Pragmatični testi:** izvaja se samo najmanjši relevantni QA za spremenjene funkcije, brez nepotrebnega ponavljanja zgodovinskih preizkusov. Obstoječa produkcija Laškoteke in STNG se nikoli ne uporablja kot testno okolje.
-15. **Prehod v javno produkcijo:** FinAI mora pred obravnavo resničnih podatkov dobiti lasten fizično/logično ločen Hiper M OS/cPanel račun, ločene SSH ključe, bazo, obnovitvene kopije, TLS in nadzorovane objave. Začasni režim B tedaj preneha veljati, brez prenosa skupnih ključev ali kakršnihkoli sprememb Laškoteke.
+## 1. Obseg
 
-## Obvezna uvodna vrstica za nove Work naloge
+Vse razvojne in operativne naloge veljajo **izključno** za FinAI / e-integrator.si in repozitorij \`ddcpark-coder/finai-ledger\`. Vsi drugi projekti in njihove datoteke, storitve, baze, cPanel računi, ključi, DNS, SSL, varnostne kopije in podatki so **nedotakljivi**. Izrecno velja prepoved vsake spremembe Laškoteke, STNG in starega skupnega računa \`laskot48\`. Uporabnik z zahtevo za FinAI ne odobri čiščenja starega računa. Noben FinAI agent ne sme pisati v \`/home/laskot48/public_html\` ali drugo pot starega računa.
 
-»Delo velja IZKLJUČNO za FinAI / e-integrator.si. Spreminjanje Laškoteke v kakršnikoli obliki je strogo prepovedano, prav tako spreminjanje STNG in skupnih cPanel/SSH nastavitev. Med razvojem lahko FinAI uporablja skupno infrastrukturo Hiper M, vendar je račun laskot48 za naloge FinAI izključno read-only. Pisalne objave so mogoče le v neodvisno izoliranem OS okolju. Nadaljuj z dovoljeno implementacijo, minimalnimi testi in GitHub razvojem; ob varnostni blokadi ustavi samo nevarni del in poročaj.«
+To varnostno pravilo ostane v projektnih navodilih, vendar ga **ni treba ponavljati v vsakem običajnem odgovoru, PR-ju ali poročilu**. Navedi ga le pri strežniških operacijah, migracijah ali dejanski nevarnosti medprojektnega posega.
 
-## Meje veljavnosti
+## 2. Trenutno razvojno okolje
 
-Uporabnik je predhodno potrdil različico B v **ChatGPT Project → Instructions**. Pospešitvene dopolnitve te datoteke se v nastavitvah Project ne prenesejo samodejno; treba jih je tja uskladiti. **Dejansko tehnično izolacijo** je še vedno treba preveriti; projektna navodila ne omejijo SSH procesa z istim `laskot48` UID.
+FinAI ima že **namenski cPanel/OS račun \`einteg86\` (UID 1256, \`/home/einteg86\`)**. Za aplikacijo je predviden \`app.e-integrator.si\`, za Laravel API \`api.e-integrator.si\`, za osnovno stran \`e-integrator.si\`. Njihove dejanske dokumentne korene je treba preveriti ob vsaki namestitvi; zgodovinsko potrjeni imeniki so \`/home/einteg86/app.e-integrator.si\`, \`/home/einteg86/api.e-integrator.si\` in \`/home/einteg86/public_html\`. Novo računovodsko okolje se ne deli s starim cPanel sistemskim uporabnikom.
+
+**Ustvarjen račun ni samodejno dokaz popolne izolacije, delujočega API-ja, aktivne aktualne izdaje, namenske MariaDB ali preverjene povrnitve.** Te predpogoje preverimo ciljno pred pisalnimi strežniškimi operacijami, ne pa pri vsaki običajni GitHub razvojni nalogi.
+
+## 3. Pospešen samostojen razvoj
+
+Ukazi »izvedi« in »nadaljuj« dovoljujejo običajno samostojno delo **znotraj FinAI**: pripravo/spreminjanje kode, GitHub vej, PR-jev in CI, najmanjše potrebne teste, pregled in združitev uspešno preverjenih sprememb. Smiselno združuj povezane korake, ne ponavljaj že zaključenih testov. Ob blokiranem strežniškem opravilu nadaljuj vse druge dovoljene naloge.
+
+## 4. Spletna namestitev in zaščiteni predogledi
+
+Cilj spletne aplikacije je **namenski Hiper M cPanel \`einteg86\`**. Vercel je lahko samo zaščiten razvojni predogled s sintetičnimi podatki; javne domene FinAI ne usmerjamo na Vercel. Nikoli ne sklepaj, da uspešna GitHub gradnja pomeni opravljeno namestitev. Javna aplikacija mora prikazovati dejanski preverjen SHA izdaje.
+
+Prva strežniška objava zahteva ciljno preverjanje izolacije OS/ACL, identitete, resničnih poti in symlinkov, lastništva, webserver/docroot ujemanja, namenskega SSH ukaznega prehoda, namenske baze, HTTPS, kontrolnega SHA256, obnove ter minimalnih ciljnih testov. Prvi preklop je ročno varovan; poznejša samodejna sintetična izdaja je mogoča šele ob izrecno omogočenih in dokazano izpolnjenih varovalkah, atomarnem preklopu, smoke testu in rollbacku.
+
+## 5. Namenski dostopi in skrivnosti
+
+Uporabljaj samo namenjene FinAI Ed25519/SSH identitete z dovoljenimi ukazi, pripetim ključem strežnika in najmanjšimi potrebnimi pravicami. Ni splošnega SSH ali prenašanja starih ključev. Gesla, zasebni ključi, \`.env\`, podatki strank in dostopni žetoni ne sodijo v klepet, izvorno kodo ali dnevnike. Za Laravel pripravi ločeno FinAI bazo in uporabnika s privilegiji samo za to bazo; migracije le v preverjenem FinAI okolju.
+
+## 6. Funkcionalnosti in platforme
+
+Razvijaj povezan ERP/računovodski sistem: računovodstvo in DDV, dokumente, CRM 360, ponudbe, naročila, skladišča, več poslovnih enot, poslovno analitiko, integracije in mobilni podpis. Različne platforme naj uporabljajo usklajene podatkovne pogodbe in izolacijo podjetij.
+
+Windows aplikacija mora biti **samostojna in namestljiva brez internetne povezave**, s šifrirano lokalno bazo, revizijsko sledjo in preverljivo prenosno obnovo. Mobilno sinhronizacijo omogoči šele po preverjenih napravah, identitetah, pooblastilih, konfliktih in obnovi.
+
+## 7. Zakonitost in podatkovna varnost
+
+Do zaključenega varnostnega in računovodskega QA uporabljaj samo **sintetične podatke**. Za resnične podatke so obvezni: avtorizacija in MFA glede na tveganje, šifriranje, izolacija podjetij, revizijska sled, test obnove, pravilnost knjiženja, davčna logika in skladnost RS/EU/FURS. Demonstracijskih funkcij nikoli ne označi kot dejansko knjiženje, davčno potrjevanje ali pošiljanje.
+
+## 8. Minimalni testi in jasno poročanje
+
+Testiraj spremenjene funkcije in njihove kritične odvisnosti; prej opravljena preverjanja uporabljaj ponovno. V kratkem poročilu loči: (a) izdelano kodo, (b) uspešne teste, (c) združen PR, (d) dejansko nameščeno izdajo in (e) blokade. V običajnem poročilu se osredotoči na napredek FinAI, ne ponavljaj rutinskih stavkov o drugih projektih.
+
+## 9. Podedovana namestitev na starem računu
+
+Račun \`laskot48\` je za FinAI **read-only** in je samo zgodovinski vir; zanj ni dovoljenega samodejnega deploya, brisanja, spreminjanja ključev, računov, cronov ali konfiguracije. Stari FinAI ostanki so predmet **ločene, izrecno pooblaščene administrativne vzdrževalne naloge izven FinAI Work/CI**, po preverjeno uspešni novi namestitvi, zanesljivi obnovi, popisu dejanskega lastništva in odvisnosti ter dovolj dolgem opazovalnem obdobju. Glej \`docs/FINAI_LEGACY_CLEANUP_HANDOFF.md\`. Samo ime mape \`finai\` ni dokaz, da je celoten njen položaj varen za brisanje.
+
+## Uvodna vrstica za nove Work naloge
+
+> Delo velja IZKLJUČNO za FinAI / e-integrator.si na namenskem računu \`einteg86\` in v repozitoriju \`ddcpark-coder/finai-ledger\`. Razvijaj samostojno, smiselno združuj naloge in izvajaj le nujne sintetične teste. Strežniško pisanje in objavo dovoli samo po preverjanju izolacije, ciljev, SHA256 in povrnitve; stari skupni račun ostaja read-only, drugi projekti so izven obsega. Ob blokadi nadaljuj vse druge varne naloge in poročaj o dejanskih rezultatih.
+
+## Veljavnost
+
+To je repozitorijska kopija pravil. Nastavitve **ChatGPT Project → Instructions** je treba posodobiti posebej. Nobeno pravilo samo po sebi ne izvede strežniške selitve, ne potrdi dejanskega SSH/ACL stanja, ne izbriše starih datotek in ne spremeni produkcijskega načina aplikacije.
