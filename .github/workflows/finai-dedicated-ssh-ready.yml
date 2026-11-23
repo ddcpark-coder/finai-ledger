@@ -32,6 +32,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Inspect dedicated staging SSH bindings without exposing credentials
+        shell: bash
+        env:
+          FINAI_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.FINAI_DEPLOY_SSH_PRIVATE_KEY }}
+          FINAI_DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.FINAI_DEPLOY_SSH_KNOWN_HOSTS }}
+          FINAI_DEPLOY_SSH_HOST: ${{ vars.FINAI_DEPLOY_SSH_HOST }}
+          FINAI_DEPLOY_SSH_USER: ${{ vars.FINAI_DEPLOY_SSH_USER }}
+          FINAI_DEPLOY_SSH_PORT: ${{ vars.FINAI_DEPLOY_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in FINAI_DEPLOY_SSH_PRIVATE_KEY FINAI_DEPLOY_SSH_KNOWN_HOSTS FINAI_DEPLOY_SSH_HOST FINAI_DEPLOY_SSH_USER FINAI_DEPLOY_SSH_PORT; do
+            if [[ -n "${!key:-}" ]]; then
+              echo "$key=PRESENT"
+            else
+              echo "$key=MISSING"
+              missing=1
+            fi
+          done
+          if (( missing )); then
+            echo "FINAI_DEDICATED_SSH_READINESS=STOP_MISSING_ENV_BINDINGS"
+            exit 65
+          fi
+          [[ "$FINAI_DEPLOY_SSH_HOST" == lcp-86.controlpanel.si &&
+             "$FINAI_DEPLOY_SSH_USER" == einteg86 &&
+             "$FINAI_DEPLOY_SSH_PORT" == 22 ]] || {
+            echo "FINAI_DEDICATED_SSH_READINESS=STOP_UNEXPECTED_HOST_BINDING"
+            exit 65
+          }
+          echo "FINAI_DEDICATED_SSH_BINDINGS=PASS_VALUES_HIDDEN"
       - name: Verify pinned host and restricted commands
         shell: bash
         env:
