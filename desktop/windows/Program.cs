@@ -78,6 +78,12 @@ internal static class Program
             catch (Exception) { return 12; } // Never expose encrypted payloads.
         }
 
+        if (args.Length == 1 && args[0] == "--offline-sync-queue-self-test")
+        {
+            try { return SyntheticOfflineSyncOutbox.SelfTest() ? 0 : 35; }
+            catch (Exception) { return 36; } // No key, payload or path disclosure.
+        }
+
         if (args.Length == 1 && args[0] == "--mobile-import-self-test")
         {
             try { return SyntheticMobileOutboxImport.SelfTest() ? 0 : 13; }
