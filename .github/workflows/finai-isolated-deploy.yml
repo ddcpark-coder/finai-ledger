@@ -169,6 +169,10 @@ jobs:
       needs.static-release.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    # FINAI_DEPLOY_SSH_USER (and SSH host/port) are scoped to the same dedicated
+    # staging environment already validated by finai-dedicated-ssh-ready.yml.
+    # This job reads variables only: no private key is exposed or SSH initiated.
+    environment: finai-staging
     steps:
       - uses: actions/checkout@v4
         with:
