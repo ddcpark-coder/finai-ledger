@@ -568,7 +568,7 @@ export default function Page(){
        {section==="CRM"&&<CrmWorkspace context={activeContext} companyId={company}/>}
        {section==="Ponudbe"&&<QuotesWorkspace context={activeContext} companyId={company}/>}
        {section==="Naročila"&&<SalesOrdersWorkspace context={activeContext} companyId={company}/>}
-       {section==="Nabava"&&<ProcurementWorkspace context={activeContext}/>}
+       {section==="Nabava"&&<ProcurementWorkspace key={company} companyId={company} context={activeContext} onNavigate={navigateSection}/>}
        {section==="Zaloge"&&<OperationsNetworkPanel key={company+"-stock"} companyId={company} mode="warehouses"/>}
        {section==="Zaloge"&&<InventoryWorkspace context={activeContext} companyId={company}/>}
        {section==="Integracije"&&<OperationsNetworkPanel key={company+"-commerce"} companyId={company} mode="commerce"/>}

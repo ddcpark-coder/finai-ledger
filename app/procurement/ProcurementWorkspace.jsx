@@ -1,5 +1,6 @@
 "use client";
 import AdaptivePaneGrid from "../components/AdaptivePaneGrid";
+import {createDemoPurchaseOrder,receiveDemoPurchaseOrder,demoPurchaseMatch} from "./demoProcurement.mjs";
 import {useMemo,useState} from "react";
 
 const pos=[
@@ -15,19 +16,55 @@ const offers=[
  {supplier:"Industria d.o.o.",price:"25.120,00 €",lead:"5 dni",score:"Alternativa"}
 ];
 
-export default function ProcurementWorkspace({context}){
+export default function ProcurementWorkspace({context,companyId=1,onNavigate}){
  const [query,setQuery]=useState("");
  const [filter,setFilter]=useState("Vsi");
- const [selected,setSelected]=useState(pos[0]);
+ const [records,setRecords]=useState(()=>pos.map(x=>({...x,companyId})));
+ const [selectedId,setSelectedId]=useState(pos[0].id);
+ const selected=records.find(x=>x.id===selectedId)??records[0];
+ const [createOpen,setCreateOpen]=useState(false);
+ const [draftSupplier,setDraftSupplier]=useState("");
+ const [draftGross,setDraftGross]=useState("");
+ const [notice,setNotice]=useState("");
+ const [audit,setAudit]=useState([]);
+ const [auditOpen,setAuditOpen]=useState(false);
+ const recordEvent=(orderId,event)=>setAudit(items=>[...items,{orderId,event,time:new Date().toLocaleTimeString("sl-SI")}]);
+ const create=(event)=>{
+   event.preventDefault();
+   try{
+     const result=createDemoPurchaseOrder(records,companyId,{supplier:draftSupplier,gross:draftGross});
+     setRecords(result.rows);setSelectedId(result.order.id);
+     setQuery("");setFilter("Vsi");setCreateOpen(false);
+     setDraftSupplier("");setDraftGross("");
+     setNotice("Demo naročilnica "+result.order.id+" ustvarjena samo v pomnilniku brskalnika.");
+     recordEvent(result.order.id,"Ustvarjena naročilnica");
+   }catch(error){setNotice(error.message);}
+ };
+ const receive=(id=selected.id)=>{
+   try{
+     const result=receiveDemoPurchaseOrder(records,companyId,id);
+     setRecords(result);setSelectedId(id);setNotice("Demo prevzem potrjen. Ni premika zalog ali knjižbe.");
+     recordEvent(id,"Simuliran prevzem");
+   }catch(error){setNotice(error.message);}
+ };
+ const chooseOffer=offer=>{
+   try{
+     const gross=Number(offer.price.replace(/[^0-9,]/g,"").replace(",","."));
+     const result=createDemoPurchaseOrder(records,companyId,{supplier:offer.supplier,gross});
+     setRecords(result.rows);setSelectedId(result.order.id);setQuery("");setFilter("Vsi");
+     setNotice("Iz ponudbe izbrana "+offer.supplier+" in ustvarjena sintetična naročilnica "+result.order.id+".");
+     recordEvent(result.order.id,"Izbrana ponudba "+offer.supplier);
+   }catch(error){setNotice(error.message);}
+ };
  const tab=context?.level2??"Pregled";
  const subView=context?.level3??"KPI";
- const list=useMemo(()=>pos.filter(x=>{
+ const list=useMemo(()=>records.filter(x=>{
    const q=query.toLowerCase();
    const contextStatus=tab==="Naročilnice"?({"Naročeno":"Naročeno","Delno prevzeto":"Delno prevzeto","Osnutki":"Osnutek"})[subView]:null;
    return (!q||[x.id,x.supplier,x.sales].join(" ").toLowerCase().includes(q))
      &&(filter==="Vsi"||x.status===filter)
      &&(!contextStatus||x.status===contextStatus);
- }),[query,filter,tab,subView]);
+ }),[query,filter,tab,subView,records]);
 
  return <section className="proc">
   <style>{`
@@ -41,30 +78,52 @@ export default function ProcurementWorkspace({context}){
 
 
 
+  <p style={{fontSize:10,color:"var(--muted)"}}>Podjetje {companyId} · izključno sintetična nabava. Brez dejanskih naročil, prejemov zaloge ali knjiženj.</p>
+  {notice&&<p role="status" style={{padding:10,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</p>}
+  {createOpen&&<form onSubmit={create} style={{display:"flex",gap:8,alignItems:"end",flexWrap:"wrap",padding:12,border:"1px solid var(--line)",borderRadius:12,marginBottom:10}}>
+    <label style={{display:"grid",gap:4,fontSize:10}}>Demo dobavitelj
+      <input required minLength={2} maxLength={120} value={draftSupplier} onChange={e=>setDraftSupplier(e.target.value)} style={{padding:8,background:"var(--panel)",color:"var(--text)",border:"1px solid var(--line)",borderRadius:8}}/>
+    </label>
+    <label style={{display:"grid",gap:4,fontSize:10}}>Znesek EUR
+      <input required type="number" min="0.01" max="10000000" step="0.01" value={draftGross} onChange={e=>setDraftGross(e.target.value)} style={{padding:8,background:"var(--panel)",color:"var(--text)",border:"1px solid var(--line)",borderRadius:8}}/>
+    </label>
+    <button className="primary" type="submit">Ustvari demo naročilnico</button>
+    <button className="secondary" type="button" onClick={()=>setCreateOpen(false)}>Prekliči</button>
+  </form>}
   {(tab==="Pregled"||tab==="Naročilnice")&&<>
    <div className="flow"><div className="on">Potreba</div><div className="on">Povpraševanje</div><div className="on">Naročilo</div><div>Prevzem</div><div>Račun</div><div>3-way match</div></div>
    <AdaptivePaneGrid className="procGrid">
-    <article className="pcard"><div className="phead"><h3>{tab==="Naročilnice"?"Naročilnice · "+subView:"Nabava · pregled naročilnic"}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči naročilnico, dobavitelja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Naročeno</option><option>Delno prevzeto</option><option>Prejeto</option><option>Odstopanje</option></select><button className="primary">＋ Nova naročilnica</button></div></div>
+    <article className="pcard"><div className="phead"><h3>{tab==="Naročilnice"?"Naročilnice · "+subView:"Nabava · pregled naročilnic"}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči naročilnico, dobavitelja ..."/><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Vsi</option><option>Naročeno</option><option>Delno prevzeto</option><option>Prejeto</option><option>Odstopanje</option></select><button type="button" className="primary" onClick={()=>setCreateOpen(true)}>＋ Nova demo naročilnica</button></div></div>
     <div className="prow head"><span>Naročilo</span><span>Dobavitelj</span><span>Dobava</span><span>Vrednost</span><span>Kontrola</span></div>
-    {list.map(x=><button className="prow" key={x.id} onClick={()=>setSelected(x)}><span><b>{x.id}</b><small>{x.sales}</small></span><span><b>{x.supplier}</b><small>{x.status}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className={"state "+(x.match==="Ujemanje OK"?"ok":x.status==="Odstopanje"?"bad":"warn")}>{x.match}</span></button>)}
+    {list.map(x=><button className="prow" key={x.id} onClick={()=>{setSelectedId(x.id);setAuditOpen(false);}}><span><b>{x.id}</b><small>{x.sales}</small></span><span><b>{x.supplier}</b><small>{x.status}</small></span><span>{x.delivery}</span><b>{x.gross.toFixed(2)} €</b><span className={"state "+(x.match==="Ujemanje OK"?"ok":x.status==="Odstopanje"?"bad":"warn")}>{x.match}</span></button>)}
     </article>
     <aside className="pcard detail"><span className={"state "+(selected.match==="Ujemanje OK"?"ok":selected.status==="Odstopanje"?"bad":"info")}>{selected.status}</span><h3>{selected.id}</h3><small>{selected.supplier} · {selected.sales}</small>
     <div className="meta"><div><small>Vrednost</small><b>{selected.gross.toFixed(2)} €</b></div><div><small>Pričakovana dobava</small><b>{selected.delivery}</b></div><div><small>Vir potrebe</small><b>{selected.sales}</b></div><div><small>3-way match</small><b>{selected.match}</b></div></div>
     <div className="sec"><h4>Postavke</h4><div className="line"><span>Pogonski modul PM-200</span><b>12 kos</b></div><div className="line"><span>Krmilnik KC-100</span><b>20 kos</b></div></div>
-    <div className="sec"><h4>Kontrola naročilo / prevzem / račun</h4><div className="line"><span>Naročeno</span><b>32 kos</b></div><div className="line"><span>Prevzeto</span><b>{selected.status==="Naročeno"?"0":"30"} kos</b></div><div className="line"><span>Cenovno odstopanje</span><b>{selected.status==="Odstopanje"?"+640,00 €":"0,00 €"}</b></div></div>
-    <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Evidentiraj prevzem</button><button className="secondary">Primerjaj z računom</button><button className="secondary">Odpri dobavitelja</button><button className="secondary">Prikaži audit sled</button></div></div></aside>
+    <div className="sec"><h4>Kontrola naročilo / prevzem / račun</h4><div className="line"><span>Naročeno</span><b>32 kos</b></div><div className="line"><span>Prevzeto</span><b>{selected.status==="Naročeno"?"0":selected.status==="Prejeto"?"32":"30"} kos (demo)</b></div><div className="line"><span>Cenovno odstopanje</span><b>{selected.status==="Odstopanje"?"+640,00 €":"0,00 €"}</b></div></div>
+    <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>
+      <button className="primary" type="button" disabled={!["Naročeno","Delno prevzeto"].includes(selected.status)} onClick={()=>receive()}>Simuliraj prevzem</button>
+      <button className="secondary" type="button" onClick={()=>setNotice(demoPurchaseMatch(selected))}>Preveri 3-way match (demo)</button>
+      <button className="secondary" type="button" onClick={()=>onNavigate?.("Partnerji")}>Odpri modul Partnerji</button>
+      <button className="secondary" type="button" aria-expanded={auditOpen} onClick={()=>setAuditOpen(v=>!v)}>Prikaži demo revizijsko sled</button>
+    </div>
+    {auditOpen&&<div role="status" style={{marginTop:8,fontSize:10}}>
+      {audit.filter(x=>x.orderId===selected.id).length?
+        audit.filter(x=>x.orderId===selected.id).map((x,i)=><div className="line" key={i}><span>{x.event}</span><b>{x.time}</b></div>):
+        <p>Za to demo naročilnico ni novih dogodkov.</p>}
+    </div>}</div></aside>
    </AdaptivePaneGrid></>}
 
-  {(tab==="Povpraševanja"||tab==="Ponudbe dobaviteljev")&&<div className="offerGrid">{offers.filter(o=>subView!=="Izbrano"||o.score==="Najboljša cena").map(o=><article className="offer" key={o.supplier}><h3>{o.supplier}</h3><small>Ponudba za PM-200 · 12 kos</small><strong>{o.price}</strong><small>Dobavni rok: {o.lead}</small><span className="badge">{o.score}</span><button className="secondary" style={{width:"100%",marginTop:10}}>Izberi ponudbo</button></article>)}</div>}
+  {(tab==="Povpraševanja"||tab==="Ponudbe dobaviteljev")&&<div className="offerGrid">{offers.filter(o=>subView!=="Izbrano"||o.score==="Najboljša cena").map(o=><article className="offer" key={o.supplier}><h3>{o.supplier}</h3><small>Ponudba za PM-200 · 12 kos</small><strong>{o.price}</strong><small>Dobavni rok: {o.lead}</small><span className="badge">{o.score}</span><button type="button" className="secondary" style={{width:"100%",marginTop:10}} onClick={()=>chooseOffer(o)}>Ustvari demo naročilnico</button></article>)}</div>}
 
-  {tab==="Prevzemi"&&<article className="pcard"><div className="phead"><h3>Prevzemi blaga in materiala</h3><button className="primary">＋ Nov prevzem</button></div><div style={{padding:12}}><div className="line"><span>GR-PO-2026-0044-1 · FolijePlus d.o.o.</span><b>Delni prevzem · 18/20</b></div><div className="line"><span>GR-PO-2026-0043-1 · GradnjaTrade d.o.o.</span><b>Prejeto · 100 %</b></div><div className="line"><span>GR-PO-2026-0042-1 · ElektroKom d.o.o.</span><b>Prejeto · kontrola cene</b></div></div></article>}
+  {tab==="Prevzemi"&&<article className="pcard"><div className="phead"><h3>Prevzemi blaga in materiala</h3><button type="button" className="primary" disabled={!records.some(x=>["Naročeno","Delno prevzeto"].includes(x.status))} onClick={()=>{const candidate=records.find(x=>["Naročeno","Delno prevzeto"].includes(x.status));if(candidate)receive(candidate.id);}}>Simuliraj naslednji prevzem</button></div><div style={{padding:12}}><div className="line"><span>GR-PO-2026-0044-1 · FolijePlus d.o.o.</span><b>Delni prevzem · 18/20</b></div><div className="line"><span>GR-PO-2026-0043-1 · GradnjaTrade d.o.o.</span><b>Prejeto · 100 %</b></div><div className="line"><span>GR-PO-2026-0042-1 · ElektroKom d.o.o.</span><b>Prejeto · kontrola cene</b></div></div></article>}
   {tab==="Potrebe"&&<article className="pcard"><div className="phead"><h3>Nabavne potrebe · {subView}</h3></div><div style={{padding:12}}>{[
     {ref:"POT-2026-0042",source:"NAR-2026-0008",status:"Nove",detail:"Material za naročilo kupca"},
     {ref:"POT-2026-0041",source:"Minimalna zaloga",status:"Odobrene",detail:"Dopolnitev zaloge skladišča"}
    ].filter(x=>x.status===subView).map(x=><div className="line" key={x.ref}><span>{x.ref} · {x.source}</span><b>{x.detail}</b></div>)}
    {subView==="Pretvorjene"&&<p>V demonstracijskem naboru ni pretvorjenih potreb.</p>}</div></article>}
 
-  {tab==="3-way match"&&<article className="pcard"><div className="phead"><h3>3-way match · {subView}</h3></div><div style={{padding:12}}>{pos.filter(x=>
+  {tab==="3-way match"&&<article className="pcard"><div className="phead"><h3>3-way match · {subView}</h3></div><div style={{padding:12}}>{records.filter(x=>
    subView==="Ujemanje"?x.match==="Ujemanje OK":
    subView==="Odstopanja"?x.status==="Odstopanje"||x.match==="Količinsko odstopanje":
    x.match!=="Ujemanje OK"
