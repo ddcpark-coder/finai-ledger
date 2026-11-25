@@ -15,6 +15,7 @@ on:
       - "tests/test_finai_release_readiness.py"
       - "tests/demoPartners.test.mjs"
       - "tests/demoUiActions.test.mjs"
+      - "tests/demoProcurement.test.mjs"
       - "tests/test_finai_isolated_ssh_gate.py"
       - "tests/test_finai_isolated_upgrade_gate.py"
       - "tests/test_finai_isolated_publish.py"
@@ -38,6 +39,7 @@ on:
       - "tests/test_finai_release_readiness.py"
       - "tests/demoPartners.test.mjs"
       - "tests/demoUiActions.test.mjs"
+      - "tests/demoProcurement.test.mjs"
       - "tests/test_finai_isolated_publish.py"
       - "tests/test_finai_isolated_upgrade_gate.py"
       - "ops/finai-static-release-verify.py"
@@ -83,7 +85,7 @@ jobs:
           python3 -B -m unittest discover -s tests -p 'test_finai_static_release_verify.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_ftps_offline_release_plan.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_release_readiness.py' -v
-          node --test tests/demoPartners.test.mjs tests/demoUiActions.test.mjs
+          node --test tests/demoPartners.test.mjs tests/demoUiActions.test.mjs tests/demoProcurement.test.mjs
           echo "FINAI_RESTRICTED_SSH_GATE_TESTS=PASS"
           echo "FINAI_STATIC_INTEGRITY_TESTS=PASS"
 
