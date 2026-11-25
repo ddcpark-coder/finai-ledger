@@ -1,0 +1,55 @@
+name: FinAI NEXT43 one-time security lock refresh (temporary branch-only)
+
+on:
+  push:
+    branches:
+      - finai-next43-laravel-api-readiness-20261125
+    paths:
+      - ".github/workflows/finai-next43-lock-refresh-temporary.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lock-refresh:
+    if: >-
+      github.repository == 'ddcpark-coder/finai-ledger' &&
+      github.ref == 'refs/heads/finai-next43-laravel-api-readiness-20261125'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, pdo_mysql, openssl, fileinfo
+          tools: composer:v2
+      - name: Upgrade only the vulnerable locked WebAuthn dependency
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          composer update web-auth/webauthn-lib --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          composer validate --strict --no-check-publish
+          composer audit --locked --no-interaction
+          php -r '
+            $lock=json_decode(file_get_contents("composer.lock"), true, 512, JSON_THROW_ON_ERROR);
+            foreach (array_merge($lock["packages"],$lock["packages-dev"]) as $package) {
+              if ($package["name"] !== "web-auth/webauthn-lib") continue;
+              if (version_compare(ltrim($package["version"],"v"),"5.3.13","<")) {
+                throw new RuntimeException("Patched WebAuthn version absent");
+              }
+              echo "FINAI_WEBAUTHN_PATCHED=PASS\n";
+              exit(0);
+            }
+            throw new RuntimeException("WebAuthn package not found");
+          '
+      - name: Commit only the reviewed Composer lock delta to THIS feature branch
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- backend/composer.json
+          test -n "$(git status --porcelain -- backend/composer.lock)"
+          git add -- backend/composer.lock
+          git -c user.name="FinAI CI" -c user.email="finai-ci@users.noreply.github.com" \
+            commit -m "NEXT43: lock patched WebAuthn dependencies after successful composer audit"
+          git push origin HEAD:refs/heads/finai-next43-laravel-api-readiness-20261125
