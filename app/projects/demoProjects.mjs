@@ -52,7 +52,7 @@ export function logDemoProjectTime(rows,companyId,projectId,hours,hourlyRate=40)
   const index=rows.findIndex(row=>row.id===projectId);
   if(index<0)throw new Error("Projekt ne pripada temu podjetju.");
   const h=Number(hours);
-  if(!Number.isFinite(h)||h<=0||h>24||Math.round(h*100)!==h)
+  if(!Number.isFinite(h)||h<=0||h>24||Math.round(h*100)/100!==h)
     throw new Error("Ure morajo biti od 0,01 do 24,00.");
   if(!Number.isFinite(hourlyRate)||hourlyRate<0||hourlyRate>1000)
     throw new Error("Neveljavna sintetična urna postavka.");
