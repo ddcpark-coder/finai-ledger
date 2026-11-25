@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApiReadinessController;
 use App\Http\Controllers\Api\WorkspacePreferencesController;
 use App\Http\Controllers\Api\AdaptiveWindowPreferencesController;
 use App\Http\Controllers\Api\DemoIncomingInvoicesController;
@@ -12,6 +13,9 @@ use App\Http\Middleware\RequirePrivilegedTwoFactor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Opt-in, limited, DB-only infrastructure probe; no identity or business data.
+Route::get('/readiness', ApiReadinessController::class)->middleware('throttle:30,1');
 
 // Session-only API. Browser cookies are verified by web guard; bearer tokens
 // cannot bypass Fortify's interactive TOTP challenge.
