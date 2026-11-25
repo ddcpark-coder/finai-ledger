@@ -15,6 +15,12 @@
 3. GitHub Laravel release package vsebuje še javno, neskrivno `public/finai-api-build.json` s preverljivo **točno** SHA izdaje; CI preveri `/up` in vsebino oznake.
 4. Ciljni sintetični testi potrdijo spodnje varovalke in preverijo fail-closed odzive brez izpostavljanja podatkov.
 
+## Posodobitev varnostne odvisnosti
+
+Na CI varnostnem pregledu 25. 11. 2026 je bila zaznana napaka v zaklenjeni verziji `web-auth/webauthn-lib 5.3.12` (6 obvestil Composer). Na namenski GitHub razvojni veji je Composer s povezanim naborom varnih odvisnosti posodobil paket na **5.3.17**; CI je uspešno izvedel `composer validate` in `composer audit --locked`. Spremenjen je izključno `backend/composer.lock` (vključujoč nujne posodobitve povezanih paketov). Začasna pisalna GitHub Actions naloga za posodobitev je bila po uspehu odstranjena in **ni vključena v main**.
+
+Prava namestitev mora uporabiti nespremenjeni, preverjeni paket iz novega `composer.lock`, brez izvajanja `composer update` na strežniku.
+
 ## KORAK A — diagnostika namenskega strežnika (brez pisanja)
 
 Pod `einteg86` izključno na namenskem cPanel Terminalu se izvede pregledan/pinn-an skript iz točne združene GitHub revizije (komit iz PR); rezultat ne vsebuje skrivnosti. **Ne uporabljati drugega sistemskega uporabnika.**
