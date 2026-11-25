@@ -1,6 +1,6 @@
 # FinAI Ledger — Laravel 13 API
 
-Status: Identity/preferences Laravel API se uspešno zažene v PHP 8.4 CI. To še ni celoten računovodski backend.
+Status (25. 11. 2026): Laravel API se uspešno zažene v PHP 8.4 CI, vendar javna domena `api.e-integrator.si/up` še vrača HTTP 404. Statični FinAI frontend že deluje na `app.e-integrator.si`. API še ni nameščen na namenskem gostovanju in ni celoten računovodski backend.
 
 ## Zahteve
 - PHP 8.4, Composer 2, PDO + pdo_mysql/pdo_sqlite, mbstring, openssl, XML in curl.
@@ -40,7 +40,8 @@ za produkcijsko knjigovodstvo, prejem PDF/XML ali shrambo originalov.
 Frontend demo ostaja lokalni in ni priklopljen na te API-poti.
 
 ## Implementirane API-poti
-- GET /up — health check
+- GET /up — Laravel framework health check (potrdi PHP, ne baze ali pravic)
+- GET /api/readiness — privzeto izključen javni, omejen in bralni `SELECT 1`; zgolj dostop do baze, ne poslovna pripravljenost
 - GET /api/me — identiteta in aktivna podjetja
 - GET /api/companies/{companyId}/my/workspace-preferences
 - PUT /api/companies/{companyId}/my/workspace-preferences
@@ -56,23 +57,23 @@ Podatki so vezani na user_id in company_id. Ne zaupamo uporabniškemu ID iz odje
 Skrivnosti in produkcijski podatki se ne hranijo v repozitoriju.
 Javna registracija ni omogočena.
 
-## First-party domeni (primer, ne registrirana domena)
-https://app.finai.si — Next.js frontend
-https://api.finai.si — Laravel API na Hiper M
+## Dejanski domeni FinAI
+https://app.e-integrator.si — Next.js frontend (že objavljen)
+https://api.e-integrator.si — namenski Laravel API (nameščanje še ni končano)
 
 Laravel okolje:
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://api.finai.si
+APP_URL=https://api.e-integrator.si
 DB_CONNECTION=mysql in zasebni podatki o bazi
-SESSION_DOMAIN=.finai.si
+SESSION_DOMAIN=.e-integrator.si
 SESSION_SECURE_COOKIE=true
 SESSION_SAME_SITE=lax
-SANCTUM_STATEFUL_DOMAINS=app.finai.si,api.finai.si
-FINAI_ALLOWED_ORIGINS=https://app.finai.si
+SANCTUM_STATEFUL_DOMAINS=app.e-integrator.si,api.e-integrator.si
+FINAI_ALLOWED_ORIGINS=https://app.e-integrator.si
 
-Frontend:
-NEXT_PUBLIC_FINAI_API_BASE_URL=https://api.finai.si/api
+Frontend (šele po uspešni namestitvi API-ja):
+GitHub repository variable `FINAI_FRONTEND_API_BASE_URL=https://api.e-integrator.si/api` se prevede v javno `NEXT_PUBLIC_FINAI_API_BASE_URL` med gradnjo; edina dovoljena vrednost v nadzorovanem izdajnem postopku je ta točen naslov.
 
 Vzpostaviti je treba preverjeno CORS + CSRF konfiguracijo; vercel.app na nepovezani domeni ni zanesljiva first-party seja.
 
@@ -85,4 +86,4 @@ Vzpostaviti je treba preverjeno CORS + CSRF konfiguracijo; vercel.app na nepovez
 - Izvesti API teste 200, 401, 403, 409 in CSRF na dejanskih domenah.
 - Šele nato omogočiti frontend API nastavitve in resnično sinhronizacijo.
 
-Hiper M ni spremenjen. Ta repozitorij trenutno vsebuje zagonsko identitetno/UX rešitev in njene teste, ne povezane produkcijske aplikacije.
+Trenutno je javno objavljen statični frontend, medtem ko je Laravel namestitev ločen, še neizveden korak. Posebni dokument za namensko aktivacijo zaledja: [`docs/FINAI_NEXT43_API_ACTIVATION.md`](../docs/FINAI_NEXT43_API_ACTIVATION.md). Prave finančne in osebne podatke še vedno prepovedujemo.
