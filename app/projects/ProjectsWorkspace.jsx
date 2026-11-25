@@ -1,5 +1,6 @@
 "use client";
 import {useMemo,useState} from "react";
+import {createDemoProject,addDemoProjectTask,logDemoProjectTime,demoProjectFinance} from "./demoProjects.mjs";
 
 const projects=[
  {id:"PROJ-2026-0012",name:"Prenova označb ABC",partner:"ABC d.o.o.",status:"Aktiven",due:"15. 11. 2026",owner:"Dalibor",progress:64,revenue:12400,cost:7860,margin:4540,marginPct:36.61,order:"NAR-2026-0008"},
@@ -22,17 +23,54 @@ const costs=[
  ["Ostalo","1.000,00 €","storitve"]
 ];
 
-export default function ProjectsWorkspace({context}){
+export default function ProjectsWorkspace({context,companyId=1,onNavigate}){
  const [query,setQuery]=useState("");
-
- const [selected,setSelected]=useState(projects[0]);
+ const [records,setRecords]=useState(()=>projects.map(p=>({...p,companyId})));
+ const [selectedId,setSelectedId]=useState(projects[0].id);
+ const selected=records.find(p=>p.id===selectedId)??records[0];
+ const [demoTasks,setDemoTasks]=useState([]);
+ const [timeEntries,setTimeEntries]=useState([]);
+ const [audit,setAudit]=useState([]);
+ const [auditOpen,setAuditOpen]=useState(false);
+ const [action,setAction]=useState("");
+ const [formName,setFormName]=useState("");
+ const [formPartner,setFormPartner]=useState("");
+ const [formRevenue,setFormRevenue]=useState("0");
+ const [formHours,setFormHours]=useState("1");
+ const [notice,setNotice]=useState("");
+ const addAudit=(projectId,detail)=>setAudit(events=>[...events,{
+   projectId,detail,time:new Date().toLocaleTimeString("sl-SI")
+ }]);
+ const submitDemo=(event)=>{
+   event.preventDefault();
+   try{
+     if(action==="create"){
+       const result=createDemoProject(records,companyId,{
+         name:formName,partner:formPartner,revenue:formRevenue
+       });
+       setRecords(result.rows);setSelectedId(result.project.id);
+       setQuery("");addAudit(result.project.id,"Ustvarjen demonstracijski projekt");
+       setNotice("Nov sintetični projekt "+result.project.id+" ustvarjen v trenutni seji.");
+     }else if(action==="task"){
+       const result=addDemoProjectTask(demoTasks,records,companyId,selected.id,formName);
+       setDemoTasks(result.tasks);addAudit(selected.id,"Dodana demo naloga: "+result.task.title);
+       setNotice("Naloga je dodana samo v demo sejo projekta "+selected.id+".");
+     }else if(action==="time"){
+       const result=logDemoProjectTime(records,companyId,selected.id,formHours);
+       setRecords(result.rows);setTimeEntries(entries=>[result.event,...entries]);
+       addAudit(selected.id,"Evidentirano "+result.event.hours+" h demo dela");
+       setNotice("Sintetični strošek "+result.event.cost.toFixed(2)+" € je prištet oceni projekta.");
+     }
+     setAction("");setFormName("");setFormPartner("");setFormRevenue("0");setFormHours("1");
+   }catch(error){setNotice(error.message);}
+ };
  const tab=({Pregled:"Projekti",Naloge:"Naloge","Delovni nalogi":"Delovni nalogi",Čas:"Čas",Material:"Material",Finance:"Finance",Dokumenti:"Dokumenti"})[context?.level2]??"Projekti";
  const subView=context?.level3??"Aktivni";
- const rows=useMemo(()=>projects.filter(p=>{
+ const rows=useMemo(()=>records.filter(p=>{
    const q=query.toLowerCase();
    const state=({"Aktivni":"Aktiven","Na čakanju":"Na čakanju","Zaključeni":"Zaključeno"})[subView];
    return (!q||[p.id,p.name,p.partner,p.order].join(" ").toLowerCase().includes(q))&&(!state||p.status===state);
- }),[query,subView]);
+ }),[query,subView,records]);
 
  return <section className="projects">
   <style>{`
@@ -46,23 +84,61 @@ export default function ProjectsWorkspace({context}){
   @media(max-width:1100px){.pgrid{grid-template-columns:1fr}.woGrid{grid-template-columns:1fr 1fr}}@media(max-width:760px){.pkpi{grid-template-columns:1fr 1fr}.prow{grid-template-columns:.8fr 1.3fr .7fr}.prow>*:nth-child(3),.prow>*:nth-child(4),.prow>*:nth-child(6){display:none}.meta{grid-template-columns:1fr}.taskrow{grid-template-columns:1.4fr .8fr}.taskrow>*:nth-child(3),.taskrow>*:nth-child(4){display:none}.woGrid{grid-template-columns:1fr}.tools input{width:100%}}
   `}</style>
 
-  <div className="pkpi"><div className="pk"><small>Aktivni projekti</small><b>12</b></div><div className="pk"><small>Prihodki projektov</small><b>41.400 €</b></div><div className="pk"><small>Stroški</small><b>30.060 €</b></div><div className="pk"><small>Dejanska marža</small><b>27,4 %</b></div></div>
+  <p style={{fontSize:10,color:"var(--muted)"}}>Podjetje {companyId} · samo sintetični projekti in lokalni izračuni. Brez realnih nalogov, računov ali knjiženja.</p>
+  {notice&&<p role="status" style={{padding:10,marginBottom:9,border:"1px solid var(--line)",borderRadius:9,fontSize:11}}>{notice}</p>}
+  {action&&<form onSubmit={submitDemo} style={{display:"flex",flexWrap:"wrap",alignItems:"end",gap:8,border:"1px solid var(--line)",borderRadius:12,padding:12,marginBottom:10}}>
+    <b style={{fontSize:11}}>{action==="create"?"Nov demo projekt":action==="task"?"Nova demo naloga · "+selected.id:"Evidenca demo časa · "+selected.id}</b>
+    {action!=="time"&&<label style={{display:"grid",gap:4,fontSize:10}}>{action==="create"?"Naziv projekta":"Naziv naloge"}
+      <input type="text" required minLength={2} maxLength={120} value={formName} onChange={e=>setFormName(e.target.value)} style={{padding:8,background:"var(--panel)",border:"1px solid var(--line)",borderRadius:8,color:"var(--text)"}}/>
+    </label>}
+    {action==="create"&&<><label style={{display:"grid",gap:4,fontSize:10}}>Sintetični partner
+      <input type="text" required minLength={2} maxLength={120} value={formPartner} onChange={e=>setFormPartner(e.target.value)} style={{padding:8,background:"var(--panel)",border:"1px solid var(--line)",borderRadius:8,color:"var(--text)"}}/>
+    </label>
+    <label style={{display:"grid",gap:4,fontSize:10}}>Ocenjen demo prihodek (€)
+      <input type="number" min="0" max="10000000" step="0.01" required value={formRevenue} onChange={e=>setFormRevenue(e.target.value)} style={{padding:8,width:125,background:"var(--panel)",border:"1px solid var(--line)",borderRadius:8,color:"var(--text)"}}/>
+    </label></>}
+    {action==="time"&&<label style={{display:"grid",gap:4,fontSize:10}}>Demo ure (40 €/h)
+      <input type="number" min="0.01" max="24" step="0.01" required value={formHours} onChange={e=>setFormHours(e.target.value)} style={{padding:8,width:100,background:"var(--panel)",border:"1px solid var(--line)",borderRadius:8,color:"var(--text)"}}/>
+    </label>}
+    <button type="submit" className="primary">Shrani demo spremembo</button>
+    <button type="button" className="secondary" onClick={()=>setAction("")}>Prekliči</button>
+  </form>}
+  <div className="pkpi">
+    <div className="pk"><small>Aktivni demo projekti</small><b>{records.filter(p=>p.status==="Aktiven").length}</b></div>
+    <div className="pk"><small>Ocenjeni prihodki</small><b>{records.reduce((sum,p)=>sum+p.revenue,0).toLocaleString("sl-SI",{style:"currency",currency:"EUR"})}</b></div>
+    <div className="pk"><small>Sintetični stroški</small><b>{records.reduce((sum,p)=>sum+p.cost,0).toLocaleString("sl-SI",{style:"currency",currency:"EUR"})}</b></div>
+    <div className="pk"><small>Ocenjena marža</small><b>{(()=>{
+      const revenue=records.reduce((sum,p)=>sum+p.revenue,0),cost=records.reduce((sum,p)=>sum+p.cost,0);
+      return revenue?((revenue-cost)/revenue*100).toFixed(1)+" %":"0 %";
+    })()}</b></div>
+  </div>
 
 
   {tab==="Projekti"&&<div className="pgrid">
-   <article className="pcard"><div className="phead"><h3>Projekti · {subView}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči projekt, partnerja, naročilo ..."/><button className="primary">＋ Nov projekt</button></div></div>
+   <article className="pcard"><div className="phead"><h3>Projekti · {subView}</h3><div className="tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči projekt, partnerja, naročilo ..."/><button type="button" className="primary" onClick={()=>setAction("create")}>＋ Nov demo projekt</button></div></div>
    <div className="prow head"><span>Projekt</span><span>Naziv</span><span>Rok</span><span>Napredek</span><span>Marža</span><span>Status</span></div>
-   {rows.map(p=><button className="prow" key={p.id} onClick={()=>setSelected(p)}><span><b>{p.id}</b><small>{p.order}</small></span><span><b>{p.name}</b><small>{p.partner} · {p.owner}</small></span><span>{p.due}</span><span><b>{p.progress} %</b></span><span><b className={p.marginPct>=30?"ok":p.marginPct>=20?"warn":"info"}>{p.marginPct.toFixed(1)} %</b></span><span className={"state "+(p.status==="Zaključeno"?"ok":p.status==="Na čakanju"?"warn":"info")}>{p.status}</span></button>)}
+   {rows.map(p=><button className="prow" key={p.id} onClick={()=>{setSelectedId(p.id);setAuditOpen(false);}}><span><b>{p.id}</b><small>{p.order}</small></span><span><b>{p.name}</b><small>{p.partner} · {p.owner}</small></span><span>{p.due}</span><span><b>{p.progress} %</b></span><span><b className={p.marginPct>=30?"ok":p.marginPct>=20?"warn":"info"}>{p.marginPct.toFixed(1)} %</b></span><span className={"state "+(p.status==="Zaključeno"?"ok":p.status==="Na čakanju"?"warn":"info")}>{p.status}</span></button>)}
    </article>
    <aside className="pcard detail"><span className="state info">{selected.status}</span><h3>{selected.name}</h3><small>{selected.id} · {selected.partner} · {selected.order}</small>
    <div className="meta"><div><small>Prihodki</small><b>{selected.revenue.toFixed(2)} €</b></div><div><small>Stroški</small><b>{selected.cost.toFixed(2)} €</b></div><div><small>Napredek</small><b>{selected.progress} %</b></div><div><small>Rok</small><b>{selected.due}</b></div></div>
-   <div className="sec"><h4>Dejanska donosnost</h4><div className="profit"><strong>{selected.margin.toFixed(2)} €</strong><small>Marža {selected.marginPct.toFixed(2)} % · materializirano iz računov, časa in porabe materiala.</small><div className="bar"><i style={{width:Math.min(100,Math.max(0,selected.marginPct*2))+"%"}}/></div></div></div>
+   <div className="sec"><h4>Sintetična donosnost</h4><div className="profit"><strong>{selected.margin.toFixed(2)} €</strong><small>Marža {selected.marginPct.toFixed(2)} % · sintetična ocena; dejanska glavna knjiga ni povezana.</small><div className="bar"><i style={{width:Math.min(100,Math.max(0,selected.marginPct*2))+"%"}}/></div></div></div>
    <div className="sec"><h4>Stroški po viru</h4>{costs.map((c,i)=><div className="line" key={i}><span>{c[0]} · {c[2]}</span><b>{c[1]}</b></div>)}</div>
-   <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}><button className="primary">Dodaj delovni nalog</button><button className="secondary">Evidentiraj čas</button><button className="secondary">Odpri material in nabavo</button><button className="secondary">Osveži donosnost</button><button className="secondary">Prikaži audit sled</button></div></div>
+   <div className="sec"><h4>Dejanja</h4><div style={{display:"grid",gap:7}}>
+    <button type="button" className="primary" onClick={()=>{setAction("task");setFormName("");}}>Dodaj demo delovni nalog</button>
+    <button type="button" className="secondary" onClick={()=>setAction("time")}>Evidentiraj demo čas</button>
+    <button type="button" className="secondary" onClick={()=>onNavigate?.("Zaloge")}>Odpri Zaloge</button>
+    <button type="button" className="secondary" onClick={()=>{const next=demoProjectFinance(selected);setRecords(old=>old.map(p=>p.id===selected.id?next:p));setNotice("Sintetična donosnost znova izračunana iz ocenjenih prihodkov in stroškov.");}}>Osveži demo donosnost</button>
+    <button type="button" className="secondary" aria-expanded={auditOpen} onClick={()=>setAuditOpen(v=>!v)}>Prikaži demo revizijsko sled</button>
+  </div>{auditOpen&&<div role="status" style={{fontSize:10,marginTop:8}}>
+    {audit.filter(x=>x.projectId===selected.id).length?
+      audit.filter(x=>x.projectId===selected.id).map((x,i)=><div className="line" key={i}><span>{x.detail}</span><b>{x.time}</b></div>):
+      <p>Za ta projekt še ni novih demo dogodkov.</p>}
+  </div>}</div>
    </aside>
   </div>}
 
-  {tab==="Naloge"&&<article className="pcard"><div className="phead"><h3>Naloge · {selected.name}</h3><button className="primary">＋ Nova naloga</button></div>{tasks.filter(t=>subView==="V delu"?t[1]==="V delu":subView==="Zamujene"?false:true).map((t,i)=><div className="taskrow" key={i}><b>{t[0]}</b><span className="state info">{t[1]}</span><span>{t[2]}</span><span>{t[3]}</span></div>)}</article>}
+  {tab==="Naloge"&&<article className="pcard"><div className="phead"><h3>Naloge · {selected.name}</h3><button type="button" className="primary" onClick={()=>{setAction("task");setFormName("");}}>＋ Nova demo naloga</button></div>{tasks.filter(t=>subView==="V delu"?t[1]==="V delu":subView==="Zamujene"?false:true).map((t,i)=><div className="taskrow" key={i}><b>{t[0]}</b><span className="state info">{t[1]}</span><span>{t[2]}</span><span>{t[3]}</span></div>)}
+  {demoTasks.filter(t=>t.projectId===selected.id&&(subView!=="V delu"&&subView!=="Zamujene")).map(t=><div className="taskrow" key={t.id}><b>{t.title}</b><span className="state info">{t.status}</span><span>{t.hours} h</span><span>{t.owner}</span></div>)}</article>}
 
   {tab==="Delovni nalogi"&&<div className="woGrid">{[
     {id:"DN-2026-0048",title:"Produkcija",project:"PROJ-2026-0012",person:"Boštjan",status:"V delu",date:"03.–05. 11."},
@@ -70,7 +146,8 @@ export default function ProjectsWorkspace({context}){
     {id:"DN-2026-0050",title:"Kontrola",project:"PROJ-2026-0011",person:"Nina",status:"Planirano",date:"06. 11."}
    ].filter(w=>w.status===subView).map(w=><article className="wo" key={w.id}><h3>{w.id} · {w.title}</h3><small>{w.project} · {w.person}</small><div className="line"><span>Status</span><b>{w.status}</b></div><div className="line"><span>Termin</span><b>{w.date}</b></div></article>)}</div>}
 
-  {tab==="Čas"&&<article className="pcard"><div className="phead"><h3>Evidenca časa · {subView}</h3><button className="primary">＋ Dodaj ure</button></div><div style={{padding:12}}><div className="line"><span>03. 11. · Dalibor · Izdelava grafik</span><b>6,5 h · 260,00 €</b></div><div className="line"><span>03. 11. · Boštjan · Produkcija</span><b>8,0 h · 224,00 €</b></div>{subView!=="Danes"&&<><div className="line"><span>02. 11. · Nina · Priprava</span><b>4,0 h · 144,00 €</b></div><div className="line"><span>02. 11. · Jerica · Koordinacija</span><b>2,5 h · 90,00 €</b></div></>}</div></article>}
+  {tab==="Čas"&&<article className="pcard"><div className="phead"><h3>Evidenca časa · {subView}</h3><button type="button" className="primary" onClick={()=>setAction("time")}>＋ Dodaj demo ure</button></div><div style={{padding:12}}><div className="line"><span>03. 11. · Dalibor · Izdelava grafik</span><b>6,5 h · 260,00 €</b></div><div className="line"><span>03. 11. · Boštjan · Produkcija</span><b>8,0 h · 224,00 €</b></div>{timeEntries.filter(x=>x.projectId===selected.id).map((x,i)=><div className="line" key={i}><span>Demo vnos · {selected.id} · {x.hours} h</span><b>{x.cost.toFixed(2)} €</b></div>)}
+    {subView!=="Danes"&&<><div className="line"><span>02. 11. · Nina · Priprava</span><b>4,0 h · 144,00 €</b></div><div className="line"><span>02. 11. · Jerica · Koordinacija</span><b>2,5 h · 90,00 €</b></div></>}</div></article>}
   {tab==="Material"&&<article className="pcard"><div className="phead"><h3>Projektni material · {subView}</h3></div><div style={{padding:12}}>
      {(subView==="Rezervirano"?
        [["Pogonski modul PM-200","12 kos rezervirano"],["Krmilnik KC-100","20 kos rezervirano"]]:
@@ -82,7 +159,7 @@ export default function ProjectsWorkspace({context}){
   {tab==="Finance"&&<article className="pcard"><div className="phead"><h3>Finance projekta · {subView} · {selected.id}</h3></div><div style={{padding:12}}>
       {subView==="Prihodki"&&<div className="line"><span>Izdani računi projekta</span><b>{selected.revenue.toFixed(2)} €</b></div>}
       {subView==="Stroški"&&costs.map(c=><div className="line" key={c[0]}><span>{c[0]}</span><b>{c[1]}</b></div>)}
-      {subView==="Marža"&&<div className="profit"><strong>{selected.margin.toFixed(2)} €</strong><small>Dejanska marža {selected.marginPct.toFixed(2)} %</small></div>}
+      {subView==="Marža"&&<div className="profit"><strong>{selected.margin.toFixed(2)} €</strong><small>Sintetična marža {selected.marginPct.toFixed(2)} %</small></div>}
    </div></article>}
   {tab==="Dokumenti"&&<article className="pcard"><div className="phead"><h3>Projektni dokumenti · {subView}</h3></div><div style={{padding:12}}>
      {subView==="Dobavnice"&&<div className="line"><span>DOB-2026-0048 · podpisan prevzem</span><b>Dokument</b></div>}
