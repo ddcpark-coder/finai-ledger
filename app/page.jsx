@@ -7,6 +7,7 @@ import AdaptiveWorkspace from "./components/AdaptiveWorkspace";
 import useContextNavigation from "./hooks/useContextNavigation";
 import useWorkspacePreferenceSync,{useLocalWorkspaceAppearance} from "./hooks/useWorkspacePreferenceSync";
 import {DEMO_INVOICE_JOURNAL_LINES,reviewDemoInvoiceJournal} from "./next11/syntheticJournalDemo.mjs";
+import {findDemoModules,filterDemoRows,demoRowsToCsv} from "./lib/demoUiActions.mjs";
 
 const loading=()=> <div style={{padding:16,border:"1px solid var(--line)",borderRadius:14,background:"var(--panel)",color:"var(--muted)",fontSize:11}}>Nalaganje modula …</div>;
 const PartnerWorkspace=dynamic(()=>import("./partners/PartnerWorkspace"),{loading});
@@ -375,6 +376,9 @@ export default function Page(){
  const [command,setCommand]=useState(false);
  const [menu,setMenu]=useState(false);
  const [query,setQuery]=useState("");
+ const [filterOpen,setFilterOpen]=useState(false);
+ const [statusFilter,setStatusFilter]=useState("Vsi");
+ const [commandQuery,setCommandQuery]=useState("");
  const [layout,setLayout]=useState(defaultLayout);
  const [layoutLoadedFor,setLayoutLoadedFor]=useState(null);
  const [customizer,setCustomizer]=useState(false);
@@ -442,11 +446,23 @@ export default function Page(){
  const toggleWidget=(id)=>setLayout(items=>items.some(x=>x.id===id)?items.filter(x=>x.id!==id):[...items,{id,size:widgetDefs[id].size}]);
  const setWidgetSize=(id,size)=>setLayout(items=>items.map(x=>x.id===id?{...x,size}:x));
  const dropWidget=(target)=>{if(!dragId||dragId===target)return;setLayout(items=>{const next=[...items];const from=next.findIndex(x=>x.id===dragId),to=next.findIndex(x=>x.id===target);const [moved]=next.splice(from,1);next.splice(to,0,moved);return next});setDragId(null)};
- const rows=useMemo(()=>current.rows.filter(r=>r.join(" ").toLowerCase().includes(query.toLowerCase())),[current,query]);
+ const statusOptions=useMemo(()=>["Vsi",...new Set(current.rows.map(row=>row[4]))],[current]);
+ const rows=useMemo(()=>filterDemoRows(current.rows,query,statusFilter),[current,query,statusFilter]);
+ const commandItems=useMemo(()=>findDemoModules(nav,commandQuery),[commandQuery]);
+ const downloadDemoCsv=()=>{
+   if(!rows.length)return;
+   const headers=["Postavka","Kontekst","Vrednost","AI / datum","Status"];
+   const csv=demoRowsToCsv(headers,rows);
+   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+   const anchor=document.createElement("a");
+   anchor.href=url;anchor.download="finai-demo-"+activeRoute.module+"-podjetje-"+company+".csv";
+   document.body.appendChild(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
  const navigateSection=(label)=>{
    navigateTo({moduleLabel:label});
    setMenu(false);
-   setQuery("");
+   setQuery("");setStatusFilter("Vsi");setFilterOpen(false);
  };
  const navigateSubmodule=(view)=>navigateTo({moduleLabel:section,view});
  const navigateSubview=(subview)=>navigateTo({moduleLabel:section,view:contextLevel2,subview});
@@ -541,7 +557,7 @@ export default function Page(){
        </article>}
        {section==="Nastavitve"&&<IdentityAccessPanel company={company} setCompany={setCompany} twoFactor={twoFactor} setTwoFactor={setTwoFactor} light={light} setLight={setLight} compact={compact} setCompact={setCompact} context={activeContext}/>}
        {section==="Knjiženje"&&<><AccountingCorePanel context={activeContext} companyId={company}/><SyntheticJournalServerPanel key={company} companyId={company}/></>}
-       {section==="Partnerji"&&<PartnerWorkspace context={activeContext}/>}
+       {section==="Partnerji"&&<PartnerWorkspace key={company} companyId={company} context={activeContext}/>}
        {section==="Prejeti računi"&&<IncomingInvoicesWorkspace context={activeContext} companyId={company}/>}
        {section==="Izdani računi"&&<IssuedInvoicesWorkspace context={activeContext} companyId={company} supplierName={companies.find(x=>x.id===company)?.name} supplierTaxNumber={companies.find(x=>x.id===company)?.tax}/>}
        {section==="Banka"&&<BankingWorkspace context={activeContext} companyId={company}/>}
@@ -561,7 +577,14 @@ export default function Page(){
        {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&section!=="Integracije"&&<div className="workspace">
          <article className="panel">
            <div className="panelHead"><h3>{section==="Nadzorna plošča"?"Prioritete in odprte naloge":"Podatki"}</h3><span>{rows.length} zapisov · posodobljeno zdaj</span></div>
-           <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button className="secondary">Filtri</button><button className="secondary">Izvoz</button></div>
+           <div className="toolbar"><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Išči po partnerju, dokumentu, znesku ali statusu ..."/><button type="button" className="secondary" aria-expanded={filterOpen} onClick={()=>setFilterOpen(v=>!v)}>Filtri {filterOpen?"▴":"▾"}</button>
+             <button type="button" className="secondary" disabled={!rows.length} onClick={downloadDemoCsv}>Izvoz CSV</button>
+             {filterOpen&&<label style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>Status
+               <select aria-label="Filtriraj po statusu" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}
+                 style={{border:"1px solid var(--line)",borderRadius:7,background:"var(--panel)",color:"var(--text)",padding:8}}>
+                 {statusOptions.map(x=><option key={x} value={x}>{x}</option>)}
+               </select>
+             </label>}</div>
            <div className="tableWrap"><div className="table">
              <div className="tr head"><span>Postavka</span><span>Kontekst</span><span>Vrednost</span><span>AI / datum</span><span>Status</span></div>
              {rows.map((r,i)=><button className="tr row" key={i} onClick={()=>setDrawer(r)}>{r.map((v,j)=><span key={j} className={j===2?"num":""}>{j===4?statusChip(v):v}</span>)}</button>)}
@@ -598,7 +621,7 @@ export default function Page(){
         <div className="qaActions"><button type="button" onClick={()=>setQaOpen(false)}>Zapri</button><button type="button" className="qaPrimary" onClick={copyQaReport}>⧉ Kopiraj za ChatGPT</button></div>
       </section>
     </div>}
-   {userPanel&&<div className="userPopover"><b>Testni uporabnik</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{navigateSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><button className="secondary">Odjava</button></div>}
+   {userPanel&&<div className="userPopover"><b>Testni uporabnik</b><small>Owner · {companies.find(x=>x.id===company)?.name}</small><button className="secondary" onClick={()=>{navigateSection("Nastavitve");setUserPanel(false)}}>Varnost in dostopi</button><a className="secondary" href="/auth" style={{display:"inline-block",textDecoration:"none"}} title="Demonstracijsko okolje ne vsebuje aktivne strežniške seje">Odpri prijavni zaslon (API še ni povezan)</a></div>}
 
    <div className={"drawer "+(drawer?"open":"")}>
      <div className="drawerHead"><div><small style={{color:"var(--accent)",fontWeight:800}}>KONTEKSTNI PREDAL</small><h3>{drawer?.[0]||"Podrobnosti"}</h3></div><button className="drawerClose" onClick={()=>setDrawer(null)}>×</button></div>
@@ -616,7 +639,9 @@ export default function Page(){
      </div>
    </div></div>}
 
-   {command&&<div className="command" onMouseDown={e=>{if(e.target===e.currentTarget)setCommand(false)}}><div className="commandBox"><input autoFocus placeholder="Vpiši ukaz ali modul ..." onKeyDown={e=>{if(e.key==="Enter")setCommand(false)}}/><div className="commandList">{nav.slice(0,6).map(([label,icon])=><button key={label} onClick={()=>{navigateSection(label);setCommand(false)}}>{icon} &nbsp; Odpri {label}</button>)}</div></div></div>}
+   {command&&<div className="command" onMouseDown={e=>{if(e.target===e.currentTarget)setCommand(false)}}><div className="commandBox"><input autoFocus value={commandQuery} onChange={e=>setCommandQuery(e.target.value)} placeholder="Išči med vsemi moduli (Ctrl+K) ..." aria-label="Iskanje po modulih" onKeyDown={e=>{if(e.key==="Enter"&&commandItems.length){navigateSection(commandItems[0][0]);setCommand(false);setCommandQuery("");}}}/>
+       <div className="commandList">{commandItems.map(([label,icon])=><button key={label} onClick={()=>{navigateSection(label);setCommand(false);setCommandQuery("");}}>{icon} &nbsp; Odpri {label}</button>)}
+       {!commandItems.length&&<p style={{padding:12,color:"var(--muted)"}}>Ni modula s tem imenom.</p>}</div></div></div>}
 
    <nav className="mobileNav">{mobile.map(([label,icon])=><button key={label} className={section===label?"on":""} onClick={()=>navigateSection(label)}><b>{icon}</b>{label.split(" ")[0]}</button>)}</nav>
  </div>
