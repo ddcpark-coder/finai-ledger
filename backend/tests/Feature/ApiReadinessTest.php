@@ -15,7 +15,7 @@ final class ApiReadinessTest extends TestCase
 
         $response = $this->getJson('/api/readiness')
             ->assertStatus(503)
-            ->assertJsonExact(['status' => 'unavailable']);
+            ->assertExactJson(['status' => 'unavailable']);
 
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         $this->assertStringNotContainsString('sqlite', $response->getContent());
@@ -28,7 +28,7 @@ final class ApiReadinessTest extends TestCase
 
         $response = $this->getJson('/api/readiness')
             ->assertOk()
-            ->assertJsonExact(['status' => 'database-reachable']);
+            ->assertExactJson(['status' => 'database-reachable']);
 
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
@@ -45,7 +45,7 @@ final class ApiReadinessTest extends TestCase
 
         $this->getJson('/api/readiness')
             ->assertStatus(503)
-            ->assertJsonExact(['status' => 'unavailable']);
+            ->assertExactJson(['status' => 'unavailable']);
     }
 
     public function test_bad_database_connection_fails_closed_without_exception_text(): void
@@ -59,7 +59,7 @@ final class ApiReadinessTest extends TestCase
 
         $response = $this->getJson('/api/readiness')
             ->assertStatus(503)
-            ->assertJsonExact(['status' => 'unavailable']);
+            ->assertExactJson(['status' => 'unavailable']);
 
         $this->assertStringNotContainsString('database', strtolower($response->getContent()));
     }
