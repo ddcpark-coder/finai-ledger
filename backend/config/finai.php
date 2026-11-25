@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Explicit opt-in: anonymous status reveals only if SELECT 1 succeeds.
+    // Not a signal for real-data production readiness.
+    'api_readiness_enabled' => (bool) env('FINAI_API_READINESS_ENABLED', false),
     // Intentionally disabled until the real Hiper M environment passes 2FA and CSRF QA.
     'auth_release_enabled' => (bool) env('FINAI_AUTH_RELEASE_ENABLED', false),
     // Isolated synthetic-only API, off in every deployed environment by default.

@@ -110,7 +110,14 @@ jobs:
       - name: Install and build without Vercel
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          # Public hostname only. Leave unset until dedicated Laravel deployment
+          # and session/CSRF QA are verified. Never a token or secret.
+          NEXT_PUBLIC_FINAI_API_BASE_URL: ${{ vars.FINAI_FRONTEND_API_BASE_URL }}
         run: |
+          if [ -n "${NEXT_PUBLIC_FINAI_API_BASE_URL:-}" ] && [ "$NEXT_PUBLIC_FINAI_API_BASE_URL" != "https://api.e-integrator.si/api" ]; then
+            echo "FINAI_FRONTEND_API_ORIGIN=DENIED"
+            exit 1
+          fi
           npm install --no-audit --no-fund --package-lock=false
           npm run build
           # Public, non-secret release marker. Required to prove the actual version is live.

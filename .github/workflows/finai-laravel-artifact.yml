@@ -6,6 +6,8 @@ on:
       - "backend/**"
       - "ops/finai-laravel-release.py"
       - "tests/test_finai_laravel_release.py"
+      - "ops/finai-api-host-readonly.py"
+      - "tests/test_finai_api_host_readonly.py"
       - ".github/workflows/finai-laravel-artifact.yml"
   push:
     branches: [main]
@@ -13,6 +15,8 @@ on:
       - "backend/**"
       - "ops/finai-laravel-release.py"
       - "tests/test_finai_laravel_release.py"
+      - "ops/finai-api-host-readonly.py"
+      - "tests/test_finai_api_host_readonly.py"
       - ".github/workflows/finai-laravel-artifact.yml"
   workflow_dispatch:
 
@@ -46,7 +50,9 @@ jobs:
           extensions: mbstring, xml, dom, curl, sqlite3, pdo_sqlite, pdo_mysql, openssl, fileinfo
           tools: composer:v2
       - name: Validate the private package boundary
-        run: python3 -B -m unittest discover -s tests -p 'test_finai_laravel_release.py' -v
+        run: |
+          python3 -B -m unittest discover -s tests -p 'test_finai_laravel_release.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_api_host_readonly.py' -v
       - name: Assemble from locked Laravel source and dependencies
         shell: bash
         run: |
@@ -55,6 +61,18 @@ jobs:
           mkdir -p "$build"
           cp -a backend/app backend/bootstrap backend/config backend/database backend/public backend/routes "$build/"
           cp backend/artisan backend/composer.json backend/composer.lock "$build/"
+          # Version marker is non-secret, public, and tied to the same Git commit.
+          python3 - "$build" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          marker = Path(sys.argv[1]) / "public" / "finai-api-build.json"
+          if marker.exists() or marker.is_symlink():
+              raise SystemExit("Refusing to overwrite Laravel release marker")
+          marker.write_text(json.dumps({
+              "application": "finai-ledger-api",
+              "commit": os.environ["GITHUB_SHA"],
+          }, sort_keys=True) + "\n", encoding="utf-8")
+          PY
           mkdir -p "$build/storage/app/private" "$build/storage/framework/cache/data" \
             "$build/storage/framework/sessions" "$build/storage/framework/views" "$build/storage/logs" \
             "$build/bootstrap/cache"
@@ -80,6 +98,14 @@ jobs:
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 \
             --max-time 5 --output /dev/null http://127.0.0.1:18084/up
+          python3 - <<'PY'
+          import json, os, urllib.request
+          with urllib.request.urlopen("http://127.0.0.1:18084/finai-api-build.json", timeout=5) as r:
+              marker = json.load(r)
+          if marker != {"application":"finai-ledger-api", "commit":os.environ["GITHUB_SHA"]}:
+              raise SystemExit("Unexpected Laravel live marker")
+          print("FINAI_LARAVEL_RELEASE_MARKER=PASS")
+          PY
           (cd "$RUNNER_TEMP" && sha256sum finai-laravel-private.tar.gz > finai-laravel-private.sha256)
           echo 'FINAI_LARAVEL_LOCAL_HEALTH=PASS'
       - uses: actions/upload-artifact@v4
