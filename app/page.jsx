@@ -572,7 +572,7 @@ export default function Page(){
        {section==="Zaloge"&&<OperationsNetworkPanel key={company+"-stock"} companyId={company} mode="warehouses"/>}
        {section==="Zaloge"&&<InventoryWorkspace key={company} context={activeContext} companyId={company}/>}
        {section==="Integracije"&&<OperationsNetworkPanel key={company+"-commerce"} companyId={company} mode="commerce"/>}
-       {section==="Projekti"&&<ProjectsWorkspace context={activeContext}/>}
+       {section==="Projekti"&&<ProjectsWorkspace key={company} context={activeContext} companyId={company} onNavigate={navigateSection}/>}
 
        {(section!=="Nadzorna plošča"||dashboardOverview)&&section!=="Knjiženje"&&section!=="Partnerji"&&section!=="Prejeti računi"&&section!=="Izdani računi"&&section!=="Banka"&&section!=="DDV in poročila"&&section!=="eDavki / FURS"&&section!=="Dokumenti"&&section!=="Artikli in ceniki"&&section!=="CRM"&&section!=="Ponudbe"&&section!=="Naročila"&&section!=="Nabava"&&section!=="Zaloge"&&section!=="Projekti"&&section!=="Integracije"&&<div className="workspace">
          <article className="panel">
