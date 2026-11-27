@@ -81,6 +81,17 @@ API docroot trenutno vsebuje tudi `.well-known`, `.htaccess`, `.user.ini` in
 `php.ini`. Morebitni preklop ga ne sme preprosto zamenjati brez preveritve
 posledic za nastavitve domene, preverjanja HTTPS in načrta povrnitve.
 
+`ops/finai-api-private-extract.py` lahko po pregledu točno določenega skripta
+in uspešnih ciljnih testih razpakira tak že preverjen arhiv v **nov** zasebni
+imenik `release-<polni-Git-SHA>-<začetek-SHA256-arhiva>` znotraj obstoječe
+zasebne mape. Preveri identiteto OS, pravice, dejanske poti, SHA-256 manifesta
+in arhiva, celotni manifest z natančno določeno različico preverjevalnika ter
+vse izpisane datoteke. Ne sledi simbolnim povezavam in ne prepiše obstoječe
+izdaje; ob zaznani napaki odstrani samo svoj novi imenik. Prekinitev procesa
+lahko pusti nepopoln imenik, ki ni uporabna izdaja in ga naslednji zagon ne
+bo prepisal. Ta korak ne ustvari `.env`, ne priklopi baze, ne spreminja spletne
+domene in sam po sebi ne dovoli objave.
+
 ## KORAK B — zasebni Laravel root in namenski DB
 
 Pod računom `einteg86` pripravi namensko zasebno izdajno strukturo, **ločeno od javnega API docroota**. Varen referenčni cilj za preverjanje z operaterjem:
