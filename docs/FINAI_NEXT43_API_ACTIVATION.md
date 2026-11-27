@@ -45,12 +45,15 @@ FINAI_API_DEPLOY_AUTHORIZED=NO
 ```
 To so primeri, ne vnaprej potrjeni rezultati. `PASS_CLI_ONLY` ne dokazuje različice PHP v Apache/FPM za API poddomeno. Dejanska PHP 8.4 nastavitev se preveri z namensko cPanel konfiguracijo in poznejšim HTTP smoke testom. Pri nezdružljivi različici ali manjkajočih razširitvah posamezni CLI izpiše `INCOMPATIBLE_CLI_ONLY` in imena manjkajočih razširitev; odsoten alternativni interpreter ni sam po sebi napaka. Status zasebne mape `PRESENT_PRIVATE` pomeni samo preverjeno lastništvo, pot brez symlinka in dovoljenja 0700 oziroma strožja; ne potrjuje ACL, vsebine, varnostne kopije ali dovoljenja za objavo. Če skript zazna javno `.env*`, `vendor` ali zasebni Laravel vir v API docrootu, se namestitev **ustavi**. `FINAI_API_READONLY_PREFLIGHT=PASS` je le rezultat pregledanih bralnih kontrol; `FINAI_API_DEPLOY_AUTHORIZED` ostane **NO**.
 
-### Opažanja 27. 11. 2026
+### Ponovni pregled 27. 11. 2026
 
-- V cPanelu je prikazan račun `einteg86`, domenski API docroot `/home/einteg86/api.e-integrator.si` in nastavitev računa PHP 8.4; to še ne potrjuje dejanskega PHP spletnega handlerja API.
-- Vidna je baza `einteg86_finai_dev` (4 KB) brez dodeljenega uporabnika. Velikost ne dokazuje, da je baza prazna ali obnovljiva.
-- cPanel Terminal je ob poskusu povezave in ponovni povezavi vrnil `The WebSocket handshake failed`. File Manager je pri odpiranju map vrnil `Data error`, phpMyAdmin pa je prikazal odgovor varnostnega preverjanja namesto strukture baze. Preverjanje ni bilo obideno.
-- Do uspešnega read-only pregleda, dokaza izolacije, namensko omejenega uporabnika baze in preverljive obnove **ni dovoljena strežniška namestitev ali migracija**. Prejšnja statična varnostna kopija ne nadomešča dokazila za API in DB.
+- cPanel Terminal se je v isti seji povezal in ukaz `id` je potrdil `einteg86`, UID 1256 in skupino 1259. Rezultati terminala so vidni z zamikom; pred sklepanjem o napaki je treba počakati na dejanski odziv. File Manager je prikazal vsebino API mape brez napake.
+- Prejšnja opažanja WebSocket napake in sporočila »Data error« sama po sebi **ne dokazujejo napake ponudnika**. Uporabnik je poročal, da orodji delujeta tudi pri njegovem upravljanju; po njegovem poročilu podpora ni zaznala nepravilnosti. Natančen vzrok prejšnjih opažanj ni ugotovljen.
+- Pregledani `ops/finai-api-host-readonly.py` iz Git revizije `562e294ea590cac27d0bf37314dcb51a1fb78171` je bil naložen v pomnilnik in pred izvedbo preverjen s SHA-256 `a6ce6cf4a6541158e55f5ffb082f8ff5e1655997e8c465b24f2a533c174e630b`. Zaključil se je z `FINAI_API_READONLY_PREFLIGHT=PASS` in `FINAI_API_DEPLOY_AUTHORIZED=NO`. Dolg ročni prepis se je pred tem pokvaril in je zaradi kontrole celovitosti odpovedal pred izvedbo; za prihodnje preglede uporabljaj preverljiv prenos brez ročnega prepisovanja vsebine.
+- Skript je potrdil uporabnika, strežnik, domačo in javno pot, javno mejo ter privzeti PHP CLI in `ALT84` z različico najmanj 8.4 ter preverjenimi razširitvami. EA84 CLI ni na voljo; to samo po sebi ni napaka. Spletni PHP handler in povezava spletnega korena ostajata nepreverjena.
+- Pregled metapodatkov: `/home/einteg86` je UID 1256, način 0711; `api.e-integrator.si` je UID 1256, način 0750, skupina 65534; obstoječa `finai-laravel-private` je UID 1256 in način 0700. Dejanske poti so enake navedenim. Novo predvidena mapa `finai-api-deploy` še ne obstaja. `getfacl` ni na voljo; Pythonov `listxattr` za te tri mape ni prikazal razširjenih POSIX ACL. To samo po sebi ne dokazuje celotne medračunske izolacije.
+- R1Soft za `einteg86` prikazuje obnovitveno točko **26. 11. 2026 ob 22:00 CET**. V njenem seznamu sta mapa `api.e-integrator.si` in baza `einteg86_finai_dev`. Pregled je bil samo bralen; uspešna obnova API datotek ali baze ni bila izvedena oziroma dokazana.
+- Pred objavo ostajajo potrebni dokaz dejanske izolacije in spletnega PHP handlerja, preverjanje namenskega uporabnika baze in njegovih pravic ter preverljiva obnova oziroma povrnitev. Bralni pregled ali prikaz kopije ne pomeni dovoljenja za objavo ali migracijo.
 
 ## KORAK B — zasebni Laravel root in namenski DB
 
