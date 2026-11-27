@@ -11,9 +11,10 @@ import tarfile
 
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 SHA = re.compile(r"^[0-9a-f]{64}$")
+BUILD_MARKER = "public/finai-api-build.json"
 REQUIRED = {
     "artisan", "bootstrap/app.php", "composer.json", "composer.lock",
-    "public/.htaccess", "public/index.php", "vendor/autoload.php",
+    "public/.htaccess", "public/index.php", "vendor/autoload.php", BUILD_MARKER,
 }
 
 
@@ -83,11 +84,16 @@ def collect(root):
     return sorted(directories), sorted(rows, key=lambda row: row["path"])
 
 
-def verify(archive, manifest):
+def verify(archive, manifest, expected_commit=None):
+    if manifest.get("application") != "finai-laravel-private":
+        raise Denied("unexpected application")
     if not SHA.fullmatch(manifest.get("archive_sha256", "")) or digest_file(archive) != manifest["archive_sha256"]:
         raise Denied("archive digest mismatch")
     if not COMMIT.fullmatch(manifest.get("commit", "")):
         raise Denied("missing source commit")
+    if expected_commit is not None and (
+            not COMMIT.fullmatch(expected_commit) or manifest["commit"] != expected_commit):
+        raise Denied("unexpected source commit")
     expected = {row["path"]: row for row in manifest["files"]}
     if len(expected) != len(manifest["files"]) or not REQUIRED.issubset(expected):
         raise Denied("invalid manifest")
@@ -111,11 +117,23 @@ def verify(archive, manifest):
             if data is None:
                 raise Denied("unreadable archive member")
             h = hashlib.sha256()
+            marker_bytes = bytearray() if name == BUILD_MARKER else None
+            if marker_bytes is not None and member.size > 4096:
+                raise Denied("release marker is too large")
             with data:
                 for chunk in iter(lambda: data.read(1024 * 1024), b""):
                     h.update(chunk)
+                    if marker_bytes is not None:
+                        marker_bytes.extend(chunk)
             if h.hexdigest() != row["sha256"]:
                 raise Denied("archive member digest mismatch")
+            if marker_bytes is not None:
+                try:
+                    marker = json.loads(marker_bytes.decode("utf-8"))
+                except (UnicodeError, ValueError) as exc:
+                    raise Denied("invalid release marker") from exc
+                if marker != {"application": "finai-ledger-api", "commit": manifest["commit"]}:
+                    raise Denied("release marker does not match manifest")
             actual.add(name)
     if actual != set(expected):
         raise Denied("archive files differ from manifest")
@@ -141,7 +159,7 @@ def pack(root, archive, manifest_path, commit):
                 tar.addfile(info)
     manifest = {"application": "finai-laravel-private", "commit": commit,
                 "archive_sha256": digest_file(archive), "files": files}
-    verify(archive, manifest)
+    verify(archive, manifest, expected_commit=commit)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True) + "\n")
 
 
@@ -159,7 +177,8 @@ def main():
                 raise Denied("pack needs a build root and commit")
             pack(args.root, args.archive, args.manifest, args.commit)
         else:
-            verify(args.archive, json.loads(args.manifest.read_text(encoding="utf-8")))
+            verify(args.archive, json.loads(args.manifest.read_text(encoding="utf-8")),
+                   expected_commit=args.commit)
     except (Denied, OSError, ValueError, KeyError, tarfile.TarError) as exc:
         raise SystemExit("FINAI_LARAVEL_ARTIFACT_DENIED: " + str(exc))
     print("FINAI_LARAVEL_PRIVATE_ARTIFACT=PASS")
