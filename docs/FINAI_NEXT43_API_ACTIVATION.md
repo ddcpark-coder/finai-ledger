@@ -92,6 +92,15 @@ lahko pusti nepopoln imenik, ki ni uporabna izdaja in ga naslednji zagon ne
 bo prepisal. Ta korak ne ustvari `.env`, ne priklopi baze, ne spreminja spletne
 domene in sam po sebi ne dovoli objave.
 
+`ops/finai-api-web-php-probe.py` preveri dejanski spletni PHP samo z začasno,
+naključno poimenovano datoteko na API domeni. Po predhodnem preverjanju
+namenskega računa, poti, dovoljenj, DNS in SHA-256 izdaje izpiše le logične
+rezultate za različico PHP, razširitve in efektivni UID. Preizkus ne izvaja
+ukazov, ne sprejema podatkov uporabnikov, ne dostopa do baze in ne razkriva
+skrivnosti. Ob koncu odstrani le lastno nespremenjeno datoteko; prekinitev
+procesa ali nepričakovana sprememba lahko zahteva ročni pregled. Uspeh ne
+predstavlja varnostnega pregleda ali dovoljenja za produkcijo.
+
 ## KORAK B — zasebni Laravel root in namenski DB
 
 Pod računom `einteg86` pripravi namensko zasebno izdajno strukturo, **ločeno od javnega API docroota**. Varen referenčni cilj za preverjanje z operaterjem:
