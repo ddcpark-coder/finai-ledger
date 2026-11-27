@@ -71,11 +71,22 @@ V cPanelu ustvari **izključno namensko FinAI** MariaDB bazo in uporabnika z naj
 
 1. Preveri PHP **8.4 web handler**, razširitve (`pdo_mysql`, `mbstring`, `openssl`, `xml`), lastništvo, potrebne mape ter HTTPS za poddomeno API. Ne usmerjaj na Vercel.
 2. Preveri varnostno kopijo namenskega API in DB, povrnljivo prejšnjo izdajo. Prenos že preverjenega R1Soft **statičnega** arhiva spletnega vmesnika ne dokazuje obnovljivosti nove zasebne Laravel aplikacije ali baze.
+   GitHub Actions ločeno preizkuša SHA256 in obnovitev sintetičnega MariaDB
+   posnetka v **začasni CI bazi**; ta test ni varnostna kopija gostovanja in
+   ne nadomešča preverjene obnove namenske FinAI baze na Hiper M.
 3. Preveri `composer.lock` in `finai-laravel-manifest.json` ter SHA256 iz arhiva GitHub Actions pred razširitvijo samo v preverjenem namenskem FinAI okolju. Pri preverjanju navedi tudi natančni pričakovani Git SHA z `verify --commit <40-znakovni-Git-SHA>`: ta mora ustrezati manifestu in oznaki `public/finai-api-build.json` znotraj arhiva. Strežniška namestitev ne sme izvajati `composer update` ali nenačrtovanih skriptov.
 4. Konfiguriraj `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://api.e-integrator.si`, MySQL/MariaDB `DB_*`, `SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax`, `SESSION_DOMAIN=.e-integrator.si`, `SANCTUM_STATEFUL_DOMAINS=app.e-integrator.si,api.e-integrator.si`, `FINAI_ALLOWED_ORIGINS=https://app.e-integrator.si`. `APP_KEY` ustvari zasebno v okolju gostovanja; z njim se ob posodobitvah **ne rotira** brez načrtovane re-enkripcije podatkov.
 5. Pred migracijo začasne namensko preverjene FinAI baze je obvezen izrecni predmigracijski pregled in obnova. Ne sproži `migrate:fresh` ali vseh poslovnih migracij na nepreverjeni živi bazi. Najprej namesti samo **preverjeni** identitetno/preferenčni osnovni migraciji in pregledan seeder samo v izolirani sintetični testni bazi.
 6. Opravi `/up` (200), `/finai-api-build.json` (točen Git SHA), `/api/readiness` (200 le ob namenski preverjeni bazi in izrecni nastavitvi), zavrnitev neavtoriziranega `GET /api/me` (401), Fortify 2FA/CSRF smoke, poslovna izolacija company A/B (403), konflikta (409) in obnovljivost. Prijava v produkciji ostane `FINAI_AUTH_RELEASE_ENABLED=false` do dejanske odobritve in uspešnega QA.
 7. Šele po preverjeni API namestitvi je dovoljeno nastaviti javno **neskrivno** frontend var. `FINAI_FRONTEND_API_BASE_URL=https://api.e-integrator.si/api` v GitHub Actions in izvesti zaščiten nov Next.js build. Nikoli ne vgraditi `.env` ali žetonov v statično aplikacijo.
+
+Po namestitvi se javni, anonimni del koraka 6 lahko opravi z
+`python3 -B ops/finai-api-smoke.py --commit <40-znakovni-Git-SHA>`. Skript
+uporablja izključno `https://api.e-integrator.si`, HTTPS preverjanje
+certifikata, ne sledi preusmeritvam in ne pošilja prijavnih podatkov. Pri prvi
+neuspešni kontroli ustavi nadaljnje zahtevke. Pozitivni `/api/readiness` pomeni
+le povezljivost baze; ta preizkus **ne** potrjuje DB pravic, obnove, prijave,
+CSRF, 2FA, izolacije podjetij ali dovoljenja za produkcijo.
 
 ## Stroge omejitve
 

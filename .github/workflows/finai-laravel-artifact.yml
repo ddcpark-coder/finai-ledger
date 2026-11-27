@@ -8,6 +8,8 @@ on:
       - "tests/test_finai_laravel_release.py"
       - "ops/finai-api-host-readonly.py"
       - "tests/test_finai_api_host_readonly.py"
+      - "ops/finai-api-smoke.py"
+      - "tests/test_finai_api_smoke.py"
       - ".github/workflows/finai-laravel-artifact.yml"
   push:
     branches: [main]
@@ -17,6 +19,8 @@ on:
       - "tests/test_finai_laravel_release.py"
       - "ops/finai-api-host-readonly.py"
       - "tests/test_finai_api_host_readonly.py"
+      - "ops/finai-api-smoke.py"
+      - "tests/test_finai_api_smoke.py"
       - ".github/workflows/finai-laravel-artifact.yml"
   workflow_dispatch:
 
@@ -53,6 +57,7 @@ jobs:
         run: |
           python3 -B -m unittest discover -s tests -p 'test_finai_laravel_release.py' -v
           python3 -B -m unittest discover -s tests -p 'test_finai_api_host_readonly.py' -v
+          python3 -B -m unittest discover -s tests -p 'test_finai_api_smoke.py' -v
       - name: Assemble from locked Laravel source and dependencies
         shell: bash
         run: |
