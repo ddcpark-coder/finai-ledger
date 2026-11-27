@@ -6,9 +6,11 @@ on:
       - 'ops/finai-api-private-stage.py'
       - 'ops/finai-api-private-extract.py'
       - 'ops/finai-api-web-php-probe.py'
+      - 'ops/finai-api-private-config.py'
       - 'tests/test_finai_api_private_stage.py'
       - 'tests/test_finai_api_private_extract.py'
       - 'tests/test_finai_api_web_php_probe.py'
+      - 'tests/test_finai_api_private_config.py'
       - '.github/workflows/finai-api-private-stage-qa.yml'
   workflow_dispatch:
 
