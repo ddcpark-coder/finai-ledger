@@ -11,7 +11,7 @@
 ## NEXT43 spremembe, izvedene na GitHubu
 
 1. `GET /api/readiness` je privzeto izključen (`FINAI_API_READINESS_ENABLED=false`). Če je izrecno omogočen, izvaja samo `SELECT 1`; vrne le `{"status":"database-reachable"}` (200) ali `{"status":"unavailable"}` (503). V produkciji zahteva MySQL/MariaDB, `APP_DEBUG=false` in varne sejne piškotke. **Uspeh ne pomeni dovoljenja za pravi računovodski promet.**
-2. Skript `ops/finai-api-host-readonly.py` je **izključno bralen**. Preveri namensko identiteto, lastništvo in ne-zapisljivost skupine/drugih na javnem korenu, odsotnost izpostavljenih `.env`, `vendor`, `config`, `storage` in drugih zasebnih map ter izpiše stanje PHP **CLI**. Ni DB povezav, migracij, ustvarjanja datotek ali spreminjanja cPanel.
+2. Skript `ops/finai-api-host-readonly.py` je **izključno bralen**. Preveri dejanski in efektivni UID, ime računa in strežnika, kanonične poti brez simbolnih povezav, lastništvo, dovoljenja javnega korena in zasebnih map ter odsotnost izpostavljenih `.env*`, `vendor`, `config`, `storage` in drugih zasebnih map. Preveri različico in potrebne razširitve privzetega ter običajnih CloudLinux/cPanel PHP 8.4 **CLI** interpreterjev. Ni DB povezav, migracij, ustvarjanja datotek ali spreminjanja cPanel.
 3. GitHub Laravel release package vsebuje še javno, neskrivno `public/finai-api-build.json` s preverljivo **točno** SHA izdaje; CI preveri `/up` in vsebino oznake.
 4. Ciljni sintetični testi potrdijo spodnje varovalke in preverijo fail-closed odzive brez izpostavljanja podatkov.
 
@@ -28,16 +28,29 @@ Pod `einteg86` izključno na namenskem cPanel Terminalu se izvede pregledan/pinn
 Pričakovani izpisi:
 ```text
 FINAI_API_ISOLATED_IDENTITY=PASS
+FINAI_API_HOST_IDENTITY=PASS
 FINAI_API_HOME=PASS
 FINAI_API_DOCROOT=PASS
 FINAI_API_PUBLIC_BOUNDARY=PASS
 FINAI_API_PHP_CLI=PASS_CLI_ONLY
+FINAI_API_PHP_CLI_ALT84=PASS_CLI_ONLY
+FINAI_API_PHP_CLI_EA84=UNAVAILABLE
+FINAI_API_PRIVATE_RELEASE_DIR=NOT_PRESENT
+FINAI_API_EXISTING_PRIVATE_DIR=PRESENT_PRIVATE
+FINAI_API_ACL_ISOLATION=NOT_VERIFIED
 FINAI_API_PHP_WEB_HANDLER=NOT_VERIFIED
 FINAI_API_WEBSERVER_MAPPING=NOT_VERIFIED
 FINAI_API_DATABASE_ISOLATION=NOT_VERIFIED
 FINAI_API_DEPLOY_AUTHORIZED=NO
 ```
-`PASS_CLI_ONLY` ne dokazuje različice PHP v Apache/FPM za API poddomeno. Dejanska PHP 8.4 nastavitev se preveri z namensko cPanel MultiPHP/domains konfiguracijo in poznejšim HTTP smoke testom. Če skript zazna javno `.env`, `vendor` ali zasebni Laravel vir v API docrootu, se namestitev **ustavi**.
+To so primeri, ne vnaprej potrjeni rezultati. `PASS_CLI_ONLY` ne dokazuje različice PHP v Apache/FPM za API poddomeno. Dejanska PHP 8.4 nastavitev se preveri z namensko cPanel konfiguracijo in poznejšim HTTP smoke testom. Pri nezdružljivi različici ali manjkajočih razširitvah posamezni CLI izpiše `INCOMPATIBLE_CLI_ONLY` in imena manjkajočih razširitev; odsoten alternativni interpreter ni sam po sebi napaka. Status zasebne mape `PRESENT_PRIVATE` pomeni samo preverjeno lastništvo, pot brez symlinka in dovoljenja 0700 oziroma strožja; ne potrjuje ACL, vsebine, varnostne kopije ali dovoljenja za objavo. Če skript zazna javno `.env*`, `vendor` ali zasebni Laravel vir v API docrootu, se namestitev **ustavi**. `FINAI_API_READONLY_PREFLIGHT=PASS` je le rezultat pregledanih bralnih kontrol; `FINAI_API_DEPLOY_AUTHORIZED` ostane **NO**.
+
+### Opažanja 27. 11. 2026
+
+- V cPanelu je prikazan račun `einteg86`, domenski API docroot `/home/einteg86/api.e-integrator.si` in nastavitev računa PHP 8.4; to še ne potrjuje dejanskega PHP spletnega handlerja API.
+- Vidna je baza `einteg86_finai_dev` (4 KB) brez dodeljenega uporabnika. Velikost ne dokazuje, da je baza prazna ali obnovljiva.
+- cPanel Terminal je ob poskusu povezave in ponovni povezavi vrnil `The WebSocket handshake failed`. File Manager je pri odpiranju map vrnil `Data error`, phpMyAdmin pa je prikazal odgovor varnostnega preverjanja namesto strukture baze. Preverjanje ni bilo obideno.
+- Do uspešnega read-only pregleda, dokaza izolacije, namensko omejenega uporabnika baze in preverljive obnove **ni dovoljena strežniška namestitev ali migracija**. Prejšnja statična varnostna kopija ne nadomešča dokazila za API in DB.
 
 ## KORAK B — zasebni Laravel root in namenski DB
 
