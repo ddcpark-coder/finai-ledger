@@ -56,6 +56,31 @@ To so primeri, ne vnaprej potrjeni rezultati. `PASS_CLI_ONLY` ne dokazuje razli�
 - R1Soft za `einteg86` prikazuje obnovitveno točko **26. 11. 2026 ob 22:00 CET**. V njenem seznamu sta mapa `api.e-integrator.si` in baza `einteg86_finai_dev`. Pregled je bil samo bralen; uspešna obnova API datotek ali baze ni bila izvedena oziroma dokazana.
 - Pred objavo ostajajo potrebni dokaz dejanske izolacije in spletnega PHP handlerja, preverjanje namenskega uporabnika baze in njegovih pravic ter preverljiva obnova oziroma povrnitev. Bralni pregled ali prikaz kopije ne pomeni dovoljenja za objavo ali migracijo.
 
+### Samo zasebni prenos preverjenega paketa
+
+`ops/finai-api-private-stage.py` je omejen na ročni prenos paketa v že obstoječi
+`/home/einteg86/finai-laravel-private` in ne omogoča objave, razpakiranja,
+spreminjanja spletnega korena ali povezave z bazo. Pred uporabo je treba
+neodvisno preveriti GitHub Actions izdajo, natančni Git SHA, SHA-256 ZIP
+artefakta, notranjega arhiva in manifesta ter opraviti obstoječi preverjevalnik
+`finai-laravel-release.py verify --commit <SHA>`. Skript prejme samo začasno
+zasebno povezavo prek **skritega** vnosa v terminalu, nikoli kot argument,
+besedilo v dnevniku ali del repozitorija. Zavračanje strežniškega preverjanja
+se ne rešuje s prepisovanjem obstoječih datotek.
+
+Skript pred zapisom ponovno preveri UID, GID, strežnik, pravice procesa,
+kanonično zasebno pot, lastnika, pravice, odsotnost razširjenega ACL ter v
+pomnilniku preveri prej neodvisno potrjene zgoščene vrednosti in oznako izdaje.
+Ustvari samo dve novi datoteki z načinom 0600; obstoječih imen ali povezav ne
+prepiše. Ob napaki odstrani samo lastne nove datoteke z ujemajočo se identiteto.
+Nepričakovana prekinitev lahko pusti začasno datoteko, ki je ni dovoljeno
+uporabiti kot izdajo. To je izključno staging, `FINAI_API_DEPLOY_AUTHORIZED`
+ostane `NO`; za poznejšo objavo in migracije še vedno veljajo vsi spodnji pogoji.
+
+API docroot trenutno vsebuje tudi `.well-known`, `.htaccess`, `.user.ini` in
+`php.ini`. Morebitni preklop ga ne sme preprosto zamenjati brez preveritve
+posledic za nastavitve domene, preverjanja HTTPS in načrta povrnitve.
+
 ## KORAK B — zasebni Laravel root in namenski DB
 
 Pod računom `einteg86` pripravi namensko zasebno izdajno strukturo, **ločeno od javnega API docroota**. Varen referenčni cilj za preverjanje z operaterjem:
