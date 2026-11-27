@@ -90,7 +90,7 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/finai-laravel-private.tar.gz"
           python3 -B ops/finai-laravel-release.py verify --archive "$archive" \
-            --manifest "$RUNNER_TEMP/finai-laravel-manifest.json"
+            --manifest "$RUNNER_TEMP/finai-laravel-manifest.json" --commit "$GITHUB_SHA"
           mkdir "$RUNNER_TEMP/finai-laravel-smoke"
           tar --no-same-owner --no-same-permissions -xzf "$archive" -C "$RUNNER_TEMP/finai-laravel-smoke"
           (cd "$RUNNER_TEMP/finai-laravel-smoke" && php -S 127.0.0.1:18084 -t public) >"$RUNNER_TEMP/finai-api-smoke.log" 2>&1 &

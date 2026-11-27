@@ -21,6 +21,9 @@ class LaravelReleaseTests(unittest.TestCase):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("synthetic " + name)
+        (root / release.BUILD_MARKER).write_text(json.dumps({
+            "application": "finai-ledger-api", "commit": "a" * 40,
+        }))
         return root
 
     def test_archive_and_per_file_manifest_are_bound_to_sha256(self):
@@ -32,11 +35,28 @@ class LaravelReleaseTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text())
             self.assertEqual(manifest["archive_sha256"], hashlib.sha256(archive.read_bytes()).hexdigest())
             release.verify(archive, manifest)
+            release.verify(archive, manifest, expected_commit="a" * 40)
+            with self.assertRaises(release.Denied):
+                release.verify(archive, manifest, expected_commit="b" * 40)
+            altered_manifest = dict(manifest, commit="b" * 40)
+            with self.assertRaises(release.Denied):
+                release.verify(archive, altered_manifest)
+            with self.assertRaises(release.Denied):
+                release.verify(archive, dict(manifest, application="another-app"))
             data = bytearray(archive.read_bytes())
             data[-1] ^= 1
             archive.write_bytes(data)
             with self.assertRaises(release.Denied):
                 release.verify(archive, manifest)
+
+    def test_pack_rejects_invalid_or_inconsistent_release_marker(self):
+        for marker in ("invalid", json.dumps({"application": "finai-ledger-api", "commit": "b" * 40})):
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as parent:
+                root = self.candidate(parent)
+                (root / release.BUILD_MARKER).write_text(marker)
+                with self.assertRaises(release.Denied):
+                    release.pack(root, Path(parent) / "backend.tar.gz",
+                                 Path(parent) / "manifest.json", "a" * 40)
 
     def test_secrets_unsafe_public_files_and_links_are_rejected(self):
         for item in (".env", "config/.env.production", "database/data.sqlite",
