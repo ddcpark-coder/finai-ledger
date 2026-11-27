@@ -101,6 +101,19 @@ skrivnosti. Ob koncu odstrani le lastno nespremenjeno datoteko; prekinitev
 procesa ali nepričakovana sprememba lahko zahteva ročni pregled. Uspeh ne
 predstavlja varnostnega pregleda ali dovoljenja za produkcijo.
 
+`ops/finai-api-private-config.py` pripravi **novo**, izključno zasebno
+`finai-laravel-private/shared/.env` po skritem interaktivnem vnosu gesla.
+Geslo mora vsebovati 24–72 črk ASCII in številk. Povezava prek lokalnega
+MariaDB v pomnilniku preveri točno uporabnika `einteg86_fapi`, bazo
+`einteg86_finai_dev`, odsotnost globalnih pravic in zgolj načrtovane začasne
+pravice SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX in REFERENCES na
+tej bazi. Konfiguracija nastane samo po teh preverjanjih in kontroli SHA-256
+točno določenega paketa; obstoječe `.env` nikoli ne prepiše. Geslo ni argument
+ukaza in izpisi ne vsebujejo rezultatov `SHOW GRANTS`. APP_KEY se ustvari samo
+enkrat; datoteka še ni priklopljena na izdajo. Po migracijah je treba odvzeti
+začasne DDL pravice. Skript ne izvaja migracij ali javne objave in ne dokazuje
+obnovitve baze.
+
 ## KORAK B — zasebni Laravel root in namenski DB
 
 Pod računom `einteg86` pripravi namensko zasebno izdajno strukturo, **ločeno od javnega API docroota**. Varen referenčni cilj za preverjanje z operaterjem:
