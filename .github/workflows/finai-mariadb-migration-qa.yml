@@ -5,6 +5,7 @@ on:
     paths:
       - "backend/database/migrations/**"
       - "backend/.env.example"
+      - "ops/finai-ci-mariadb-restore.sh"
       - ".github/workflows/finai-mariadb-migration-qa.yml"
   workflow_dispatch:
 
@@ -97,3 +98,7 @@ jobs:
               throw new RuntimeException("Foreign key enforcement disabled");
           echo "FINAI_DISPOSABLE_MARIADB_SCHEMA=PASS\n";
           '
+      - name: Exercise snapshot backup and restore only in the disposable CI service
+        env:
+          FINAI_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: bash ../ops/finai-ci-mariadb-restore.sh
