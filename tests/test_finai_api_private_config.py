@@ -24,6 +24,26 @@ class PrivateConfigTests(unittest.TestCase):
     def check(self, grants, database=module.DB, user='einteg86_fapi@localhost'):
         module.check_grants(database, user, grants)
 
+    def test_keyboard_codes_round_trip_all_printable_characters(self):
+        printable = ''.join(chr(code) for code in range(32, 127))
+        for password in (printable[:47], printable[47:], 'Aa1!z9"\\$' * 2):
+            encoded = ''.join(
+                'z00' if char == 'z' else
+                f'z{module.KEYBOARD_SYMBOLS.index(char) + 1:02d}'
+                if char in module.KEYBOARD_SYMBOLS else char
+                for char in password)
+            self.assertRegex(encoded, r'^[A-Za-z0-9]+$')
+            self.assertEqual(module.decode_keyboard_password(encoded), password)
+        self.assertEqual(module.decode_keyboard_password('Abz02z009' + 'a' * 11),
+                         'Ab!z9' + 'a' * 11)
+
+    def test_keyboard_codes_reject_malformed_entries_without_echoing_them(self):
+        for encoded in ['a' * 16 + 'z', 'a' * 16 + 'z0', 'a' * 16 + 'z99',
+                        'a' * 16 + 'zAB', 'a' * 16 + '!', 'a' * 73]:
+            with self.subTest(sample_length=len(encoded)), self.assertRaises(module.Denied) as error:
+                module.decode_keyboard_password(encoded)
+            self.assertNotIn(encoded, str(error.exception))
+
     def test_only_named_database_and_exact_privileges_are_allowed(self):
         self.check([self.global_grant, self.database_grant])
         for altered in [
