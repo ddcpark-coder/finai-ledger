@@ -56,6 +56,35 @@ To so primeri, ne vnaprej potrjeni rezultati. `PASS_CLI_ONLY` ne dokazuje razli�
 - R1Soft za `einteg86` prikazuje obnovitveno točko **26. 11. 2026 ob 22:00 CET**. V njenem seznamu sta mapa `api.e-integrator.si` in baza `einteg86_finai_dev`. Pregled je bil samo bralen; uspešna obnova API datotek ali baze ni bila izvedena oziroma dokazana.
 - Pred objavo ostajajo potrebni dokaz dejanske izolacije in spletnega PHP handlerja, preverjanje namenskega uporabnika baze in njegovih pravic ter preverljiva obnova oziroma povrnitev. Bralni pregled ali prikaz kopije ne pomeni dovoljenja za objavo ali migracijo.
 
+### Nadaljevanje 28. 11. 2026
+
+- Preverjeni paket izdaje `bc2777637e8a44bcf2cac51bb670127ac4df36e4`
+  je na namenskem računu razpakiran v zasebni `release-bc2777637e8a44bcf2cac51bb670127ac4df36e4-583be9c0894c`.
+  Kontrola arhiva, manifesta in vseh datotek ob razpakiranju je uspela. Zasebni
+  sintetični PHP preizkus je potrdil `/up` (200), `/api/me` brez prijave (401)
+  in izključeni `/api/readiness` (503); to ni javni HTTPS ali DB preizkus.
+- Začasni spletni PHP preizkus na domeni API je potrdil PHP 8.4 ali novejši
+  v veji 8.x, potrebne razširitve in efektivni UID 1256. Preizkusna datoteka
+  je bila odstranjena. To ne dokazuje prepisovanja poti, namestitve ali QA.
+- V cPanelu je `einteg86_fapi` dodeljen bazi `einteg86_finai_dev`; v obrazcu
+  so izbrane samo SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX in
+  REFERENCES. Preverjanje dejanskega DB principala in `SHOW GRANTS` z namensko
+  povezavo še ni uspelo. Uporabljajo se samo sintetični podatki; DDL pravice
+  je po migracijah treba odstraniti.
+- Na seznamu zasebnega imenika po neuspelem vnosu gesla ni bilo mape `shared`,
+  zato pripravljene konfiguracije ni. Posodobljeni skript sprejme tudi 16-mestna
+  gesla cPanel s posebnimi znaki; s sintetičnimi vrednostmi je preverjen z
+  dejanskim zaklenjenim parserjem phpdotenv. Skrivnosti ne izpisuj ali pregleduj.
+- Nastavitev cPanel **Domains → Manage** ponuja ločeno spremembo document root
+  za `api.e-integrator.si`; preklop ni bil izveden. Trenutni API root vsebuje
+  `.well-known` in nastavitvene datoteke, ki jih je treba ohraniti in omogočiti
+  povrnitev. Zasebna mapa je 0700 in vsebuje tudi 0644 arhiv, zato njenih
+  dovoljenj ne širi za potrebe spletnega korena. PHP UID 1256 še ne dokazuje,
+  da lahko spletni strežnik neposredno prečka vse zasebne imenike.
+- cPanel Terminal je občasno vrnil `The WebSocket handshake failed`; v isti
+  delovni seji se je ob drugih poskusih tudi uspešno povezal. Vzrok ni ugotovljen
+  in iz tega ni mogoče sklepati na nepravilnost gostovanja.
+
 ### Samo zasebni prenos preverjenega paketa
 
 `ops/finai-api-private-stage.py` je omejen na ročni prenos paketa v že obstoječi
