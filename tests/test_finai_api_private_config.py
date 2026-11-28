@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -41,10 +42,35 @@ class PrivateConfigTests(unittest.TestCase):
     def test_password_rejects_dotenv_injection(self):
         key = 'A' * 43 + '='
         safe = 'Aa1' * 10
-        self.assertIn(('DB_PASSWORD=' + safe + '\n').encode(), module.config_text(safe, key))
-        for password in [safe + '\nAPP_DEBUG=true', safe + '#', 'too-short']:
+        self.assertIn(('DB_PASSWORD="' + safe + '"\n').encode(), module.config_text(safe, key))
+        self.assertIn(b'\\$', module.config_text('Abc1${APP_ENV}123456', key))
+        for password in [safe + '\nAPP_DEBUG=true', safe + '\x00', 'too-short', 'A' * 73]:
             with self.assertRaises(module.Denied):
                 module.config_text(password, key)
+
+    def test_password_round_trips_through_locked_phpdotenv(self):
+        php = shutil.which('php')
+        autoload = Path(__file__).resolve().parents[1] / 'backend/vendor/autoload.php'
+        if not php or not autoload.is_file():
+            if os.environ.get('FINAI_REQUIRE_DOTENV_TESTS') == '1':
+                self.fail('PHP and locked Composer dependencies are required for this test')
+            self.skipTest('PHP or Composer dependencies unavailable')
+        program = r'''try {
+    require $argv[1];
+    $input = json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR);
+    $parsed = \Dotenv\Dotenv::parse($input['content']);
+    exit(isset($parsed['DB_PASSWORD']) && hash_equals($input['password'], $parsed['DB_PASSWORD']) ? 0 : 1);
+} catch (Throwable $e) { exit(1); }'''
+        printable = ''.join(chr(i) for i in range(32, 127))
+        samples = [printable[:47], printable[47:],
+                   'A1${APP_ENV}#\\"\' zZZ', 'Z1\\${APP_ENV}#\\\\"9zz']
+        for password in samples:
+            with self.subTest(sample_length=len(password)):
+                contents = module.config_text(password, 'A' * 43 + '=').decode('ascii')
+                result = subprocess.run([php, '-r', program, str(autoload)],
+                    input=json.dumps({'content': contents, 'password': password}), text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+                self.assertEqual((result.returncode, result.stdout, result.stderr), (0, '', ''))
 
     def test_new_config_is_private_and_never_overwrites_existing_file(self):
         with tempfile.TemporaryDirectory() as tmp:
