@@ -30,7 +30,11 @@ jobs:
           php-version: '8.4'
           coverage: none
           extensions: mbstring, xml, dom, curl, pdo_mysql
+      - name: Install locked PHP dependencies for dotenv round-trip
+        run: composer install --working-dir=backend --no-dev --no-interaction --prefer-dist --no-progress --no-scripts
       - name: Verify private staging and extraction with synthetic artifacts
+        env:
+          FINAI_REQUIRE_DOTENV_TESTS: '1'
         run: python3 -B -m unittest discover -s tests -p 'test_finai_api_private_*.py' -v
       - name: Verify temporary web PHP probe safeguards
         run: python3 -B -m unittest discover -s tests -p 'test_finai_api_web_php_probe.py' -v
