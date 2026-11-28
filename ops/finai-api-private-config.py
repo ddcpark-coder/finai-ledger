@@ -25,6 +25,8 @@ DB = 'einteg86_finai_dev'
 DB_USER = 'einteg86_fapi'
 REQUIRED = {'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'INDEX', 'REFERENCES'}
 PASSWORD = re.compile(r'^[\x20-\x7e]{16,72}$')
+KEYBOARD_SYMBOLS = ''.join(chr(code) for code in range(32, 127)
+                           if not chr(code).isalnum())
 ARCHIVE = 'finai-api-bc2777637e8a-package.tar.gz'
 MANIFEST = 'finai-api-bc2777637e8a-manifest.json'
 DIGESTS = {
@@ -35,6 +37,48 @@ DIGESTS = {
 
 class Denied(Exception):
     pass
+
+
+def decode_keyboard_password(encoded):
+    """Decode a hidden alphanumeric-only entry, with zNN for other characters."""
+    if len(encoded) > 216 or not re.fullmatch(r'[A-Za-z0-9]+', encoded):
+        raise Denied('invalid keyboard-code input')
+    result = []
+    position = 0
+    while position < len(encoded):
+        char = encoded[position]
+        if char != 'z':
+            result.append(char)
+            position += 1
+            continue
+        code = encoded[position + 1:position + 3]
+        if len(code) != 2 or not code.isascii() or not code.isdigit():
+            raise Denied('invalid keyboard-code input')
+        index = int(code)
+        if index > len(KEYBOARD_SYMBOLS):
+            raise Denied('invalid keyboard-code input')
+        result.append('z' if index == 0 else KEYBOARD_SYMBOLS[index - 1])
+        position += 3
+    password = ''.join(result)
+    if not PASSWORD.fullmatch(password):
+        raise Denied('password must use 16–72 printable ASCII characters')
+    return password
+
+
+def read_password(keyboard_codes=False):
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', getpass.GetPassWarning)
+        if not keyboard_codes:
+            return getpass.getpass('FinAI database password (input hidden): ')
+        print('Crke in stevilke vpisite normalno, razen male crke z.')
+        print('Malo crko z vpisite kot z00; posebne znake po spodnji tabeli:')
+        labels = ['z00=z'] + [f'z{i:02d}=' + ('[presledek]' if char == ' ' else char)
+                                for i, char in enumerate(KEYBOARD_SYMBOLS, 1)]
+        for start in range(0, len(labels), 5):
+            print('   '.join(f'{label:<16}' for label in labels[start:start + 5]))
+        print('Primer (ni vase geslo): Ab!z9 vpisete kot Abz02z009.')
+        encoded = getpass.getpass('Vnesite geslo z oznakami (skriti vnos): ')
+    return decode_keyboard_password(encoded)
 
 
 def identity():
@@ -207,15 +251,15 @@ def write_new_config(private, uid, contents):
 def main():
     os.umask(0o077)
     try:
+        if sys.argv[1:] not in ([], ['--keyboard-codes']):
+            raise Denied('unexpected command option')
         identity()
         directory = open_private(PRIVATE, 1256)
         os.close(directory)
         verify_artifact()
         if not sys.stdin.isatty():
             raise Denied('a private terminal is required')
-        with warnings.catch_warnings():
-            warnings.simplefilter('error', getpass.GetPassWarning)
-            password = getpass.getpass('FinAI database password (input hidden): ')
+        password = read_password(sys.argv[1:] == ['--keyboard-codes'])
         if not PASSWORD.fullmatch(password):
             raise Denied('password must use 16–72 printable ASCII characters')
         verify_database(password)
