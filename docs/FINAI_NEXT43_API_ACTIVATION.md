@@ -103,7 +103,9 @@ predstavlja varnostnega pregleda ali dovoljenja za produkcijo.
 
 `ops/finai-api-private-config.py` pripravi **novo**, izključno zasebno
 `finai-laravel-private/shared/.env` po skritem interaktivnem vnosu gesla.
-Geslo mora vsebovati 24–72 črk ASCII in številk. Povezava prek lokalnega
+Geslo lahko vsebuje 16–72 izpisljivih znakov ASCII, vključno s posebnimi znaki;
+v konfiguracijo se zapiše citirano, z varno ubežanimi narekovaji, poševnicami
+in dolarji. Povezava prek lokalnega
 MariaDB v pomnilniku preveri točno uporabnika `einteg86_fapi`, bazo
 `einteg86_finai_dev`, odsotnost globalnih pravic in zgolj načrtovane začasne
 pravice SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX in REFERENCES na

@@ -24,7 +24,7 @@ PRIVATE = HOME / 'finai-laravel-private'
 DB = 'einteg86_finai_dev'
 DB_USER = 'einteg86_fapi'
 REQUIRED = {'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'INDEX', 'REFERENCES'}
-PASSWORD = re.compile(r'^[A-Za-z0-9]{24,72}$')
+PASSWORD = re.compile(r'^[\x20-\x7e]{16,72}$')
 ARCHIVE = 'finai-api-bc2777637e8a-package.tar.gz'
 MANIFEST = 'finai-api-bc2777637e8a-manifest.json'
 DIGESTS = {
@@ -148,10 +148,13 @@ def verify_database(password):
 def config_text(password, app_key):
     if not PASSWORD.fullmatch(password) or not re.fullmatch(r'[A-Za-z0-9+/]{43}=', app_key):
         raise Denied('invalid private configuration input')
+    # phpdotenv's double-quoted values accept escaped backslash, quote and
+    # dollar. Escaping dollars prevents expansion of ${...} in a password.
+    quoted_password = '"' + password.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$') + '"'
     return ('APP_NAME=FinAI\nAPP_ENV=production\nAPP_DEBUG=false\n'
             'APP_URL=https://api.e-integrator.si\nAPP_KEY=base64:' + app_key + '\n'
             'DB_CONNECTION=mysql\nDB_HOST=localhost\nDB_PORT=3306\nDB_DATABASE=' + DB + '\n'
-            'DB_USERNAME=' + DB_USER + '\nDB_PASSWORD=' + password + '\n'
+            'DB_USERNAME=' + DB_USER + '\nDB_PASSWORD=' + quoted_password + '\n'
             'SESSION_DRIVER=file\nSESSION_ENCRYPT=true\nSESSION_SECURE_COOKIE=true\n'
             'SESSION_SAME_SITE=lax\nSESSION_DOMAIN=.e-integrator.si\n'
             'SANCTUM_STATEFUL_DOMAINS=app.e-integrator.si,api.e-integrator.si\n'
@@ -214,7 +217,7 @@ def main():
             warnings.simplefilter('error', getpass.GetPassWarning)
             password = getpass.getpass('FinAI database password (input hidden): ')
         if not PASSWORD.fullmatch(password):
-            raise Denied('password must use 24–72 ASCII letters or digits')
+            raise Denied('password must use 16–72 printable ASCII characters')
         verify_database(password)
         identity()
         verify_artifact()
